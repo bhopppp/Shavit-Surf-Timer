@@ -848,7 +848,7 @@ public Action Command_SetMaxVelocity(int client, int args)
 	Shavit_LogMessage("%L - set sv_maxvelocity of `%s` to %f", client, gS_Map, fMaxVelocity);
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, maxvelocity) VALUES ('%s', %f);", gS_MySQLPrefix, map, fMaxVelocity);
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %smaptiers SET maxvelocity = %f WHERE maptiers.map = '%s';", gS_MySQLPrefix, fMaxVelocity, map);
 
 	QueryLog(gH_SQL, SQL_SetMapMaxVelocity_Callback, sQuery, fMaxVelocity);
 
@@ -910,7 +910,7 @@ public Action Command_SetTier(int client, int args)
 	Shavit_LogMessage("%L - set tier of `%s` to %d", client, map, tier);
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %smaptiers SET tier = %d WHERE maptiers.map = '%s';", gS_MySQLPrefix, tier, map);
 
 	DataPack data = new DataPack();
 	data.WriteCell(client ? GetClientSerial(client) : 0);
