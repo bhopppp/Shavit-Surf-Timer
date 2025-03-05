@@ -37,6 +37,7 @@
 #include <adminmenu>
 #include <shavit/replay-recorder>
 #include <shavit/replay-playback>
+#include <shavit/checkpoints>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -209,6 +210,7 @@ float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][MAX_STAGES][3];
 bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
 bool gB_ReplayPlayback = false;
+bool gB_Checkpoints = false;
 bool gB_AdminMenu = false;
 
 #define CZONE_VER 'b'
@@ -430,6 +432,7 @@ public void OnPluginStart()
 
 	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
+	gB_Checkpoints = LibraryExists("shavit-checkpoints");
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_AdminMenu = LibraryExists("adminmenu");
 
@@ -584,6 +587,14 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_ReplayRecorder = true;
 	}
+	else if (StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = true;
+	}
+	else if (StrEqual(name, "shavit-checkpoints"))
+	{
+		gB_Checkpoints = true;
+	}
 	else if (StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = true;
@@ -601,6 +612,14 @@ public void OnLibraryRemoved(const char[] name)
 	else if (StrEqual(name, "shavit-replay-recorder"))
 	{
 		gB_ReplayRecorder = false;
+	}
+	else if (StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = true;
+	}
+	else if (StrEqual(name, "shavit-checkpoints"))
+	{
+		gB_Checkpoints = false;
 	}
 	else if (StrEqual(name, "eventqueuefix"))
 	{
@@ -2841,6 +2860,16 @@ public Action Command_StageRestart(int client, int args)
 
 	int last = Shavit_GetClientLastStage(client);
 	int track = Shavit_GetClientTrack(client);
+
+	if (gB_Checkpoints)
+	{
+		int checkpoint = Shavit_GetCurrentCheckpoint(client);
+		if (Shavit_IsPracticeMode(client) && checkpoint > 0)
+		{
+			Shavit_TeleportToCheckpoint(client, checkpoint, true, client);
+			return Plugin_Handled;
+		}
+	}
 
 	// crude way to prevent cheesing
 	if (InsideZone(client, Zone_Stage, track) || InsideZone(client, Zone_Start, -1))
