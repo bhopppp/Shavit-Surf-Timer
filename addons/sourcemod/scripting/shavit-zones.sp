@@ -37,6 +37,7 @@
 #include <adminmenu>
 #include <shavit/replay-recorder>
 #include <shavit/replay-playback>
+#include <shavit/checkpoints>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -209,6 +210,7 @@ float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][MAX_STAGES][3];
 bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
 bool gB_ReplayPlayback = false;
+bool gB_Checkpoints = false;
 bool gB_AdminMenu = false;
 
 #define CZONE_VER 'b'
@@ -304,6 +306,13 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
 
 	RegConsoleCmd("sm_back", Command_Stages, "Teleport to your last stage.");
+	RegConsoleCmd("sm_gb", Command_Stages, "Teleport to your last stage.");
+
+	RegConsoleCmd("sm_rs", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_stagerestart", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_restartstage", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_teleport", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_stuck", Command_StageRestart, "Teleports the player to the current stage.");
 
 	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
@@ -423,6 +432,7 @@ public void OnPluginStart()
 
 	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
+	gB_Checkpoints = LibraryExists("shavit-checkpoints");
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_AdminMenu = LibraryExists("adminmenu");
 
@@ -577,6 +587,14 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_ReplayRecorder = true;
 	}
+	else if (StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = true;
+	}
+	else if (StrEqual(name, "shavit-checkpoints"))
+	{
+		gB_Checkpoints = true;
+	}
 	else if (StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = true;
@@ -594,6 +612,14 @@ public void OnLibraryRemoved(const char[] name)
 	else if (StrEqual(name, "shavit-replay-recorder"))
 	{
 		gB_ReplayRecorder = false;
+	}
+	else if (StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = true;
+	}
+	else if (StrEqual(name, "shavit-checkpoints"))
+	{
+		gB_Checkpoints = false;
 	}
 	else if (StrEqual(name, "eventqueuefix"))
 	{
@@ -2814,6 +2840,63 @@ public Action Command_Stages(int client, int args)
 
 		menu.ExitButton = true;
 		menu.Display(client, MENU_TIME_FOREVER);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_StageRestart(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "%T", "StageCommandAlive", client);
+		return Plugin_Handled;
+	}
+
+	int last = Shavit_GetClientLastStage(client);
+	int track = Shavit_GetClientTrack(client);
+
+	if (gB_Checkpoints)
+	{
+		int checkpoint = Shavit_GetCurrentCheckpoint(client);
+		if (Shavit_IsPracticeMode(client) && checkpoint > 0)
+		{
+			Shavit_TeleportToCheckpoint(client, checkpoint, true, client);
+			return Plugin_Handled;
+		}
+	}
+
+	// crude way to prevent cheesing
+	if (InsideZone(client, Zone_Stage, track) || InsideZone(client, Zone_Start, -1))
+	{
+		return Plugin_Handled;
+	}
+
+	if (last <= 1 || Shavit_GetTimerStatus(client) == Timer_Stopped || InsideZone(client, Zone_End, track))
+	{
+		Shavit_RestartTimer(client, track, true);
+	}
+	else
+	{
+		for(int i = 0; i < gI_MapZones; i++)
+		{
+			if (gA_ZoneCache[i].iType == Zone_Stage && gA_ZoneCache[i].iData == last && gA_ZoneCache[i].iTrack == track)
+			{
+				if (!EmptyVector(gA_ZoneCache[i].fDestination))
+				{
+					TeleportEntity(client, gA_ZoneCache[i].fDestination, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+				else
+				{
+					TeleportEntity(client, gV_ZoneCenter[i], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+			}
+		}
 	}
 
 	return Plugin_Handled;
