@@ -304,6 +304,13 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
 
 	RegConsoleCmd("sm_back", Command_Stages, "Teleport to your last stage.");
+	RegConsoleCmd("sm_gb", Command_Stages, "Teleport to your last stage.");
+
+	RegConsoleCmd("sm_rs", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_stagerestart", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_restartstage", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_teleport", Command_StageRestart, "Teleports the player to the current stage.");
+	RegConsoleCmd("sm_stuck", Command_StageRestart, "Teleports the player to the current stage.");
 
 	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
@@ -2814,6 +2821,53 @@ public Action Command_Stages(int client, int args)
 
 		menu.ExitButton = true;
 		menu.Display(client, MENU_TIME_FOREVER);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_StageRestart(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "%T", "StageCommandAlive", client);
+		return Plugin_Handled;
+	}
+
+	int last = Shavit_GetClientLastStage(client);
+	int track = Shavit_GetClientTrack(client);
+
+	// crude way to prevent cheesing
+	if (InsideZone(client, Zone_Stage, track) || InsideZone(client, Zone_Start, -1))
+	{
+		return Plugin_Handled;
+	}
+
+	if (last <= 1 || Shavit_GetTimerStatus(client) == Timer_Stopped || InsideZone(client, Zone_End, track))
+	{
+		Shavit_RestartTimer(client, track, true);
+	}
+	else
+	{
+		for(int i = 0; i < gI_MapZones; i++)
+		{
+			if (gA_ZoneCache[i].iType == Zone_Stage && gA_ZoneCache[i].iData == last && gA_ZoneCache[i].iTrack == track)
+			{
+				if (!EmptyVector(gA_ZoneCache[i].fDestination))
+				{
+					TeleportEntity(client, gA_ZoneCache[i].fDestination, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+				else
+				{
+					TeleportEntity(client, gV_ZoneCenter[i], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+			}
+		}
 	}
 
 	return Plugin_Handled;
