@@ -8,6 +8,26 @@
 	{
 		"en"		"Tips: Excute: bind <KEY> \"+paint\" in consle to bind a key to paint \n  "
 	}
+	"ModeContinuous"
+	{
+		"en"		"Continuous"
+	}
+	"ModeSingle"
+	{
+		"en"		"Single"
+	}
+	"TogglePaint"
+	{
+		"en"		"Paint"
+	}
+	"PaintMode"
+	{
+		"en"		"Paint Mode"
+	}
+	"ToggleErase"
+	{
+		"en"		"Erase"
+	}
 	"PaintColor"
 	{
 		"en"		"Paint Color"
@@ -19,6 +39,14 @@
 	"PaintObject"
 	{
 		"en"		"Paint Object"
+	}
+	"PaintOptions"
+	{
+		"en"		"Paint Options"
+	}
+	"PaintOptionMenuTitle"
+	{
+		"en"		"Paint Options"
 	}
 	"PaintEraser"
 	{	
@@ -39,6 +67,107 @@
 	"ObjectSingle"
 	{
 		"en"		"Own"
+	}
+	"PaintSelectPartner"
+	{
+		"en"		"Select a partner"
+	}
+	"NoPartner"
+	{
+		"en"		"You are not partnered with anyone."
+	}
+	"Refresh"
+	{
+		"en"		"Refresh"
+	}
+	"ReceivePartnerRequest"
+	{
+		"en"		"Receive partner requests"
+	}
+	"RemovePartner"
+	{
+		"en"		"Remove partner"
+	}
+	"SendPartnerRequest"
+	{
+		"en"		"Send request to a player"
+	}
+	"NoPartnerFound"
+	{
+		"en"		"No partner found"
+	}
+	"RequestSent"
+	{
+		"en"		"Request sent."
+	}
+	"ResponseWaitingMenuTitle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Waiting response from {1}"
+	}
+	"ReceivedRequest"
+	{
+		"#format"	"{1:s}"
+		"en"		"Received paint partner request from {1}"
+	}
+	"AcceptRequest"
+	{
+		"en"		"Accept"
+	}
+	"DeclineRequest"
+	{
+		"en"		"Decline"
+	}
+	"CancelRequest"
+	{
+		"en"		"Cancel"
+	}
+	"MenuAutoClose"
+	{
+		"en"		"Menu will close in 10 seconds..."
+	}
+	"MenuClose"
+	{
+		"en"		"Close"
+	}
+	"RequestAccepted"
+	{
+		"#format"	"{1:s}"
+		"en"		"Your request has been accepted by {1}"
+	}
+	"RequestDeclined"
+	{
+		"#format"	"{1:s}"
+		"en"		"Your request has been declined by {1}"
+	}
+	"RequestCanceled"
+	{
+		"#format"	"{1:s}"
+		"en"		"This request has been canceled by {1}"
+	}
+	"RequestAborted"
+	{
+		"#format"	"{1:s}"
+		"en"		"Partnering with {1} aborted"
+	}
+	"Partnered"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Your are now partnered with {1}{2}{3}."
+	}
+	"Unpartnered"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Your are no longer partnered with {1}{2}{3}."
+	}
+	"PartnerDisconnected"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Your partner {1}{2}{3} has disconnected."
+	}
+	"PaintModeChangeError"
+	{
+		"en"		"You cannot change paint mode while painting."
 	}
 	"PaintClear"
 	{
