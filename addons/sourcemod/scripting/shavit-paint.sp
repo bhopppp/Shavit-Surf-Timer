@@ -148,7 +148,7 @@ public void OnMapStart()
 	char buffer[PLATFORM_MAX_PATH];
 
 	AddFileToDownloadsTable("materials/decals/paint/paint_decal.vtf");
-	AddFileToDownloadsTable("materials/decals/paint/paint_eraser.vtf")
+	AddFileToDownloadsTable("materials/decals/paint/paint_eraser.vtf");
 	for (int color = 1; color < sizeof(gS_PaintColors); color++)
 	{
 		for (int size = 0; size < sizeof(gS_PaintSizes); size++)
