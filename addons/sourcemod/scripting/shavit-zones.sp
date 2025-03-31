@@ -4546,12 +4546,15 @@ bool InStartOrEndZone(float point1[3], float point2[3], int track, int type)
 
 	for (int i = 0; i < MAX_ZONES; i++)
 	{
-		if (gA_ZoneCache[i].iEntity == -1
-		|| 	(gA_ZoneCache[i].iTrack == track && gA_ZoneCache[i].iType == type)	// Is the same zone ? continue
-		||  (gA_ZoneCache[i].iType != Zone_End && gA_ZoneCache[i].iType != Zone_Start)) // Dont compare the point if its not an start / end zone.
-		{
+		// we only care about start/end zones
+		if (gA_ZoneCache[i].iType != Zone_End && gA_ZoneCache[i].iType != Zone_Start)
 			continue;
-		}
+		// we don't care about start/end zones from other tracks
+		if (gA_ZoneCache[i].iTrack != track)
+			continue;
+		// placing multiple overlapping startzones, or multiple overlapping endzones, is fine
+		if (gA_ZoneCache[i].iType == type)
+			continue;
 
 		float bmin[3], bmax[3];
 		BoxPointsToMinsMaxs(gV_MapZones_Visual[i][0], gV_MapZones_Visual[i][7], bmin, bmax);
