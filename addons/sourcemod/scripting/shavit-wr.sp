@@ -2894,7 +2894,7 @@ public Action Command_WorldRecord(int client, int args)
 			GetCmdArg((args > 1) ? 2 : 1, arg, sizeof(arg));	// only 1 args, read that as stage number, else first one is map name second one is stage num.
 			stage = StringToInt(arg);
 
-			// if the track doesn't fit in the max stage range then assume it's a map name
+			// if the stage doesn't fit in the max stage range then assume it's a map name
 			if (args > 1 || stage < 1 || stage > MAX_STAGES)
 			{
 				havemap = true;
@@ -2903,7 +2903,7 @@ public Action Command_WorldRecord(int client, int args)
 
 		if (stage == 0)	// if the fucking args is 1 and its not a number, the stage will assign to 0. :(
 		{
-			stage = havemap ? 1:-1;
+			stage = -1;
 		}
 	}
 	else
@@ -3056,26 +3056,40 @@ void RetrieveWRMenu(int client, int track, int stage = 0)
 	}
 	else if (stage < 0)
 	{
-		int iStageCount = Shavit_GetStageCount(Track_Main);
-
-		if(iStageCount == 0)
+		if(StrEqual(gA_WRCache[client].sClientMap, gS_Map))
 		{
-			return;
+			int iStageCount = Shavit_GetStageCount(Track_Main);
+
+			if(iStageCount == 0)
+			{
+				Shavit_PrintToChat(client, "%T", "NoStages", client, gS_ChatStrings.sVariable2, gA_WRCache[client].sClientMap, gS_ChatStrings.sText);
+				return;
+			}
+
+			Menu selectstage = new Menu(MenuHandler_WRSelectStage);
+			selectstage.SetTitle("%T", "WRMenuStageTitle", client);
+			char sSelection[4];
+			char sMenu[16];
+
+			for(int i = 1; i <= iStageCount; i++)
+			{
+				IntToString(i, sSelection, sizeof(sSelection));
+				FormatEx(sMenu, sizeof(sMenu), "%T %d", "StageText", client, i);
+				selectstage.AddItem(sSelection, sMenu);
+			}
+
+			selectstage.Display(client, MENU_TIME_FOREVER);
 		}
-
-		Menu selectstage = new Menu(MenuHandler_WRSelectStage);
-		selectstage.SetTitle("%T", "WRMenuStageTitle", client);
-		char sSelection[4];
-		char sMenu[16];
-
-		for(int i = 1; i <= iStageCount; i++)
+		else 
 		{
-			IntToString(i, sSelection, sizeof(sSelection));
-			FormatEx(sMenu, sizeof(sMenu), "%T %d", "StageText", client, i);
-			selectstage.AddItem(sSelection, sMenu);
-		}
+			gA_WRCache[client].bPendingMenu = true;
+			char sQuery[512];
+			FormatEx(sQuery, sizeof(sQuery),
+				"SELECT MAX(data) AS stage FROM %smapzones WHERE map = '%s' AND type = 2;",
+				gS_MySQLPrefix, gA_WRCache[client].sClientMap, track, gI_Styles);
 
-		selectstage.Display(client, MENU_TIME_FOREVER);
+			QueryLog(gH_SQL, SQL_RetrieveWRCPStageMenu_Callback, sQuery, GetClientSerial(client));
+		}
 
 		return;
 	}
@@ -3145,22 +3159,62 @@ public int MenuHandler_WRSelectStage(Menu menu, MenuAction action, int param1, i
 	return 0;
 }
 
-public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_RetrieveWRCPStageMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	int client = GetClientFromSerial(data);
+	gA_WRCache[client].bPendingMenu = false;
+
 	if(results == null)
 	{
 		LogError("Timer (WR RetrieveWRMenu) SQL query failed. Reason: %s", error);
 		return;
 	}
 
+	int iStageCount = 0;
+
+	if(results.FetchRow())
+	{
+		iStageCount = results.FetchInt(0);
+	}
+
+	if(iStageCount == 0)
+	{
+		Shavit_PrintToChat(client, "%T", "NoStages", client, gS_ChatStrings.sVariable2, gA_WRCache[client].sClientMap, gS_ChatStrings.sText);
+		return;
+	}
+
+	Menu selectstage = new Menu(MenuHandler_WRSelectStage);
+	selectstage.SetTitle("%T", "WRMenuStageTitle", client);
+	char sSelection[4];
+	char sMenu[16];
+
+	for(int i = 1; i <= iStageCount; i++)
+	{
+		IntToString(i, sSelection, sizeof(sSelection));
+		FormatEx(sMenu, sizeof(sMenu), "%T %d", "StageText", client, i);
+		selectstage.AddItem(sSelection, sMenu);
+	}
+
+	selectstage.Display(client, MENU_TIME_FOREVER);
+
+	return;
+}
+
+public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
 	int client = GetClientFromSerial(data);
+	gA_WRCache[client].bPendingMenu = false;
+
+	if(results == null)
+	{
+		LogError("Timer (WR RetrieveWRMenu) SQL query failed. Reason: %s", error);
+		return;
+	}
 
 	if(client == 0)
 	{
 		return;
 	}
-
-	gA_WRCache[client].bPendingMenu = false;
 
 	for (int i = 0; i < gI_Styles; i++)
 	{
@@ -3596,9 +3650,8 @@ void RecentRecords_DoQuery(int client, char[] style)
 	(gB_RRSelectMain[client] || gB_RRSelectBonus[client]) ? sQuery1:"", gB_RRSelectStage[client] ? sQuery2:"",
 	gCV_RecentLimit.IntValue);
 
-	QueryLog(gH_SQL, SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
-
 	gA_WRCache[client].bPendingMenu = true;
+	QueryLog(gH_SQL, SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
 
 
