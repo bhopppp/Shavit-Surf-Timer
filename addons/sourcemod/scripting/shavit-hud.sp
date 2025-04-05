@@ -835,6 +835,9 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudSplitPbText", client);
 	menu.AddItem(sInfo, sHudItem);
 
+	FormatEx(sInfo, 16, "#%d", HUD_DISPLAYPB);
+	FormatEx(sHudItem, 64, "%T", "HudRecordsDisplay", client);
+	menu.AddItem(sInfo, sHudItem);
 
 	//misc
 	FormatEx(sInfo, 16, "!%d", HUD_KEYOVERLAY);
@@ -2497,7 +2500,7 @@ void UpdateKeyHint(int client, bool force = false)
 						Format(sMessage, sizeof(sMessage), "%s%sSH: Loading...", sMessage, (strlen(sMessage) > 0)? "\n\n":"");
 					}
 
-					if (fWRTime != 0.0)
+					if (fWRTime != 0.0 && (gI_HUDSettings[client] & HUD_DISPLAYPB) == 0)
 					{
 						char sWRTime[16];
 						FormatSeconds(fWRTime, sWRTime, 16);
@@ -2513,7 +2516,7 @@ void UpdateKeyHint(int client, bool force = false)
 				else
 				#endif
 				{
-					if (fWRTime != 0.0)
+					if (fWRTime != 0.0 && (gI_HUDSettings[client] & HUD_DISPLAYPB) == 0)
 					{
 						char sWRTime[16];
 						FormatSeconds(fWRTime, sWRTime, 16);
@@ -2527,13 +2530,13 @@ void UpdateKeyHint(int client, bool force = false)
 					}
 				}
 
-				float fSelfPB = Shavit_GetClientPB(client, style, track);
-				char sSelfPB[64];
-				FormatSeconds(fSelfPB, sSelfPB, sizeof(sSelfPB));
-				Format(sSelfPB, sizeof(sSelfPB), "%T: %s", "HudPersonalBest", client, sSelfPB);
-
-				if(!bReplay)
+				if(!bReplay && (gI_HUDSettings[client] & HUD_DISPLAYWR) == 0)
 				{
+					float fSelfPB = Shavit_GetClientPB(client, style, track);
+					char sSelfPB[64];
+					FormatSeconds(fSelfPB, sSelfPB, sizeof(sSelfPB));
+					Format(sSelfPB, sizeof(sSelfPB), "%T: %s", "HudPersonalBest", client, sSelfPB);
+
 					if((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
 					{
 						char sName[64];
@@ -2546,17 +2549,17 @@ void UpdateKeyHint(int client, bool force = false)
 							FormatSeconds(fTargetPB, sTargetPB, sizeof(sTargetPB));
 							Format(sTargetPB, sizeof(sTargetPB), "%T: %s", "HudPersonalBest", client, sTargetPB);
 
-							Format(sMessage, sizeof(sMessage), "%s\n%s (#%d) (%s)", sMessage, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), sName);
+							Format(sMessage, sizeof(sMessage), "%s%s%s (#%d) (%s)", sMessage, (gI_HUDSettings[client] & HUD_DISPLAYPB) == 0 ? "\n": gB_WRSH && (Shavit_GetSHMapRecordTime(track) > 0.0 || Shavit_GetSHMapRecordTime(track) == -1.0) ? "\n":"\n\n", sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), sName);
 						}
 
 						if(fSelfPB != 0.0)
 						{
-							Format(sMessage, sizeof(sMessage), "%s\n%s (#%d)", sMessage, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
+							Format(sMessage, sizeof(sMessage), "%s%s%s (#%d)", sMessage, fTargetPB != 0.0 ? "\n": (gI_HUDSettings[client] & HUD_DISPLAYPB) == 0 ? "\n": gB_WRSH && (Shavit_GetSHMapRecordTime(track) > 0.0 || Shavit_GetSHMapRecordTime(track) == -1.0) ? "\n":"\n\n", sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
 						}
 					}
 					else if(fSelfPB != 0.0)
 					{
-						Format(sMessage, sizeof(sMessage), "%s\n%s (#%d)", sMessage, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
+						Format(sMessage, sizeof(sMessage), "%s%s%s (#%d)", sMessage, (gI_HUDSettings[client] & HUD_DISPLAYPB) == 0 ? "\n": gB_WRSH && (Shavit_GetSHMapRecordTime(track) > 0.0 || Shavit_GetSHMapRecordTime(track) == -1.0) ? "\n":"\n\n", sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
 					}
 				}
 			}
@@ -2595,15 +2598,18 @@ void UpdateKeyHint(int client, bool force = false)
 							Format(sMessage, sizeof(sMessage), "%s%s- %T %d -", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "StageText", client, stage);							
 						}
 						
-						char sStageWRName[MAX_NAME_LENGTH];
-						Shavit_GetStageWRName(style, sStageWRName, MAX_NAME_LENGTH, stage);
+						if((gI_HUDSettings[client] & HUD_DISPLAYPB) == 0)
+						{
+							char sStageWRName[MAX_NAME_LENGTH];
+							Shavit_GetStageWRName(style, sStageWRName, MAX_NAME_LENGTH, stage);
 
-						TrimDisplayString(sStageWRName, sStageWRName, sizeof(sStageWRName), gCV_RecordNameSymbolLength.IntValue);
+							TrimDisplayString(sStageWRName, sStageWRName, sizeof(sStageWRName), gCV_RecordNameSymbolLength.IntValue);
 
-						char sStageWR[16];
-						FormatSeconds(fStageWR, sStageWR, sizeof(sStageWR));
+							char sStageWR[16];
+							FormatSeconds(fStageWR, sStageWR, sizeof(sStageWR));
 
-						Format(sMessage, sizeof(sMessage), "%s\n%T: %s (%s)", sMessage, "HudRecord", client, sStageWR, sStageWRName);
+							Format(sMessage, sizeof(sMessage), "%s\n%T: %s (%s)", sMessage, "HudRecord", client, sStageWR, sStageWRName);							
+						}
 					}	
 				}
 				else
@@ -2612,16 +2618,20 @@ void UpdateKeyHint(int client, bool force = false)
 					if (fStageWR != 0.0)
 					{
 						Format(sMessage, sizeof(sMessage), "%s%s- %T %d -", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "StageText", client, stage);
-						char sStageWRName[MAX_NAME_LENGTH];
-						Shavit_GetStageWRName(style, sStageWRName, MAX_NAME_LENGTH, stage);
 
-						TrimDisplayString(sStageWRName, sStageWRName, sizeof(sStageWRName), gCV_RecordNameSymbolLength.IntValue);
+						if((gI_HUDSettings[client] & HUD_DISPLAYPB) == 0)
+						{
+							char sStageWRName[MAX_NAME_LENGTH];
+							Shavit_GetStageWRName(style, sStageWRName, MAX_NAME_LENGTH, stage);
 
-						char sStageWR[16];
-						FormatSeconds(fStageWR, sStageWR, sizeof(sStageWR));
+							TrimDisplayString(sStageWRName, sStageWRName, sizeof(sStageWRName), gCV_RecordNameSymbolLength.IntValue);
 
-						Format(sMessage, sizeof(sMessage), "%s\n%T: %s (%s)", sMessage, "HudRecord", client, sStageWR, sStageWRName);
-					}					
+							char sStageWR[16];
+							FormatSeconds(fStageWR, sStageWR, sizeof(sStageWR));
+
+							Format(sMessage, sizeof(sMessage), "%s\n%T: %s (%s)", sMessage, "HudRecord", client, sStageWR, sStageWRName);							
+						}
+					}
 				}
 
 				float fSelfStagePB = Shavit_GetClientStagePB(client, style, stage);
@@ -2630,7 +2640,7 @@ void UpdateKeyHint(int client, bool force = false)
 				FormatSeconds(fSelfStagePB, sSelfStagePB, sizeof(sSelfStagePB));
 				Format(sSelfStagePB, sizeof(sSelfStagePB), "%T: %s", "HudPersonalBest", client, sSelfStagePB);
 
-				if(!bReplay)
+				if(!bReplay && (gI_HUDSettings[client] & HUD_DISPLAYWR) == 0)
 				{
 					char sName[64];
 

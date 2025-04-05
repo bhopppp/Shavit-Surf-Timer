@@ -41,6 +41,8 @@
 #define HUD_DEBUGTARGETNAME     (1 << 13) // admin option to show current targetname & classname
 #define HUD_SPECTATORSDEAD 		(1 << 14) // for only showing spectators list when you're dead/spectating.
 #define HUD_MAPINFO 			(1 << 15) // show map name and tier in key hint.
+#define HUD_DISPLAYPB       	(1 << 16) // only displays personal best
+#define HUD_DISPLAYWR         	(1 << 17) // only displays record
 
 // HUD2 - these settings will *disable* elements for the main hud
 #define HUD2_TIME               (1 << 0)

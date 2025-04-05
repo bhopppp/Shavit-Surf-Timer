@@ -261,6 +261,10 @@
 	{
 		"en"		"Display Stage WR/PB"
 	}
+	"HudRecordsDisplay"
+	{
+		"en"		"Records Display: 1=PB 2=WR 3=Both"
+	}
 	"HudDefaultPistol"
 	{
 		"en"		"Default Pistol: 1=USP 2=Glock"
