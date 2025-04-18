@@ -3861,7 +3861,7 @@ public void CheckClientStartVelocity(int client, bool stagestart)
 		}
 		else if(gCV_PrestrafeZone.IntValue == 3)
 		{
-			bZoneLimited = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) == 0;
+			bZoneLimited = ((iSpeedLimitFlags & ZSLF_NoVerticalSpeed) == 0 || ((iSpeedLimitFlags & ZSLF_LimitSpeed) == 0 && (iSpeedLimitFlags & ZSLF_ReduceSpeed) == 0));
 		}
 		else
 		{
