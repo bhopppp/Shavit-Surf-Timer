@@ -2102,7 +2102,7 @@ public Action Command_SetStart(int client, int args)
 	}	
 
 	int track = Shavit_GetClientTrack(client);
-	int stage = Shavit_IsOnlyStageMode(client) ? Shavit_GetClientLastStage(client) : 1;
+	int stage = Shavit_IsOnlyStageMode(client) && track == Track_Main ? Shavit_GetClientLastStage(client) : 1;
 
 	char sTrack[32];
 	if(stage == 1)
