@@ -2598,7 +2598,7 @@ public Action Command_CheckpointRecord(int client, int args)
 			case 0:
 			{
 				delete wrmatches;
-				Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
+				Shavit_PrintToChat(client, "%t", "Map was not found", client, gA_WRCache[client].sClientMap);
 				return Plugin_Handled;
 			}
 			case 1:
@@ -2901,7 +2901,7 @@ public Action Command_WorldRecord(int client, int args)
 			}
 		}
 
-		if (stage == 0)	// if the fucking args is 1 and its not a number, the stage will assign to 0. :(
+		if (stage == 0 || (args == 1 && havemap))	// if the fucking args is 1 and its not a number, the stage will assign to 0. :(
 		{
 			stage = -1;
 		}
@@ -2943,7 +2943,7 @@ public Action Command_WorldRecord(int client, int args)
 			case 0:
 			{
 				delete wrmatches;
-				Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
+				Shavit_PrintToChat(client, "%t", "Map was not found", client, gA_WRCache[client].sClientMap);
 				return Plugin_Handled;
 			}
 			case 1:
