@@ -171,7 +171,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetTimeForRank", Native_GetTimeForRank);
 	CreateNative("Shavit_GetWorldRecord", Native_GetWorldRecord);
 	CreateNative("Shavit_GetWRStartVelocity", Native_GetWRStartVelocity);
-	CreateNative("Shavit_GettWREndVelocity", Native_GetWREndVelocity);
+	CreateNative("Shavit_GetWREndVelocity", Native_GetWREndVelocity);
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_ReloadLeaderboards", Native_ReloadLeaderboards);
@@ -5446,10 +5446,7 @@ public void SQL_UpdateStageLeaderboards_Callback(Database db, DBResultSet result
 
 public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float time)
 {
-	if(!Shavit_IsPracticeMode(client))
-	{
-		Shavit_SetClientCPTime(client, checkpoint, time);
-	}
+	Shavit_SetClientCPTime(client, checkpoint, time);
 
 	int style = Shavit_GetBhopStyle(client);
 	int iCheckpointCounts = Shavit_GetCheckpointCount(track);
