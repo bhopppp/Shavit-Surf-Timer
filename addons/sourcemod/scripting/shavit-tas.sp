@@ -56,6 +56,7 @@ float g_fPower[MAXPLAYERS + 1] = {1.0, ...};
 bool gB_AutogainBasicStrafer[MAXPLAYERS + 1];
 
 bool gB_ForceJump[MAXPLAYERS+1];
+int gI_LastRestart[MAXPLAYERS+1];
 
 ConVar sv_airaccelerate = null;
 ConVar sv_accelerate = null;
@@ -252,9 +253,30 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 	}
 }
 
+public void Shavit_OnRestart(int client, int track)
+ {
+ 	gI_LastRestart[client] = GetGameTickCount();
+ }
+
+public Action Shavit_OnTeleportPre(int client, int index, int target)
+{
+	gI_LastRestart[client] = GetGameTickCount();
+
+	return Plugin_Continue;
+}
+
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data)
 {
 	if (!IsValidClient(client, true) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	if (type == Zone_Start || (type == Zone_Stage && Shavit_GetClientLastStage(client) == data))
+ 	{
+		// do nothing
+ 	}
+	else
 	{
 		return;
 	}
@@ -269,14 +291,23 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 		return;
 	}
 
-	if (type == Zone_Start || type == Zone_Stage)
+	if (Shavit_InsideZone(client, type, track))
+ 	{
+ 		return;
+ 	}
+
+	// Shavit_OnLeaveZone() will be called a couple times because of the shavit-zones event-clearing thing that happens on restart.
+ 	// 5 is a good value that works, but we'll use 6 just-in-case.
+ 	if (GetGameTickCount() - gI_LastRestart[client] < 6)
+ 	{
+ 		return;
+ 	}
+
+	if (GetEntityFlags(client) & FL_ONGROUND)
 	{
-		if (GetEntityFlags(client) & FL_ONGROUND)
+		if (gB_AutoJumpOnStart[client])
 		{
-			if (gB_AutoJumpOnStart[client])
-			{
-				gB_ForceJump[client] = true;
-			}
+			gB_ForceJump[client] = true;
 		}
 	}
 }

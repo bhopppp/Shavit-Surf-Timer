@@ -65,7 +65,7 @@ stock float Vec2DToYaw(float vec[2])
  * So forward/right vector changing but not sidemove and forwardmove for the case where we modify our angles. (1)
  * But in our case we want sidemove and forwardmove values changing and not the forward/right vectors. (2)
  * So our unknown variables is fmove and smove to know the (2) case. But we know the (1) case so we can solve this into a linear equation.
- * To make it more simplier, we know the wishdir values and forward/right vectors, but we do not know the fowardmove and sidemove variables
+ * To make it more simplier, we know the wishdir values and forward/right vectors, but we do not know the forwardmove and sidemove variables
  * and that's what we want to solve.
  * That's what is doing this function, but only in 2D since we can only move forward or side.
  * But, for noclip (3D) it's a different story that I will let you discover, same method, but 3 equations and 3 unknown variables (forwardmove, sidemove, upmove).
@@ -73,8 +73,8 @@ stock float Vec2DToYaw(float vec[2])
 
 stock void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRight[2], float &flForwardMove, float &flSideMove, float flMaxMove)
 {
-	// wishdir[0] = foward[0] * forwardmove + right[0] * sidemove;
-	// wishdir[1] = foward[1] * forwardmove + right[1] * sidemove;
+	// wishdir[0] = forward[0] * forwardmove + right[0] * sidemove;
+	// wishdir[1] = forward[1] * forwardmove + right[1] * sidemove;
 
 	// Let's translate this to letters.
 	// v = a * b + c * d
@@ -359,7 +359,7 @@ stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float v
 	// clear out forward because Surf_W_Okay is nice...
 	vel[0] = 0.0;
 
-	float flFowardMove, flSideMove;
+	float flForwardMove, flSideMove;
 	float flMaxSpeed = Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "runspeed");
 	float flVelocity[3], flVelocity2D[2];
 
@@ -370,7 +370,7 @@ stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float v
 
 	// PrintToChat(client, "%f", SquareRoot(flVelocity2D[0] * flVelocity2D[0] + flVelocity2D[1] * flVelocity2D[1]));
 
-	GetIdealMovementsInAir(angles[1], flVelocity2D, flMaxSpeed, flSurfaceFriction, flFowardMove, flSideMove, true, flAirAccelerate, flMaxMove, flAirSpeedCap);
+	GetIdealMovementsInAir(angles[1], flVelocity2D, flMaxSpeed, flSurfaceFriction, flForwardMove, flSideMove, true, flAirAccelerate, flMaxMove, flAirSpeedCap);
 
 	float flAngleDifference = AngleNormalize(angles[1] - flOldYawAngle);
 	float flCurrentAngles = FloatAbs(flAngleDifference);
@@ -383,7 +383,7 @@ stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float v
 
 		if (flCurrentAngles <= flMaxDelta * fPower)
 		{
-			vel[0] = flFowardMove * flMaxMove;
+			vel[0] = flForwardMove * flMaxMove;
 			vel[1] = flSideMove * flMaxMove;
 		}
 		else
@@ -397,7 +397,7 @@ stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float v
 
 		if (flCurrentAngles <= flMaxDelta * fPower)
 		{
-			vel[0] = flFowardMove * flMaxMove;
+			vel[0] = flForwardMove * flMaxMove;
 			vel[1] = flSideMove * flMaxMove;
 		}
 		else
@@ -407,7 +407,7 @@ stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float v
 	}
 	else
 	{
-		vel[0] = flFowardMove * flMaxMove;
+		vel[0] = flForwardMove * flMaxMove;
 		vel[1] = flSideMove * flMaxMove;
 	}
 
