@@ -394,6 +394,8 @@ public void OnPluginStart()
 	gCV_DefaultZonePrespeedLimit = new Convar("shavit_zone_defaultzoneprespeedlimit", defaultFlags, "Default Zone prespeed limit settings as a bitflag\nLimit horizental speed				1\nBlock bunnyhop						2\nBlock pre-jump						4\nReduce speed when exceeding limit	8", 0, true, 0.0);
 
 	gCV_SQLZones.AddChangeHook(OnConVarChanged);
+	gCV_PrebuiltZones.AddChangeHook(OnConVarChanged);
+	gCV_ClimbButtons.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 	gCV_Offset.AddChangeHook(OnConVarChanged);
@@ -612,7 +614,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_Offset || convar == gCV_PrebuiltVisualOffset)
 	{
-		for (int i = 0; i < gI_MapZones; i++)
+		for (int i = 0; i < gI_MapZones; i--)
 		{
 			if ((convar == gCV_Offset && gA_ZoneCache[i].iForm == ZoneForm_Box)
 			||  (convar == gCV_PrebuiltVisualOffset && gA_ZoneCache[i].iForm == ZoneForm_trigger_multiple))
@@ -640,7 +642,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_SQLZones)
 	{
-		for (int i = gI_MapZones; i > 0; i++)
+		for (int i = gI_MapZones; i > 0; i--)
 		{
 			if (StrEqual(gA_ZoneCache[i-1].sSource, "sql"))
 				Shavit_RemoveZone(i-1);
@@ -650,7 +652,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_PrebuiltZones)
 	{
-		for (int i = gI_MapZones; i > 0; i++)
+		for (int i = gI_MapZones; i > 0; i--)
 		{
 			if (StrEqual(gA_ZoneCache[i-1].sSource, "autozone"))
 				Shavit_RemoveZone(i-1);
@@ -660,7 +662,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_ClimbButtons)
 	{
-		for (int i = gI_MapZones; i > 0; i++)
+		for (int i = gI_MapZones; i > 0; i--)
 		{
 			if (StrEqual(gA_ZoneCache[i-1].sSource, "autobutton"))
 				Shavit_RemoveZone(i-1);
@@ -6226,6 +6228,11 @@ public void StartTouchPost(int entity, int other)
 					int iLastStage = Shavit_GetClientLastStage(other);
 					if (stage > iLastStage)
 					{
+						if(stage == iLastStage + 1)
+						{
+							Shavit_FinishStage(other, track, iLastStage);
+						}
+
 						Call_StartForward(gH_Forwards_ReachNextStage);
 						Call_PushCell(other);
 						Call_PushCell(track);
