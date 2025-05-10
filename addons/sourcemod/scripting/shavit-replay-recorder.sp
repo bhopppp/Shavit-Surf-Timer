@@ -271,11 +271,6 @@ public Action Shavit_OnStart(int client)
 		gI_HijackFrames[client] = 0;
 	}
 
-	if(gB_DelayClearFrame[client])
-	{
-		EndClearFrameDelay(client);
-	}
-
 	if (gB_GrabbingPostFrames[client][0])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
@@ -284,6 +279,11 @@ public Action Shavit_OnStart(int client)
 	if(gB_GrabbingPostFrames[client][1])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+	}
+
+	if(gB_DelayClearFrame[client])
+	{
+		EndClearFrameDelay(client);
 	}
 
 	int iMaxPreFrames = RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed"));
@@ -367,7 +367,12 @@ public Action Timer_StagePostFrames(Handle timer, int client)
 public Action Timer_ClearFrames(Handle timer, int client)
 {
 	gH_ClearFramesDelay[client] = null;
-	EndClearFrameDelay(client);
+
+	if(gB_DelayClearFrame[client])
+	{
+		gB_DelayClearFrame[client] = false;
+		ClearFrames(client);
+	}
 
 	return Plugin_Stop;
 }
