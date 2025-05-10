@@ -6240,11 +6240,6 @@ public void StartTouchPost(int entity, int other)
 						Call_PushCell(stage);
 						Call_Finish();
 
-						if(stage == iLastStage + 1)
-						{
-							Shavit_FinishStage(other, track, iLastStage);
-						}
-
 						if (!Shavit_IsOnlyStageMode(other))
 						{
 							Call_StartForward(gH_Forwards_ReachNextCP);
