@@ -4290,7 +4290,7 @@ public void SQL_CheckpointRecordsMenu_Callback(Database db, DBResultSet results,
 	int iAttempts;
 	char sTime[32];
 	char sMenuItem[128];
-	char sInfo[4];
+	char sInfo[16];
 	char sName[MAX_NAME_LENGTH];
 
 	Menu menu = new Menu(MenuHandler_CheckpointRecords);
