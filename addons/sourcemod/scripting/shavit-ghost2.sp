@@ -568,6 +568,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
+public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, ArrayList offsets, int preframes, int postframes, const char[] name)
 {
 	if(isbestreplay && !istoolong)
 	{
