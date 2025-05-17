@@ -112,10 +112,12 @@ Handle gH_GhostBoxColorCookie;
 Handle gH_GhostBoxSizeCookie;
 
 //Convars
+Convar gCV_MaxFrameDistance = null;
 Convar gCV_GuideFramesAhead = null;
 Convar gCV_RecaculateFrameDiff = null;
 Convar gCV_RouteDrawInterval = null;
 Convar gCV_RouteFramesAhead = null;
+Convar gCV_RouteDrawSkipFrames = null;
 
 int gI_Sprite;
 bool gB_Late;
@@ -149,10 +151,12 @@ public void OnPluginStart()
 	gH_GhostBoxColorCookie = RegClientCookie("ghost_boxcolor", "Ghost boxcolor", CookieAccess_Public);
 	gH_GhostBoxSizeCookie = RegClientCookie("ghost_boxsize", "Ghost boxsize", CookieAccess_Public);
 
-	gCV_GuideFramesAhead = new Convar("shavit_ghost_guide_framesahead", "1.5", "How many seconds of frames ahead should draw to client in Guide mode", 0, true, 0.1, true, 4.0);
-	gCV_RecaculateFrameDiff = new Convar("shavit_ghost_guide_recaculateframediff", "3.0", "How many seconds of frames difference between closest frame should recaculate the next closest frame", 0, true, 2.0, true, 5.0);
-	gCV_RouteDrawInterval = new Convar("shavit_ghost_route_drawinterval", "1.0", "The interval (in seconds) between route draws", 0, true, 0.5, true, 3.0);
-	gCV_RouteFramesAhead = new Convar("shavit_ghost_route_framesahead", "4.0", "How many seconds of frames ahead should draw to client in Route mode", 0, true, 1.0, true, 10.0);
+	gCV_GuideFramesAhead = new Convar("shavit_ghost_guide_framesahead", "1.5", "How many seconds of frames ahead should be drawn to client in Guide mode", 0, true, 0.1, true, 4.0);
+	gCV_RecaculateFrameDiff = new Convar("shavit_ghost_guide_recaculateframediff", "3.0", "How many seconds of frame difference should recalculating the next closest frame", 0, true, 2.0, true, 5.0);
+	gCV_RouteDrawInterval = new Convar("shavit_ghost_route_drawinterval", "0.8", "The interval (in seconds) between route draws", 0, true, 0.5, true, 3.0);
+	gCV_RouteFramesAhead = new Convar("shavit_ghost_route_framesahead", "5.0", "How many seconds of frames ahead should be drawn to client in Route mode", 0, true, 1.0, true, 10.0);
+	gCV_MaxFrameDistance = new Convar("shavit_ghost_route_maxframedistance", "1000.0", "Maximum distance between frames before skipping beam drawing", 0, true, 50.0, false, 0.0);
+	gCV_RouteDrawSkipFrames = new Convar("shavit_ghost_route_skipframes", "5", "Number of frames to skip between route draws to optimize performance\n(higher = better performance but less smooth route)", 0, true, 1.0, true, 10.0);
 
 	gCV_GuideFramesAhead.AddChangeHook(OnConVarChanged);
 	gCV_RecaculateFrameDiff.AddChangeHook(OnConVarChanged);
@@ -191,7 +195,7 @@ public void OnClientConnected(int client)
 
 public void OnConfigsExecuted() 
 {
-	gI_Sprite = PrecacheModel("shavit/laserbeam.vmt");
+	gI_Sprite = PrecacheModel("sprites/laserbeam.vmt");
 
 	gI_DrawRouteInterval = RoundToNearest(gCV_RouteDrawInterval.FloatValue * gI_Tickrate);
 	gI_MaxRecaculateFrameDiff = RoundToNearest(gCV_RecaculateFrameDiff.FloatValue * gI_Tickrate);
@@ -219,7 +223,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	else if(convar == gCV_RouteFramesAhead)
 	{
 		gI_RouteFramesAhead = RoundToNearest(gCV_RouteFramesAhead.FloatValue * gI_Tickrate);
-	
 	}
 	else if(convar == gCV_GuideFramesAhead)
 	{
@@ -309,7 +312,7 @@ public Action Command_ToggleGhost(int client, int args)
 
 public void ShowGhostMenu(int client)
 {
-	Menu menu = new Menu(MenuHandler_Ghost);
+	Menu menu = new Menu(MenuHandler_Ghost, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem|MenuAction_Display);
 	menu.SetTitle("Ghost Menu\n ");
 
 	char sMenu[64];
@@ -401,6 +404,13 @@ public int MenuHandler_Ghost(Menu menu, MenuAction action, int param1, int param
 
 	return 0;
 }
+
+public void OnMapStart()
+{
+	AddFileToDownloadsTable("materials/sprites/laserbeam.vtf");
+	AddFileToDownloadsTable("materials/sprites/laserbeam.vtm");
+}
+
 
 public void ShowGhostOptionMenu(int client)
 {
@@ -568,6 +578,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
+public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, ArrayList offsets, int preframes, int postframes, const char[] name)
 {
 	if(isbestreplay && !istoolong)
 	{
@@ -636,7 +647,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		return;	
 	}
 
-	frame_t curFrame, prevFrame;
+	frame_t curFrame, prevFrame, prevDrawFrame;
 
 	if(gGM_GhostMode[client] == GhostMode_Race)
 	{
@@ -676,7 +687,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		float clientPos[3];
 		GetClientAbsOrigin(client, clientPos);
 
-		int iClosestFrame = Max(1, (gA_GhostInfo[track][style][stage].hClosestPos.Find(clientPos) - 10));
+		int iClosestFrame = Max(1, (gA_GhostInfo[track][style][stage].hClosestPos.Find(clientPos) - 10));//gCV_RouteFramesDiff.IntValue));
 		int iEndFrame = Min(info.Length, iClosestFrame + gI_RouteFramesAhead);
 
 		info.GetArray(iClosestFrame, prevFrame, sizeof(frame_t));
@@ -684,15 +695,39 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		for(int i = iClosestFrame; i < iEndFrame; i++)
 		{
 			info.GetArray(i, curFrame, sizeof(frame_t));
-			
-			DrawBeam(client, prevFrame.pos, curFrame.pos, gCV_RouteDrawInterval.FloatValue, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
-			
-			if(gB_DrawBox[client] && (!(curFrame.flags & FL_ONGROUND) && prevFrame.flags & FL_ONGROUND))
+
+			bool bFrameOnGround = !(curFrame.flags & FL_ONGROUND) && prevFrame.flags & FL_ONGROUND;
+
+			if(GetVectorDistance(prevDrawFrame.pos, curFrame.pos) > gCV_MaxFrameDistance.FloatValue)
 			{
-				DrawBox(client, prevFrame.pos, gF_GhostBoxSize[client], gI_Colors[gI_GhostBoxColor[client]]);
+				prevDrawFrame = curFrame;
+				prevFrame = curFrame;
+
+				continue;
+			}
+			
+			if(bFrameOnGround)
+			{
+				if(gB_DrawBox[client])
+				{
+					DrawBox(client, prevFrame.pos, gF_GhostBoxSize[client], gI_Colors[gI_GhostBoxColor[client]]);					
+				}
+
+				// Draw beams between previous drawn frames to jump mark
+				DrawBeam(client, prevDrawFrame.pos, prevFrame.pos, gCV_RouteDrawInterval.FloatValue, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
+
+				prevFrame = curFrame;
+			}
+			else if (i % gCV_RouteDrawSkipFrames.IntValue != 0)
+			{
+				prevFrame = curFrame;
+
+				continue;
 			}
 
-			prevFrame = curFrame;
+			DrawBeam(client, prevDrawFrame.pos, curFrame.pos, gCV_RouteDrawInterval.FloatValue, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
+
+			prevDrawFrame = curFrame;
 		}
 	}
 	else if(gGM_GhostMode[client] == GhostMode_Guide)	// code from shavit-myroute
@@ -753,6 +788,11 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 		info.GetArray(iMaxFrames, curFrame, sizeof(frame_t));
 		info.GetArray(iMaxFrames <= 0 ? 0 : iMaxFrames - 1, prevFrame, sizeof(frame_t));
+
+		if(GetVectorDistance(prevFrame.pos, curFrame.pos) > gCV_MaxFrameDistance.FloatValue)
+		{
+			return;	
+		}
 
 		if(gB_DrawBox[client] && (!(curFrame.flags & FL_ONGROUND) && prevFrame.flags & FL_ONGROUND))
 		{
