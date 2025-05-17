@@ -95,7 +95,8 @@ enum struct bot_info_t
 	int iStage; // Shavit_GetReplayBotStage
 	int iCurrentStage; //Shavit_GetReplayBotCurrentStage
 	int iStarterSerial; // Shavit_GetReplayStarter
-	int iTick; // Shavit_GetReplayBotCurrentFrame
+	int iTick; 
+	int iRealTick;// Shavit_GetReplayBotCurrentFrame
 	int iLoopingConfig;
 	Handle hTimer;
 	float fFirstFrameTime; // Shavit_GetReplayBotFirstFrameTime
@@ -282,6 +283,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	CreateNative("Shavit_DeleteReplay", Native_DeleteReplay);
 	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotCurrentFrame);
+	CreateNative("Shavit_GetReplayBotRealTick", Native_GetReplayBotRealTick);
 	CreateNative("Shavit_GetReplayBotFirstFrameTime", Native_GetReplayBotFirstFrameTime);
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
@@ -293,6 +295,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayButtons", Native_GetReplayButtons);
 	CreateNative("Shavit_GetReplayEntityFlags", Native_GetReplayEntityFlags);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
+	CreateNative("Shavit_GetReplayFrameOffsets", Native_GetReplayFrameOffsets);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
 	CreateNative("Shavit_GetReplayPreFrames", Native_GetReplayPreFrames);
 	CreateNative("Shavit_GetReplayPostFrames", Native_GetReplayPostFrames);
@@ -928,6 +931,11 @@ public int Native_GetReplayBotCurrentFrame(Handle handler, int numParams)
 	return gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].iTick;
 }
 
+public int Native_GetReplayBotRealTick(Handle handler, int numParams)
+{
+	return gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].iRealTick;
+}
+
 public int Native_GetReplayBotIndex(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
@@ -989,6 +997,7 @@ void StartReplay(bot_info_t info, int track, int style, int stage, int starter, 
 	{
 		info.aCache = gA_FrameCache[style][track][stage];
 		info.aCache.aFrames = view_as<ArrayList>(CloneHandle(info.aCache.aFrames));
+		info.aCache.aFrameOffsets = view_as<ArrayList>(CloneHandle(info.aCache.aFrameOffsets));
 	}
 
 	TeleportToFrame(info, 0);
@@ -1031,6 +1040,7 @@ void SetupIfCustomFrames(bot_info_t info, frame_cache_t cache)
 		info.bCustomFrames = true;
 		info.aCache = cache;
 		info.aCache.aFrames = view_as<ArrayList>(CloneHandle(info.aCache.aFrames));
+		info.aCache.aFrameOffsets = view_as<ArrayList>(CloneHandle(info.aCache.aFrameOffsets));
 	}
 }
 
@@ -1274,6 +1284,34 @@ public int Native_GetReplayFrames(Handle plugin, int numParams)
 	return view_as<int>(cloned);
 }
 
+public int Native_GetReplayFrameOffsets(Handle plugin, int numParams)
+{
+	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
+	int stage = GetNativeCell(3);
+	bool cheapCloneHandle = (numParams > 3) && view_as<bool>(GetNativeCell(4));
+	Handle cloned = null;
+
+	if(track >= Track_Bonus || stage > 0) // there are no offsets for linear tracks
+	{
+		return view_as<int>(cloned);
+	}
+
+	if(gA_FrameCache[style][track][stage].aFrameOffsets != null)
+	{
+		ArrayList offsets = cheapCloneHandle ? gA_FrameCache[style][track][stage].aFrameOffsets : gA_FrameCache[style][track][stage].aFrameOffsets.Clone();
+		cloned = CloneHandle(offsets, plugin); // set the calling plugin as the handle owner
+
+		if (!cheapCloneHandle)
+		{
+			// Only hit for .Clone()'d handles. .Clone() != CloneHandle()
+			CloseHandle(offsets);
+		}
+	}
+
+	return view_as<int>(cloned);
+}
+
 public int Native_GetReplayFrameCount(Handle handler, int numParams)
 {
 	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)][GetNativeCell(3)].iFrameCount;
@@ -1346,7 +1384,7 @@ public any Native_GetReplayTime(Handle handler, int numParams)
 		return gA_BotInfo[index].aCache.fTime;
 	}
 
-	return float(gA_BotInfo[index].iTick - gA_BotInfo[index].aCache.iPreFrames) / gF_Tickrate * Shavit_GetStyleSettingFloat(gA_BotInfo[index].iStyle, "timescale");
+	return float(gA_BotInfo[index].iRealTick - gA_BotInfo[index].aCache.iPreFrames) / gF_Tickrate * Shavit_GetStyleSettingFloat(gA_BotInfo[index].iStyle, "timescale");
 }
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)
@@ -1771,14 +1809,42 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	gI_TimeDifferenceStyle[client] = newstyle;
 }
 
-public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, int preframes, int postframes, const char[] name)
+public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, ArrayList offsets, int preframes, int postframes, const char[] name)
 {
 	if (!isbestreplay || istoolong)
 	{
 		return;
 	}
 
-	UnloadReplay(style, track, stage, true, false);
+	if(!IsValidHandle(frames) || !IsValidHandle(offsets))
+	{
+		UnloadReplay(style, track, stage, true, false);
+		return;
+	}
+
+	delete gA_FrameCache[style][track][stage].aFrames;
+	delete gA_FrameCache[style][track][stage].aFrameOffsets;
+
+	gA_FrameCache[style][track][stage].aFrames = view_as<ArrayList>(CloneHandle(frames));
+	gA_FrameCache[style][track][stage].aFrameOffsets = view_as<ArrayList>(CloneHandle(offsets));
+	gA_FrameCache[style][track][stage].iFrameCount = frames.Length - preframes - postframes;
+	gA_FrameCache[style][track][stage].iPreFrames = preframes;
+	gA_FrameCache[style][track][stage].iPostFrames = postframes;
+	gA_FrameCache[style][track][stage].fTime = time;
+	strcopy(gA_FrameCache[style][track][stage].sReplayName, MAX_NAME_LENGTH, name);
+	gA_FrameCache[style][track][stage].iReplayVersion = REPLAY_FORMAT_SUBVERSION;
+	gA_FrameCache[style][track][stage].bNewFormat = true;
+	gA_FrameCache[style][track][stage].fTickrate = gF_Tickrate;
+
+	StopOrRestartBots(style, track, stage, false);
+
+#if USE_CLOSESTPOS
+	if (gB_ClosestPos)
+	{
+		delete gH_ClosestPos[style][track][stage];
+		gH_ClosestPos[style][track][stage] = new ClosestPos(gA_FrameCache[style][track][stage].aFrames, 0, gA_FrameCache[style][track][stage].iPreFrames, gA_FrameCache[style][track][stage].iFrameCount);
+	}
+#endif
 }
 
 int InternalCreateReplayBot()
@@ -1822,6 +1888,7 @@ int CreateReplayBot(bot_info_t info)
 	{
 		info.aCache = gA_FrameCache[info.iStyle][info.iTrack][info.iStage];
 		info.aCache.aFrames = view_as<ArrayList>(CloneHandle(info.aCache.aFrames));
+		info.aCache.aFrameOffsets = view_as<ArrayList>(CloneHandle(info.aCache.aFrameOffsets));
 	}
 
 	gA_BotInfo_Temp = info;
@@ -2496,6 +2563,69 @@ public void OnClientDisconnect(int client)
 	}
 }
 
+public void CallOnReplayEnterNextStage(bot_info_t info)
+{
+	if(info.iTrack != Track_Main || info.iStage != 0)
+	{
+		return;
+	}
+
+	int iStageCount;
+	bool bStaged = false;
+
+	offset_info_t offset;
+	if(info.aCache.aFrameOffsets != null && info.aCache.aFrameOffsets.Length > 2 && info.iCurrentStage < info.aCache.aFrameOffsets.Length)
+	{
+		iStageCount = info.aCache.aFrameOffsets.Length - 1;
+		info.aCache.aFrameOffsets.GetArray(info.iCurrentStage, offset, sizeof(offset_info_t));
+	}
+	else
+	{
+		iStageCount = Shavit_GetStageCount(info.iTrack);
+
+		if(info.aCache.fTime == Shavit_GetWorldRecord(info.iTrack, info.iStyle))
+		{
+			offset.fReachTime = Shavit_GetStageCPWR(info.iTrack, info.iStyle, iStageCount < 2 ? info.iCurrentStage:info.iCurrentStage-1);
+		}
+		else
+		{
+			offset.fReachTime = float(info.iRealTick - info.aCache.iPreFrames) / gF_Tickrate * Shavit_GetStyleSettingFloat(info.iStyle, "timescale");			
+		}
+	}
+
+	if(iStageCount < 2)
+	{
+		iStageCount = Shavit_GetCheckpointCount(info.iTrack);
+	}
+	else
+	{
+		bStaged = true;
+	}
+
+	char sTime[16];
+	FormatSeconds(offset.fReachTime, sTime, 16);
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(info.iEnt != i && IsValidClient(i) && GetSpectatorTarget(i) == info.iEnt)	//Print to spectator if target finished and worse
+		{
+			if((Shavit_GetMessageSetting(i) & MSG_CHECKPOINT) == 0)
+			{
+				Shavit_PrintToChat(i, "%T", bStaged ? "ReplayBotEnteredNextStage":"ReplayBotEnteredNextCheckpoint", i,
+				gS_ChatStrings.sVariable2, info.iCurrentStage, gS_ChatStrings.sText, 
+				gS_ChatStrings.sVariable2, iStageCount, gS_ChatStrings.sText,
+				gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText);
+			}
+
+			if(offset.iFailureAttempts > 0)
+			{
+				Shavit_PrintToChat(i, "%T", "ReplayBotFailureSkipped", i, 
+				gS_ChatStrings.sVariable2, offset.iFailureAttempts, gS_ChatStrings.sText);
+			}
+		}
+	}
+}
+
 public void OnEntityDestroyed(int entity)
 {
 	if (entity <= MaxClients) // handled in OnClientDisconnect
@@ -2578,21 +2708,6 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			}
 
 			int limit = (info.aCache.iFrameCount + info.aCache.iPreFrames + info.aCache.iPostFrames);
-
-
-			char sDebug[16];
-			if(info.iTick < info.aCache.iPreFrames)
-			{
-				FormatEx(sDebug, 16, "PRE");
-			}
-			else if (info.iTick > info.aCache.iPreFrames + info.aCache.iFrameCount)
-			{
-				FormatEx(sDebug, 16, "POST");
-			}
-			else
-			{
-				FormatEx(sDebug, 16, "RUN");
-			}
 
 			if(info.iTick >= limit)
 			{
@@ -2715,6 +2830,8 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 				if (buttons & IN_MOVERIGHT) vel[1] += gF_MaxMove;
 			}
 
+			int iPrevStage = info.iCurrentStage;
+
 			if (info.aCache.iReplayVersion >= 0x0A)
 			{
 				info.iCurrentStage = aFrame.stage;
@@ -2722,6 +2839,25 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			else
 			{
 				info.iCurrentStage = 1;
+			}
+
+			offset_info_t offset;
+			int iFrameOffset = 0;
+
+			if(info.aCache.aFrameOffsets != null && info.aCache.aFrameOffsets.Length > 2 && info.iCurrentStage > 0)
+			{
+				if(info.iCurrentStage < info.aCache.aFrameOffsets.Length)
+				{
+					info.aCache.aFrameOffsets.GetArray(info.iCurrentStage, offset, sizeof(offset_info_t));
+					iFrameOffset = offset.iFrameOffset;
+				}
+			}
+
+			info.iRealTick = iFrameOffset + info.iTick;
+
+			if(info.iCurrentStage > iPrevStage)
+			{
+				CallOnReplayEnterNextStage(info);
 			}
 
 			if (isClient)
@@ -2950,6 +3086,7 @@ public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int
 void ClearFrameCache(frame_cache_t cache)
 {
 	delete cache.aFrames;
+	delete cache.aFrameOffsets;
 	cache.iFrameCount = 0;
 	cache.fTime = 0.0;
 	cache.bNewFormat = true;
@@ -3819,6 +3956,7 @@ void ClearBotInfo(bot_info_t info)
 	info.iCurrentStage = -1;
 	info.iStarterSerial = -1;
 	info.iTick = -1;
+	info.iRealTick = -1;
 	//info.iLoopingConfig
 	delete info.hTimer;
 	info.fFirstFrameTime = -1.0;
@@ -4243,7 +4381,32 @@ float GetClosestReplayTime(int client)
 		return 0.0;
 	}
 
-	float frametime = gF_TimeDifferenceLength[client] / float(gA_FrameCache[style][track][stage].iFrameCount);
+	float fReplayPrevPos[3], fReplayClosestPos[3];
+	float fFrameCount;
+
+	if(gA_FrameCache[style][track][stage].aFrameOffsets != null 
+	&& gA_FrameCache[style][track][stage].aFrameOffsets.Length > 2 )
+	{
+		frame_t aPrevFrame, aClosestFrame;
+		gA_FrameCache[style][track][stage].aFrames.GetArray(iClosestFrame, aClosestFrame, sizeof(frame_t));
+		gA_FrameCache[style][track][stage].aFrames.GetArray(iClosestFrame == 0 ? 0 : iClosestFrame-1, aPrevFrame, sizeof(frame_t));
+
+		fReplayClosestPos = aClosestFrame.pos;
+		fReplayPrevPos = aPrevFrame.pos;
+		
+		if(aClosestFrame.stage < gA_FrameCache[style][track][stage].aFrameOffsets.Length) // i dont think this will ever happen, just in case
+			iClosestFrame += gA_FrameCache[style][track][stage].aFrameOffsets.Get(aClosestFrame.stage);
+		
+		fFrameCount = float(gA_FrameCache[style][track][stage].iFrameCount + gA_FrameCache[style][track][stage].aFrameOffsets.Get(gA_FrameCache[style][track][stage].aFrameOffsets.Length - 1));
+	}
+	else
+	{
+		gA_FrameCache[style][track][stage].aFrames.GetArray(iClosestFrame, fReplayClosestPos, 3);
+		gA_FrameCache[style][track][stage].aFrames.GetArray(iClosestFrame == 0 ? 0 : iClosestFrame-1, fReplayPrevPos, 3);
+		fFrameCount = float(gA_FrameCache[style][track][stage].iFrameCount);
+	}
+
+	float frametime = gF_TimeDifferenceLength[client] / fFrameCount;
 	float timeDifference = (iClosestFrame - iPreFrames) * frametime;
 
 	// Hides the hud if we are using the cheap search method and too far behind to be accurate
@@ -4258,10 +4421,6 @@ float GetClosestReplayTime(int client)
 
 	float clientVel[3];
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", clientVel);
-
-	float fReplayPrevPos[3], fReplayClosestPos[3];
-	gA_FrameCache[style][track][stage].aFrames.GetArray(iClosestFrame, fReplayClosestPos, 3);
-	gA_FrameCache[style][track][stage].aFrames.GetArray(iClosestFrame == 0 ? 0 : iClosestFrame-1, fReplayPrevPos, 3);
 
 	float replayVel[3];
 	MakeVectorFromPoints(fReplayClosestPos, fReplayPrevPos, replayVel);

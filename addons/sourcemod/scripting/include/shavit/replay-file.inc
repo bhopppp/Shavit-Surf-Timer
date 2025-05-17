@@ -37,7 +37,7 @@
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x0A
+#define REPLAY_FORMAT_SUBVERSION 0x0B
 
 #define REPLAY_FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
@@ -56,9 +56,10 @@ enum struct replay_header_t
 	float fTickrate;
 	float fZoneOffset[2];
 	int iStage;
+	int iOffsetsLength;		// length of offsets for reading
 }
 
-enum struct frame_t // size = 10
+enum struct frame_t // size = 11
 {
 	float pos[3];
 	float ang[2];
@@ -71,6 +72,13 @@ enum struct frame_t // size = 10
 	int mousexy; // `mousex | (mousey << 16)` // unpack with UnpackSignedShorts
 	int vel; // basically `forwardmove | (sidemove << 16)` // unpack with UnpackSignedShorts
 	int stage;
+}
+
+enum struct offset_info_t
+{
+	int iFrameOffset;		// difference between the playing frame and real time frame
+	int iFailureAttempts;	
+	float fReachTime;
 }
 
 enum struct frame_cache_t
@@ -87,6 +95,8 @@ enum struct frame_cache_t
 	float fTickrate;
 	// blah blah not affected by iReplayVersion
 	int iSteamID;
+	// iReplayVersion >= 0x0B
+	ArrayList aFrameOffsets;
 }
 
 // Can be used to unpack frame_t.mousexy and frame_t.vel
@@ -150,6 +160,8 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 	int iTotalSize = header.iFrameCount + header.iPreFrames + header.iPostFrames;
 	cache.aFrames = new ArrayList(used_cells, iTotalSize);
 
+	cache.aFrameOffsets = new ArrayList(sizeof(offset_info_t), header.iOffsetsLength);
+
 	if (!header.sReplayFormat[0]) // old replay format. no header.
 	{
 		char sLine[320];
@@ -180,6 +192,23 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 	else // assumes the file position will be at the start of the frames
 	{
 		is_btimes = StrEqual(header.sReplayFormat, "btimes");
+
+		for (int i = 1; i < header.iOffsetsLength; i++)
+		{
+			offset_info_t offset;
+
+			if(file.Read(offset, sizeof(offset_info_t), 4) >= 0)
+			{
+				cache.aFrameOffsets.SetArray(i, offset, sizeof(offset_info_t));
+			}
+		}
+
+		for (int j = 1; j < cache.aFrameOffsets.Length; j++)
+		{
+			offset_info_t offset2;
+
+			cache.aFrameOffsets.GetArray(j, offset2, sizeof(offset_info_t));
+		}
 
 		for (int i = 0; i < iTotalSize; i++)
 		{
@@ -320,6 +349,11 @@ stock File ReadReplayHeader(const char[] path, replay_header_t header, int style
 		{
 			file.ReadUint8(view_as<int>(header.iStage));
 		}
+
+		if (version >= 0x0b)
+		{
+			file.ReadUint8(view_as<int>(header.iOffsetsLength));
+		}
 	}
 	else if(StrEqual(header.sReplayFormat, REPLAY_FORMAT_V2))
 	{
@@ -360,7 +394,7 @@ stock File ReadReplayHeader(const char[] path, replay_header_t header, int style
 	return file;
 }
 
-stock void WriteReplayHeader(File fFile, int style, int track, int stage, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int iSize, float tickrate, const char[] sMap)
+stock void WriteReplayHeader(File fFile, int style, int track, int stage, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int iSize, float tickrate, const char[] sMap, ArrayList aFrameOffsets)
 {
 	fFile.WriteLine("%d:" ... REPLAY_FORMAT_FINAL, REPLAY_FORMAT_SUBVERSION);
 
@@ -380,6 +414,34 @@ stock void WriteReplayHeader(File fFile, int style, int track, int stage, float 
 	fFile.WriteInt32(view_as<int>(fZoneOffset[1]));
 
 	fFile.WriteInt8(view_as<int>(stage))
+
+	// min length is 2, and linear map dont need offsets
+	int iOffsetsLength = aFrameOffsets ? (aFrameOffsets.Length > 2 ? aFrameOffsets.Length : 0) : 0;
+
+	fFile.WriteInt8(iOffsetsLength);
+
+	if(iOffsetsLength == 0)
+	{
+		return;
+	}
+
+	any aWriteData[sizeof(offset_info_t) * REPLAY_FRAMES_PER_WRITE];
+	int iWritten = 0;
+
+	for(int i = 1; i < iOffsetsLength; i++)
+	{
+		any offset[sizeof(offset_info_t)];
+		aFrameOffsets.GetArray(i, offset, sizeof(offset_info_t));
+
+		for(int j = 0; j < sizeof(offset_info_t); j++)
+		{
+			aWriteData[(sizeof(offset_info_t) * iWritten) + j] = offset[j];
+		}
+
+		iWritten++;
+	}
+
+	fFile.Write(aWriteData, sizeof(offset_info_t) * iWritten, 4);
 }
 
 // file_a is usually used as the wr replay file.

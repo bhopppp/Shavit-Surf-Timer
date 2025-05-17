@@ -158,6 +158,14 @@ native int Shavit_GetReplayBotType();
 native int Shavit_GetReplayBotCurrentFrame(int entity);
 
 /**
+ * Retrieve the replay bot's real tick of current played frame.
+ *
+ * @param entity                    Entity index.
+ * @return                          Real tick of current played frame.
+ */
+native int Shavit_GetReplayBotRealTick(int entity);
+
+/**
  * Retrieves the client who started the replay.
  *
  * @param                           Replay entity.
@@ -256,6 +264,18 @@ native int Shavit_GetReplayBotInfoIndex(int bot);
  * @return                          ArrayList with proper replay data, or null if there is no recorded data. Delete this handle when you're done with it.
  */
 native ArrayList Shavit_GetReplayFrames(int style, int track, int stage, bool cheapCloneHandle=false);
+
+/**
+ * Retrieves the replay frame offsets for the given style and track.
+ *
+ * @param style                     Style.
+ * @param track                     Track.
+ * @param stage						Stage.
+ * @param cheapCloneHandle          False means we duplicate the frames (ArrayList.Clone). True means we clone the handle to the frames (CloneHandle).
+ *
+ * @return                          ArrayList with proper frame offsets of replay data, or null if there is no frame offsets. Delete this handle when you're done with it.
+ */
+native ArrayList Shavit_GetReplayFrameOffsets(int style, int track, int stage, bool cheapCloneHandle=false);
 
 /**
  * Retrieves a replay's total length in seconds.
@@ -495,6 +515,7 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_DeleteReplay");
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
+	MarkNativeAsOptional("Shavit_GetReplayBotRealTick");
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrameTime");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetReplayBotInfoIndex");
@@ -506,6 +527,7 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayStarter");
 	MarkNativeAsOptional("Shavit_GetReplayFrameCount");
 	MarkNativeAsOptional("Shavit_GetReplayFrames");
+	MarkNativeAsOptional("Shavit_GetReplayFrameOffsets");
 	MarkNativeAsOptional("Shavit_GetReplayLength");
 	MarkNativeAsOptional("Shavit_GetReplayName");
 	MarkNativeAsOptional("Shavit_GetReplayCacheName");

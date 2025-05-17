@@ -729,6 +729,7 @@ void PersistData(int client, bool disconnected)
 		if (gB_ReplayRecorder && aData.cpcache.aFrames == null)
 		{
 			aData.cpcache.aFrames = Shavit_GetReplayData(client, true);
+			aData.cpcache.aFrameOffsets = Shavit_GetPlayerFrameOffsets(client, true);
 			aData.cpcache.iPreFrames = Shavit_GetPlayerPreFrames(client);
 		}
 	}
@@ -1694,7 +1695,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		snapshot.bStageTimeValid = false;
 		snapshot.bOnlyStageMode = Shavit_GetReplayBotStage(target) > 0 ? true : false;
 
-		float ticks = float(Shavit_GetReplayBotCurrentFrame(target) - Shavit_GetReplayCachePreFrames(target));
+		float ticks = float(Shavit_GetReplayBotRealTick(target) - Shavit_GetReplayCachePreFrames(target));
 		float fraction = FloatFraction(ticks);
 		snapshot.iFullTicks = RoundFloat(ticks-fraction);
 		snapshot.iFractionalTicks = RoundFloat(fraction * 10000.0);
@@ -1719,18 +1720,23 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	if (snapshot.bTimerEnabled == true && cpcache.bSegmented && snapshot.bPracticeMode == false && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null)
 	{
 		ArrayList frames = Shavit_GetReplayData(target, false);
+		ArrayList offsets = Shavit_GetPlayerFrameOffsets(target, false);
 
 		if (plugin != INVALID_HANDLE)
 		{
 			cpcache.aFrames = view_as<ArrayList>(CloneHandle(frames, plugin));
+			cpcache.aFrameOffsets = view_as<ArrayList>(CloneHandle(offsets, plugin));
+			delete offsets;
 			delete frames;
 		}
 		else
 		{
+			cpcache.aFrameOffsets = offsets;
 			cpcache.aFrames = frames;
 		}
 
 		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
+		cpcache.iStageStartFrames = Shavit_GetStageStartFrames(target);
 	}
 
 	if (gB_Eventqueuefix && !IsFakeClient(target))
@@ -1983,7 +1989,9 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 	{
 		// if isPersistentData, then CloneHandle() is done instead of ArrayList.Clone()
 		Shavit_SetReplayData(client, cpcache.aFrames, isPersistentData);
+		Shavit_SetPlayerFrameOffsets(client, cpcache.aFrameOffsets, isPersistentData);
 		Shavit_SetPlayerPreFrames(client, cpcache.iPreFrames);
+		Shavit_SetStageStartFrames(client, cpcache.iStageStartFrames);
 	}
 
 	if (gB_Eventqueuefix && cpcache.aEvents != null && cpcache.aOutputWaits != null)

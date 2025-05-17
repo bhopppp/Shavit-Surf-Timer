@@ -1830,11 +1830,11 @@ void UpdateLaggedMovement(int client, bool user_timescale)
 	}
 }
 
-void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false)
+void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool noforward=false)
 {
 	gA_Timers[client].bsStyle = newstyle;
 
-	if (!nofoward)
+	if (!noforward)
 	{
 		Call_StartForward(gH_Forwards_OnStyleChanged);
 		Call_PushCell(client);
@@ -3331,9 +3331,14 @@ void StartTimer(int client, int track)
 					gA_Timers[client].aStageStartInfo.iFractionalTicks = 0;
 					gA_Timers[client].aStageStartInfo.iJumps = 0;
 					gA_Timers[client].aStageStartInfo.iStrafes = 0;
+					gA_Timers[client].aStageStartInfo.iTotalMeasures = 0;
+					gA_Timers[client].aStageStartInfo.iZoneIncrement = 0;
+					gA_Timers[client].aStageStartInfo.fZoneOffset[Zone_Start] = 0.0;
+					gA_Timers[client].aStageStartInfo.fDistanceOffset[Zone_End] = 0.0;
+					gA_Timers[client].aStageStartInfo.iGoodGains = gA_Timers[client].iGoodGains;
+					gA_Timers[client].aStageStartInfo.fMaxVelocity = curVel;	
+					gA_Timers[client].aStageStartInfo.fAvgVelocity = curVel;
 					gA_Timers[client].bStageTimeValid = true;
-
-
 				}
 				else
 				{

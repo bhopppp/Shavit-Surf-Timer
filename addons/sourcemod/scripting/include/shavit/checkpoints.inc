@@ -42,7 +42,9 @@ enum struct cp_cache_t
 	char sTargetname[64];
 	char sClassname[64];
 	ArrayList aFrames;
+	ArrayList aFrameOffsets;
 	int iPreFrames;
+	int iStageStartFrames;
 	bool bSegmented;
 	int iGroundEntity;
 	int iSteamID;

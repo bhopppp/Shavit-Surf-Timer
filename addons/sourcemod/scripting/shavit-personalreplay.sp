@@ -200,14 +200,20 @@ public Action Command_PersonalReplay(int client, int args)
 
 public Action Command_Rewatch(int client, int args)
 {
-    if(!IsValidClient2(client))
-    {
-        return Plugin_Continue;
-    }
+	if(!IsValidClient2(client))
+	{
+		return Plugin_Continue;
+	}
 
-    StartPersonalReplay(client, gI_LastSavedIndex[client]);
+	if(gA_ReplayInfo[client][gI_LastSavedIndex[client]].aCache.aFrames == null)
+	{
+		Shavit_PrintToChat(client, "%T", "NoRecentReplay", client);
+		return Plugin_Continue;
+	}
 
-    return Plugin_Handled;
+	StartPersonalReplay(client, gI_LastSavedIndex[client]);
+
+	return Plugin_Handled;
 }
 
 public void ShowPersonaReplayMenu(int client)
@@ -504,34 +510,42 @@ public void StartPersonalReplay(int client, int index)
 
 stock bool SaveReplayData(int client, int index, int style, float time, int track, int stage, int timestamp)
 {
-    gA_ReplayInfo[client][index].aCache.aFrames = Shavit_GetReplayData(client, false);
-    
-    if(!gA_ReplayInfo[client][index].aCache.aFrames)
-    {
-        return false;
-    }
+	gA_ReplayInfo[client][index].aCache.aFrames = Shavit_GetReplayData(client, false);
 
-    gA_ReplayInfo[client][index].bHasReplay = true;
-    gA_ReplayInfo[client][index].iTrack = track;
-    gA_ReplayInfo[client][index].iStage = stage;   
-    gA_ReplayInfo[client][index].iStyle = style;
-    gA_ReplayInfo[client][index].timestamp = timestamp;
+	if(!gA_ReplayInfo[client][index].aCache.aFrames)
+	{
+		return false;
+	}
 
-    gA_ReplayInfo[client][index].aCache.fTime = time;
-    gA_ReplayInfo[client][index].aCache.bNewFormat = true;
-    gA_ReplayInfo[client][index].aCache.iPreFrames = Shavit_GetPlayerPreFrames(client);
-    gA_ReplayInfo[client][index].aCache.iPostFrames = gA_ReplayInfo[client][index].aCache.aFrames.Length - gI_PlayerFinishFrame[client];
-    gA_ReplayInfo[client][index].aCache.iFrameCount = gA_ReplayInfo[client][index].aCache.aFrames.Length - gA_ReplayInfo[client][index].aCache.iPreFrames - gA_ReplayInfo[client][index].aCache.iPostFrames;
-    gA_ReplayInfo[client][index].aCache.fTickrate = (1.0 / GetTickInterval());
-    gA_ReplayInfo[client][index].aCache.iSteamID = GetSteamAccountID(client);
-    gA_ReplayInfo[client][index].aCache.iReplayVersion = REPLAY_FORMAT_SUBVERSION;
+	gA_ReplayInfo[client][index].aCache.aFrameOffsets = Shavit_GetPlayerFrameOffsets(client, false);
 
-    char sName[MAX_NAME_LENGTH];
-    FormatEx(sName, sizeof(sName), "%T%N", "PersonalReplay", client, client);
+	if(!gA_ReplayInfo[client][index].aCache.aFrameOffsets)
+	{
+		gA_ReplayInfo[client][index].aCache.aFrameOffsets = new ArrayList(sizeof(offset_info_t));
+		gA_ReplayInfo[client][index].aCache.aFrameOffsets.Clear();
+	}
 
-    strcopy(gA_ReplayInfo[client][index].aCache.sReplayName, MAX_NAME_LENGTH, sName);
+	gA_ReplayInfo[client][index].bHasReplay = true;
+	gA_ReplayInfo[client][index].iTrack = track;
+	gA_ReplayInfo[client][index].iStage = stage;   
+	gA_ReplayInfo[client][index].iStyle = style;
+	gA_ReplayInfo[client][index].timestamp = timestamp;
 
-    return true;
+	gA_ReplayInfo[client][index].aCache.fTime = time;
+	gA_ReplayInfo[client][index].aCache.bNewFormat = true;
+	gA_ReplayInfo[client][index].aCache.iPreFrames = Shavit_GetPlayerPreFrames(client);
+	gA_ReplayInfo[client][index].aCache.iPostFrames = gA_ReplayInfo[client][index].aCache.aFrames.Length - gI_PlayerFinishFrame[client];
+	gA_ReplayInfo[client][index].aCache.iFrameCount = gA_ReplayInfo[client][index].aCache.aFrames.Length - gA_ReplayInfo[client][index].aCache.iPreFrames - gA_ReplayInfo[client][index].aCache.iPostFrames;
+	gA_ReplayInfo[client][index].aCache.fTickrate = (1.0 / GetTickInterval());
+	gA_ReplayInfo[client][index].aCache.iSteamID = GetSteamAccountID(client);
+	gA_ReplayInfo[client][index].aCache.iReplayVersion = REPLAY_FORMAT_SUBVERSION;
+
+	char sName[MAX_NAME_LENGTH];
+	FormatEx(sName, sizeof(sName), "%T%N", "PersonalReplay", client, client);
+
+	strcopy(gA_ReplayInfo[client][index].aCache.sReplayName, MAX_NAME_LENGTH, sName);
+
+	return true;
 }
 
 stock void ResetReplayData(replayinfo_t info, bool bDelete)
@@ -550,10 +564,12 @@ stock void ResetReplayData(replayinfo_t info, bool bDelete)
 	if(bDelete)
 	{
 		delete info.aCache.aFrames;
+		delete info.aCache.aFrameOffsets;
 	}
 	else
 	{
 		info.aCache.aFrames = null;
+		info.aCache.aFrameOffsets = null;
 	}
 }
 

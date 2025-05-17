@@ -63,7 +63,12 @@ enum struct finished_run_info
 
 bool gB_Late = false;
 char gS_Map[PLATFORM_MAX_PATH];
+char gS_PreviousMap[PLATFORM_MAX_PATH];
 float gF_Tickrate = 0.0;
+int gI_FailureThresholdTick;
+
+int gI_AFKTickCount[MAXPLAYERS+1];
+int gI_AFKThresholdTick;
 
 int gI_Styles = 0;
 char gS_ReplayFolder[PLATFORM_MAX_PATH];
@@ -74,15 +79,21 @@ Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_PreRunAlways = null;
 Convar gCV_TimeLimit = null;
 Convar gCV_ClearFrameDelay = null;
+Convar gCV_TrimFrames = null;
+Convar gCV_FailureThreshold = null;
+Convar gCV_AFKThreshold = null;
 
 Handle gH_ShouldSaveReplayCopy = null;
 Handle gH_OnReplaySaved = null;
 
 bool gB_RecordingEnabled[MAXPLAYERS+1]; // just a simple thing to prevent plugin reloads from recording half-replays
+bool gB_TrimFailureFrames; // this is used to trim the failure frames of stages
+bool gB_TrimAFKFrames; // this is used to trim the afk frames while player in stage start zone
 
 // stuff related to postframes
 finished_run_info gA_FinishedRunInfo[MAXPLAYERS+1][2];
-stagestart_info_t gA_StageStartInfo[MAXPLAYERS+1];
+int gI_StageReachFrame[MAXPLAYERS+1];
+int gI_LastStageReachFrame[MAXPLAYERS+1];
 bool gB_GrabbingPostFrames[MAXPLAYERS+1][2];
 bool gB_DelayClearFrame[MAXPLAYERS+1];
 Handle gH_PostFramesTimer[MAXPLAYERS+1][2];
@@ -92,7 +103,11 @@ int gI_PlayerFinishFrame[MAXPLAYERS+1];
 // we use gI_PlayerFrames instead of grabbing gA_PlayerFrames.Length because the ArrayList is resized to handle 2s worth of extra frames to reduce how often we have to resize it
 int gI_PlayerFrames[MAXPLAYERS+1];
 int gI_PlayerPrerunFrames[MAXPLAYERS+1];
+int gI_PlayerStageStartFrames[MAXPLAYERS+1];
+int gI_LastPlayerStageStartFrames[MAXPLAYERS+1];
+int gI_RealFrameCount[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
+ArrayList gA_FrameOffsets[MAXPLAYERS+1];
 
 int gI_HijackFrames[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
@@ -108,9 +123,13 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetClientFrameCount", Native_GetClientFrameCount);
 	CreateNative("Shavit_GetPlayerPreFrames", Native_GetPlayerPreFrames);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
+	CreateNative("Shavit_GetStageStartFrames", Native_GetStageStartFrames);
+	CreateNative("Shavit_GetPlayerFrameOffsets", Native_GetPlayerFrameOffsets);	
+	CreateNative("Shavit_SetPlayerFrameOffsets", Native_SetPlayerFrameOffsets);
 	CreateNative("Shavit_HijackAngles", Native_HijackAngles);
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_SetPlayerPreFrames", Native_SetPlayerPreFrames);
+	CreateNative("Shavit_SetStageStartFrames", Native_SetStageStartFrames);
 	CreateNative("Shavit_EditReplayFrames", Native_EditReplayFrames);
 
 	if (!FileExists("cfg/sourcemod/plugin.shavit-replay-recorder.cfg") && FileExists("cfg/sourcemod/plugin.shavit-replay.cfg"))
@@ -142,7 +161,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	gH_ShouldSaveReplayCopy = CreateGlobalForward("Shavit_ShouldSaveReplayCopy", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnReplaySaved = CreateGlobalForward("Shavit_OnReplaySaved", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_String);
+	gH_OnReplaySaved = CreateGlobalForward("Shavit_OnReplaySaved", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String);
 
 	gCV_Enabled = new Convar("shavit_replay_recording_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_PlaybackPostRunTime = new Convar("shavit_replay_postruntime", "0.2", "Time (in seconds) to record after a player enters the end zone.", 0, true, 0.0, true, 2.0);
@@ -150,8 +169,15 @@ public void OnPluginStart()
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.7", "Time (in seconds) to record before a player leaves start zone.", 0, true, 0.0, true, 3.0);
 	gCV_TimeLimit = new Convar("shavit_replay_timelimit", "7200.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 7200 (2 hours)\n0 - Disabled", 0, true, 0.0);
 	gCV_ClearFrameDelay = new Convar("shavit_replay_clearframedelay", "0.2", "Time of delay before call ClearFrames(),\nin order to avoid cleaning frame before replay edit finish.", 0, true, 0.1, true, 0.5);
+	gCV_TrimFrames = new Convar("shavit_replay_trimframes", "2", "Trim all useless frames?\n(You need to use shavit-mapfixes.cfg or config file to TOGGLE this feature)\n0 - Disable\n1 - Trim stage failure frames\n2 - Trim stage failure frames and afk frames while in stage start zone", 0, true, 0.0, true, 2.0);
+	gCV_FailureThreshold = new Convar("shavit_replay_trim_failureframe_threshold", "0.5", "How many seconds after leaving start zone should count as a failure attempt if player returns to stage start", 0, true, 0.0, true, 0.8);
+	gCV_AFKThreshold = new Convar("shavit_replay_trim_afkframe_threshold", "10.0", "How many seconds after player AFKs should recorder trim frames during afk in stage start", 0, true, 5.0, false);
 
 	Convar.AutoExecConfig();
+
+	gCV_TrimFrames.AddChangeHook(OnConVarChanged);
+	gCV_FailureThreshold.AddChangeHook(OnConVarChanged);
+	gCV_AFKThreshold.AddChangeHook(OnConVarChanged);
 
 	gF_Tickrate = (1.0 / GetTickInterval());
 
@@ -187,9 +213,53 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
+public void OnConfigsExecuted()
+{
+	if(!StrEqual(gS_Map, gS_PreviousMap))
+	{
+		gB_TrimFailureFrames = gCV_TrimFrames.IntValue > 0;
+		gB_TrimAFKFrames = gCV_TrimFrames.IntValue > 1;
+	}
+	
+	gI_FailureThresholdTick = RoundToFloor(gCV_FailureThreshold.FloatValue * gF_Tickrate);
+	gI_AFKThresholdTick = RoundToFloor(gCV_AFKThreshold.FloatValue * gF_Tickrate);
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (convar == gCV_TrimFrames)
+	{
+		int iOldValue = StringToInt(oldValue);
+		int iNewValue = gCV_TrimFrames.IntValue;
+
+		if((iOldValue == 0 && iNewValue > 0) || (iOldValue >= 1 && iNewValue == 0))
+		{	// this has bug, but i dont think i need to fix it
+			PrintToServer("Toggle this feature from changing this convar while in a map will not take effect, Please modify in the config file or shavit-mapfixes.cfg");			
+		}
+		else
+		{
+			gB_TrimFailureFrames = iNewValue > 0;
+			gB_TrimAFKFrames = iNewValue > 1;
+		}
+	}
+	else if(convar == gCV_FailureThreshold)
+	{
+		gI_FailureThresholdTick = RoundToFloor(gCV_FailureThreshold.FloatValue * gF_Tickrate);
+	}
+	else if(convar == gCV_AFKThreshold)
+	{
+		gI_AFKThresholdTick = RoundToFloor(gCV_AFKThreshold.FloatValue * gF_Tickrate);
+	}
+}
+
 public void OnMapStart()
 {
 	GetLowercaseMapName(gS_Map);
+}
+
+public void OnMapEnd()
+{
+	gS_PreviousMap = gS_Map;
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -226,17 +296,23 @@ public void OnClientDisconnect_Post(int client)
 {
 	// This runs after shavit-misc has cloned the handle
 	delete gA_PlayerFrames[client];
+	delete gA_FrameOffsets[client];
 }
 
 public void TickRate_OnTickRateChanged(float fOld, float fNew)
 {
 	gF_Tickrate = fNew;
+	gI_FailureThresholdTick = RoundToFloor(gCV_FailureThreshold.FloatValue * gF_Tickrate);
+	gI_AFKThresholdTick = RoundToFloor(gCV_AFKThreshold.FloatValue * gF_Tickrate);
 }
 
 void ClearFrames(int client)
 {
 	delete gA_PlayerFrames[client];
+	delete gA_FrameOffsets[client];
 	gA_PlayerFrames[client] = new ArrayList(sizeof(frame_t));
+	gA_FrameOffsets[client] = new ArrayList(sizeof(offset_info_t), 2);
+	gI_RealFrameCount[client] = 0;
 	gI_PlayerFrames[client] = 0;
 	gI_PlayerPrerunFrames[client] = 0;
 	gI_PlayerFinishFrame[client] = 0;
@@ -246,17 +322,28 @@ void ClearFrames(int client)
 
 public Action Shavit_OnFinishStagePre(int client, timer_snapshot_t snapshot)
 {
-	if(!snapshot.bOnlyStageMode)
+	if(snapshot.bPracticeMode || snapshot.bOnlyStageMode)
 	{
-		if(snapshot.iLastStage > 1)
+		return Plugin_Continue;
+	}
+
+	offset_info_t offsets;
+
+	if(snapshot.iLastStage > 1)
+	{
+		gI_LastPlayerStageStartFrames[client] = gI_PlayerStageStartFrames[client];
+		gI_LastStageReachFrame[client] = gI_StageReachFrame[client];
+
+		if(gB_TrimFailureFrames)
 		{
-			gA_StageStartInfo[client] = snapshot.aStageStartInfo;	
+			gA_FrameOffsets[client].GetArray(snapshot.iLastStage, offsets, sizeof(offset_info_t));
+			offsets.iFailureAttempts = snapshot.iStageAttempts[snapshot.iLastStage] - 1;				
 		}
-		else if (snapshot.iLastStage == 1)
-		{
-			stagestart_info_t empty_info;
-			gA_StageStartInfo[client] = empty_info;
-		}
+	}
+
+	if(gB_TrimFailureFrames)
+	{
+		gA_FrameOffsets[client].SetArray(snapshot.iLastStage, offsets, sizeof(offset_info_t));			
 	}
 
 	return Plugin_Continue;
@@ -296,6 +383,11 @@ public Action Shavit_OnStart(int client)
 
 	if (bInStart)
 	{
+		if(gB_TrimFailureFrames && (gA_FrameOffsets[client].Length > 2 || gA_FrameOffsets[client].Get(1) != 0))
+		{
+			gA_FrameOffsets[client].Resize(2);
+		}
+
 		int iFrameDifference = gI_PlayerFrames[client] - iMaxPreFrames;
 
 		if (iFrameDifference > 0)
@@ -318,6 +410,8 @@ public Action Shavit_OnStart(int client)
 					gI_PlayerFrames[client]--;
 				}
 			}
+
+			gI_RealFrameCount[client] = gI_PlayerFrames[client];
 		}
 	}
 	else
@@ -329,6 +423,31 @@ public Action Shavit_OnStart(int client)
 	}
 
 	gI_PlayerPrerunFrames[client] = gI_PlayerFrames[client];
+
+	return Plugin_Continue;
+}
+
+public Action Shavit_OnStageStart(int client, int stage)
+{
+	if(!gB_TrimFailureFrames)
+	{
+		return Plugin_Continue;
+	}
+
+	if (Shavit_IsPracticeMode(client))
+	{
+		return Plugin_Continue;
+	}
+
+	gI_PlayerStageStartFrames[client] = gI_PlayerFrames[client];
+
+	if(gB_TrimAFKFrames && gI_AFKTickCount[client] > gI_AFKThresholdTick)
+	{
+		gI_PlayerFrames[client] = gI_StageReachFrame[client];
+
+		int offset = gI_RealFrameCount[client] - gI_PlayerFrames[client];
+		gA_FrameOffsets[client].Set(stage, offset);
+	}
 
 	return Plugin_Continue;
 }
@@ -346,6 +465,61 @@ public void Shavit_OnStop(int client)
 	}
 
 	ClearFrames(client);
+}
+
+public void Shavit_OnReachNextStage(int client, int track, int startStage, int endStage)
+{
+	if(Shavit_IsPracticeMode(client))
+	{
+		return;
+	}
+
+	if(!Shavit_IsOnlyStageMode(client) && track == Track_Main)
+	{
+		gI_StageReachFrame[client] = gI_PlayerFrames[client];
+
+		if(gB_TrimFailureFrames)
+		{
+			offset_info_t offsets;
+			offsets.iFrameOffset = gI_RealFrameCount[client] - gI_PlayerFrames[client]; 
+			offsets.fReachTime = Shavit_GetClientTime(client);
+
+			// set offsets to new stage
+			gA_FrameOffsets[client].Resize(endStage + 1);
+			gA_FrameOffsets[client].SetArray(endStage, offsets, sizeof(offset_info_t));
+		}
+	}
+}
+
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
+{
+	if(!gB_TrimFailureFrames || type != Zone_Stage)
+	{
+		return;
+	}
+
+	if(Shavit_IsPracticeMode(client) || Shavit_GetTimerStatus(client) != Timer_Running || Shavit_IsOnlyStageMode(client))
+	{
+		return;
+	}
+
+	if(Shavit_GetClientTrack(client) == track && track == Track_Main && Shavit_GetClientLastStage(client) == data)
+	{
+		if(gI_StageReachFrame[client] == gI_PlayerFrames[client])	// keep the frame original if player one shots this stage
+		{
+			return;
+		}
+
+		if(gI_PlayerFrames[client] - gI_PlayerStageStartFrames[client] < gI_FailureThresholdTick)
+		{
+			return;
+		}
+
+		gI_PlayerFrames[client] = gI_StageReachFrame[client];
+
+		int offset = gI_RealFrameCount[client] - gI_PlayerFrames[client];
+		gA_FrameOffsets[client].Set(data, offset);
+	}
 }
 
 public Action Timer_PostFrames(Handle timer, int client)
@@ -387,7 +561,6 @@ void EndClearFrameDelay(int client)
 void FinishGrabbingPostFrames(int client, finished_run_info info, int index = 0)
 {
 	gB_GrabbingPostFrames[client][index] = false;
-
 	delete gH_PostFramesTimer[client][index];
 
 	DoReplaySaverCallbacks(info.iSteamID, client, info.style, info.time, info.jumps, info.strafes, info.sync, info.track, info.oldtime, info.perfs, info.avgvel, info.maxvel, info.timestamp, info.fZoneOffset, info.stage);
@@ -462,6 +635,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	bool bShouldEdit = (stage > 1 && !Shavit_IsOnlyStageMode(client));
 
 	ArrayList aSaveFrames = null;
+	ArrayList aFrameOffsets = new ArrayList();
 	int iPreFrames;
 	int iStartFrame;
 	int iEndFrame;
@@ -470,14 +644,14 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	if (bShouldEdit) // need edit replay
 	{
 		ArrayList aOriginalFrames = view_as<ArrayList>(CloneHandle(gA_PlayerFrames[client]));
-		iPreFrames = CaculateStagePreFrames(client, gA_StageStartInfo[client].iFullTicks + gI_PlayerPrerunFrames[client], stage);
-		iStartFrame = gA_StageStartInfo[client].iFullTicks + gI_PlayerPrerunFrames[client] - iPreFrames;
+
+		iPreFrames = CaculateStagePreFrames(client, gI_LastPlayerStageStartFrames[client]);
+		iStartFrame = gI_LastPlayerStageStartFrames[client] - iPreFrames;
 		iEndFrame = gI_PlayerFrames[client];
 		iFrameCount = iEndFrame - iStartFrame;
-
 		aSaveFrames = EditReplayFrames(iStartFrame, iEndFrame, aOriginalFrames, false);
 
-		saved = SaveReplay(style, track, stage, time, iSteamID, iPreFrames, aSaveFrames, iFrameCount, postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
+		saved = SaveReplay(style, track, stage, time, iSteamID, iPreFrames, aSaveFrames, aFrameOffsets, iFrameCount, postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
 	}
 	else
 	{
@@ -485,7 +659,10 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 		iPreFrames = gI_PlayerPrerunFrames[client];
 		iFrameCount = gI_PlayerFrames[client];
 
-		saved = SaveReplay(style, track, stage, time, iSteamID, iPreFrames, aSaveFrames, iFrameCount, postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));		
+		if(gB_TrimFailureFrames && track == Track_Main && stage == 0)
+			aFrameOffsets = view_as<ArrayList>(CloneHandle(gA_FrameOffsets[client]));
+
+		saved = SaveReplay(style, track, stage, time, iSteamID, iPreFrames, aSaveFrames, aFrameOffsets, iFrameCount, postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));		
 	}
 
 	if (!saved)
@@ -514,11 +691,13 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	Call_PushCell(makeCopy);
 	Call_PushString(sPath);
 	Call_PushCell(aSaveFrames);
+	Call_PushCell(aFrameOffsets);
 	Call_PushCell(iPreFrames);
 	Call_PushCell(postframes);	
 	Call_PushString(sName);
 	Call_Finish();
 
+	delete aFrameOffsets;
 	delete aSaveFrames;
 
 	if (Shavit_IsOnlyStageMode(client))
@@ -645,7 +824,7 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 	}
 }
 
-bool SaveReplay(int style, int track, int stage, float time, int steamid, int preframes, ArrayList playerrecording, int iSize, int postframes, int timestamp, float fZoneOffset[2], bool saveCopy, bool saveWR, char[] sPath, int sPathLen)
+bool SaveReplay(int style, int track, int stage, float time, int steamid, int preframes, ArrayList playerrecording, ArrayList frameoffsets, int iSize, int postframes, int timestamp, float fZoneOffset[2], bool saveCopy, bool saveWR, char[] sPath, int sPathLen)
 {
 	char sTrack[8];
 	FormatEx(sTrack, 8, "_%d", track);
@@ -696,12 +875,12 @@ bool SaveReplay(int style, int track, int stage, float time, int steamid, int pr
 
 	if (fWR)
 	{
-		WriteReplayHeader(fWR, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map);
+		WriteReplayHeader(fWR, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map, frameoffsets);
 	}
 
 	if (fCopy)
 	{
-		WriteReplayHeader(fCopy, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map);
+		WriteReplayHeader(fCopy, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map, frameoffsets);
 	}
 
 	WriteReplayFrames(playerrecording, iSize, fWR, fCopy);
@@ -741,13 +920,13 @@ public ArrayList EditReplayFrames(int start, int end, ArrayList frames, bool pre
 	return copy;
 }
 
-public int CaculateStagePreFrames(int client, int start, int stage)
+public int CaculateStagePreFrames(int client, int start)
 {
 	int iMaxPreFrames = RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * (1.0 / GetTickInterval()));
 
-	if (iMaxPreFrames > gI_PlayerPrerunFrames[client])
+	if (iMaxPreFrames > gI_PlayerFrames[client])
 	{
-		return gI_PlayerPrerunFrames[client];
+		return gI_PlayerFrames[client];
 	}
 
 	int iStartFrame = start - iMaxPreFrames;
@@ -757,47 +936,44 @@ public int CaculateStagePreFrames(int client, int start, int stage)
 		return start;
 	}
 
-	frame_t aStartFrame;
-	frame_t aFrame2;
-	gA_PlayerFrames[client].GetArray(iStartFrame, aStartFrame, 11);
-
-	if (aStartFrame.stage == stage)
+	if(iStartFrame < gI_LastStageReachFrame[client])
 	{
-		return iMaxPreFrames;
-	}
-
-	int left = iStartFrame;
-	int right = start;
-
-	while(left <= right)
-	{
-		int mid = (left + (right - left) / 2);
-
-		gA_PlayerFrames[client].GetArray(mid, aStartFrame, 11);
-		
-		if(aStartFrame.stage == stage)
-		{
-			gA_PlayerFrames[client].GetArray(mid - 1, aFrame2, 11);
-			if(aFrame2.stage < aStartFrame.stage)
-			{
-				return start - mid;
-			}
-
-			right = mid-1;
-		}
-		else if(aStartFrame.stage < stage)
-		{
-			gA_PlayerFrames[client].GetArray(++mid, aFrame2, 11);
-			if(aFrame2.stage > aStartFrame.stage)
-			{
-				return start - mid;
-			}
-
-			left = mid;
-		}
+		return start - gI_LastStageReachFrame[client];
 	}
 
 	return iMaxPreFrames;
+}
+
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
+{
+	gI_AFKTickCount[client] = 0;
+
+	return Plugin_Continue;
+}
+
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, int mouse[2])
+{
+	if (IsFakeClient(client) || !IsPlayerAlive(client))
+	{
+		return Plugin_Continue;
+	}
+
+	if(status != Timer_Running)
+	{
+		gI_AFKTickCount[client] = 0;
+		return Plugin_Continue;
+	}
+
+	int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
+
+	if (iOldButtons != buttons)
+	{
+		gI_AFKTickCount[client] = 0;
+	}
+
+	gI_AFKTickCount[client]++;
+
+	return Plugin_Continue;
 }
 
 public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
@@ -836,7 +1012,6 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	{
 		// Add about two seconds worth of frames so we don't have to resize so often
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + (RoundToCeil(gF_Tickrate) * 2));
-		//PrintToChat(client, "resizing %d -> %d", gI_PlayerFrames[client], gA_PlayerFrames[client].Length);
 	}
 
 	frame_t aFrame;
@@ -865,6 +1040,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	aFrame.stage = Shavit_GetClientLastStage(client);
 
 	gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
+	gI_RealFrameCount[client]++;
 }
 
 stock int LimitMoveVelFloat(float vel)
@@ -883,6 +1059,11 @@ public int Native_GetPlayerPreFrames(Handle handler, int numParams)
 	return gI_PlayerPrerunFrames[GetNativeCell(1)];
 }
 
+public int Native_GetStageStartFrames(Handle handler, int numParams)
+{
+	return gI_PlayerStageStartFrames[GetNativeCell(1)];
+}
+
 public int Native_SetPlayerPreFrames(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
@@ -890,6 +1071,72 @@ public int Native_SetPlayerPreFrames(Handle handler, int numParams)
 
 	gI_PlayerPrerunFrames[client] = preframes;
 	return 1;
+}
+
+public int Native_SetStageStartFrames(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int frames = GetNativeCell(2);
+
+	gI_PlayerStageStartFrames[client] = frames;
+	return 1;
+}
+
+public int Native_SetPlayerFrameOffsets(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	ArrayList data = view_as<ArrayList>(GetNativeCell(2));
+	bool cheapCloneHandle = view_as<bool>(GetNativeCell(3));
+
+	if (cheapCloneHandle)
+	{
+		data = view_as<ArrayList>(CloneHandle(data));
+	}
+	else
+	{
+		data = data.Clone();
+	}
+
+	delete gA_FrameOffsets[client];
+	gA_FrameOffsets[client] = data;
+
+	if(gB_TrimFailureFrames)
+	{
+		offset_info_t offset;
+		gA_FrameOffsets[client].GetArray(0, offset, sizeof(offset_info_t));
+		gI_RealFrameCount[client] = offset.iFrameOffset;		
+	}
+	else
+	{
+		gI_RealFrameCount[client] = gI_PlayerFrames[client];
+	}
+
+	return 1;
+}
+
+public int Native_GetPlayerFrameOffsets(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	bool cheapCloneHandle = view_as<bool>(GetNativeCell(2));
+	Handle cloned = null;
+
+	if(gA_FrameOffsets[client] != null)
+	{
+		offset_info_t offset;
+		offset.iFrameOffset = gI_RealFrameCount[client];
+		gA_FrameOffsets[client].SetArray(0, offset, sizeof(offset_info_t));
+
+		ArrayList offsets = cheapCloneHandle ? gA_FrameOffsets[client] : gA_FrameOffsets[client].Clone();
+		cloned = CloneHandle(offsets, plugin); // set the calling plugin as the handle owner
+
+		if (!cheapCloneHandle)
+		{
+			// Only hit for .Clone()'d handles. .Clone() != CloneHandle()
+			CloseHandle(offsets);
+		}
+	}
+
+	return view_as<int>(cloned);
 }
 
 public int Native_GetReplayData(Handle plugin, int numParams)
@@ -956,7 +1203,6 @@ public int Native_HijackAngles(Handle handler, int numParams)
 		if (latency > 0.0)
 		{
 			ticks = RoundToCeil(latency / GetTickInterval()) + 1;
-			//PrintToChat(client, "%f %f %d", latency, GetTickInterval(), ticks);
 			gI_HijackFrames[client] = ticks;
 		}
 	}

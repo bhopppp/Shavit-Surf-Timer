@@ -68,13 +68,14 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
  * @param iscopy                    If the path points to a copy of the replay.
  * @param replaypath                Path to the saved replay.
  * @param frames                	ArrayList of the player's frames in the replay.
+ * @param offsets               	ArrayList of the player's frame offsets in the replay.
  * @param preframes                	The number of preframes in the replay.
  * @param postframes                The number of postframes in the replay.
  * @param name                		Player's name at the time of the replay.
  *
  * @noreturn
  */
-forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, int preframes, int postframes, const char[] name);
+forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, ArrayList offsets, int preframes, int postframes, const char[] name);
 
 /**
  * Retrieves a client's frame count.
@@ -104,6 +105,47 @@ native int Shavit_GetPlayerPreFrames(int client);
  * @noreturn
  */
 native void Shavit_SetPlayerPreFrames(int client, int PreFrame);
+
+/*
+ * Gets player's latest recording frame when stage timer start.
+ *
+ * @param client                    Client index
+ *
+ * @return						  	Latest recording framee when stage timer start
+ */
+native int Shavit_GetStageStartFrames(int client);
+
+/*
+ * Sets player's latest recording frame when stage timer start.
+ *
+ * @param client                    Client index
+ * @param frames                    Number of frame to set
+ *
+ * @noreturn
+ */
+native void Shavit_SetStageStartFrames(int client, int frames);
+
+/**
+ * Retrieves a player's frame offsets.
+ *
+ * @param client                    Client index.
+ * @param cheapCloneHandle          False means we duplicate the frames (ArrayList.Clone). True means we clone the handle to the frames (CloneHandle).
+ *
+ * @return                          ArrayList with proper frame offsets of replay data, or null if there is no frame offsets. Delete this handle when you're done with it.
+ */
+native ArrayList Shavit_GetPlayerFrameOffsets(int client, bool cheapCloneHandle=false);
+
+/**
+ * Sets a player's replay recording offsets of frames from a provided ArrayList.
+ * To be used by save states/TAS etc.
+ *
+ * @param client                    Client index.
+ * @param data                      ArrayList with proper replay data.
+ * @param cheapCloneHandle          False means we duplicate the frames (ArrayList.Clone). True means we clone the handle to the frames (CloneHandle).
+ *
+ * @noreturn
+ */
+native void Shavit_SetPlayerFrameOffsets(int client, ArrayList data, bool cheapCloneHandle=false);
 
 /**
  * Sets a player's replay recording frames from a provided ArrayList.
@@ -177,5 +219,9 @@ public void __pl_shavit_replay_recorder_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_HijackAngles");
 	MarkNativeAsOptional("Shavit_SetReplayData");
 	MarkNativeAsOptional("Shavit_EditReplay");
+	MarkNativeAsOptional("Shavit_GetStageStartFrames");
+	MarkNativeAsOptional("Shavit_SetStageStartFrames");
+	MarkNativeAsOptional("Shavit_GetPlayerFrameOffsets");
+	MarkNativeAsOptional("Shavit_SetPlayerFrameOffsets");
 }
 #endif

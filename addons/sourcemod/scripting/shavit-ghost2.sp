@@ -568,17 +568,16 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
-public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, int preframes, int postframes, const char[] name)
 {
 	if(isbestreplay && !istoolong)
 	{
 		ResetGhostInfo(track, style, stage);
-		gA_GhostInfo[track][style][stage].aFrames = frames.Clone();
+		gA_GhostInfo[track][style][stage].aFrames = view_as<ArrayList>(CloneHandle(frames));
 		gA_GhostInfo[track][style][stage].iPreFrames = preframes;
 		gA_GhostInfo[track][style][stage].iPostFrames = postframes;
 		gA_GhostInfo[track][style][stage].iFrameCount = frames.Length - preframes - postframes;
 		gA_GhostInfo[track][style][stage].fTime = time;
-		gA_GhostInfo[track][style][stage].hClosestPos = new ClosestPos(frames, 0, 0, frames.Length - postframes);		
+		gA_GhostInfo[track][style][stage].hClosestPos = new ClosestPos(frames, 0, 0, gA_GhostInfo[track][style][stage].iFrameCount);		
 	}
 }
 

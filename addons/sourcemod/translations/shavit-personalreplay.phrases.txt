@@ -66,6 +66,10 @@
 	{
 		"en"		"Replay bot is unavailable, try again later."
 	}
+	"NoRecentReplay"
+	{
+		"en"		"There is no replay saved recently."
+	}
 	// ============== Common translation ====================
 	"PersonalReplay"
 	{

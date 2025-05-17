@@ -6473,11 +6473,6 @@ public void TouchPost(int entity, int other)
 					Shavit_SetOnlyStageMode(other, false);
 				}
 			}
-
-			if(gI_HighestStage[track] > 1)
-			{
-				Shavit_StartStageTimer(other, track, 1);
-			}
 		}
 		case Zone_Respawn:
 		{
