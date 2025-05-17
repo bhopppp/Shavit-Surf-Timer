@@ -331,7 +331,7 @@ native void Shavit_DeleteWR(int style, int track, const char[] map, int accounti
  * Used to delete a stage WR. Used to ensure Shavit_OnWRDeleted is ran.
  *
  * @param style                     Record style.
- * @param track                     Record track (should be 0). 
+ * @param track                     Record track (should be Track_Main). 
  * @param stage						Record stage.
  * @param map                       Record map.
  * @param accountid                 -1 if recordid is -1. Otherwise you need the WR holder's Steam account ID. ([U:1:x])
@@ -397,7 +397,7 @@ native void Shavit_GetStageWRRecordID(int style, int& recordid, int stage);
  * @param stage                     Record stage.
  * @return                          Returns true if the player's name has been cached. False if it hasn't. `wrname` is filled with the player's name if available, otherwise the steamid if the name isn't cached, and lastly the string "none" if neither the name or steamid is available.
  */
-native void Shavit_GetStageWRName(int style, char[] wrname, int wrmaxlength, int stage);
+native bool Shavit_GetStageWRName(int style, char[] wrname, int wrmaxlength, int stage);
 
 /**
  * Get the stage record time of client.
@@ -418,7 +418,7 @@ native float Shavit_GetClientStagePB(int client, int style, int stage);
  * @param time						The time assign to client's pb cache. 
  * @noreturn						
  */
-native void Shavit_SetlientStagePB(int client, int style, int stage, float time);
+native void Shavit_SetClientStagePB(int client, int style, int stage, float time);
 
 /**
  * Get the stage record amount of specific track.
@@ -534,7 +534,7 @@ public void __pl_shavit_wr_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStageWRRecordID");
 	MarkNativeAsOptional("Shavit_GetStageWRName");
 	MarkNativeAsOptional("Shavit_GetClientStagePB");
-	MarkNativeAsOptional("Shavit_SetlientStagePB");
+	MarkNativeAsOptional("Shavit_SetClientStagePB");
 	MarkNativeAsOptional("Shavit_GetClientStageStartVelocity");
 	MarkNativeAsOptional("Shavit_GetClientStageEndVelocity");
 	MarkNativeAsOptional("Shavit_SetClientStageStartVelocity");
@@ -544,5 +544,13 @@ public void __pl_shavit_wr_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClientEndVelocity");
 	MarkNativeAsOptional("Shavit_SetClientStartVelocity");
 	MarkNativeAsOptional("Shavit_SetClientEndVelocity");
+	MarkNativeAsOptional("Shavit_GetWRStartVelocity");
+	MarkNativeAsOptional("Shavit_GetWREndVelocity");
+	MarkNativeAsOptional("Shavit_GetStageWRStartVelocity");
+	MarkNativeAsOptional("Shavit_GetStageWREndVelocity");
+	MarkNativeAsOptional("Shavit_DeleteStageWR");
+	MarkNativeAsOptional("Shavit_GetStageRankForTime");
+	MarkNativeAsOptional("Shavit_GetStageTimeForRank");
+	MarkNativeAsOptional("Shavit_GetStageRecordAmount");
 }
 #endif

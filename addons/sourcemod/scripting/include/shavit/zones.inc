@@ -585,7 +585,7 @@ public void __pl_shavit_zones_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_InsideZoneGetID");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_ZoneExists");
-	MarkNativeAsOptional("Shavit_GetMapTrackCount");
+	MarkNativeAsOptional("Shavit_GetMapTracks");
 	MarkNativeAsOptional("Shavit_Zones_DeleteMap");
 	MarkNativeAsOptional("Shavit_SetStart");
 	MarkNativeAsOptional("Shavit_DeleteSetStart");

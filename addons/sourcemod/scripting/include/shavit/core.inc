@@ -671,7 +671,7 @@ forward Action Shavit_OnStartPre(int client, int track);
  * @param track                     Timer track.
  * @return                          Unused.
  */
-forward Action Shavit_OnStart(int client, int stage);
+forward Action Shavit_OnStart(int client, int track);
 
 /**
  * Called when a player's timer starts.
@@ -1135,7 +1135,7 @@ native void Shavit_SetClientCPTimes(int client, float[] cpTimes);
 native float Shavit_GetClientCPTime(int client, int checkpoint);
 
 /**
- * Returns the specific checkpoint time of client's current run.
+ * Sets a specific checkpoint time of client's current run.
  *
  * @param client                    Client index.
  * @param checkpoint				Checkpoint number.
@@ -1145,7 +1145,7 @@ native float Shavit_GetClientCPTime(int client, int checkpoint);
 native void Shavit_SetClientCPTime(int client, int checkpoint, float time);
 
 /**
- * Returns the zone index for the entity if available.
+ * Get a array of stage finish times of client's current run.
  *
  * @param client                    Client index.
  * @param times                   	Any float array to hold the stage finish times.
@@ -1810,7 +1810,6 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClientLastStage");
 	MarkNativeAsOptional("Shavit_SetClientLastStage");
 	MarkNativeAsOptional("Shavit_GetClientCPTimes");
-	MarkNativeAsOptional("Shavit_GetClientCPTimes");
 	MarkNativeAsOptional("Shavit_SetClientCPTime");
 	MarkNativeAsOptional("Shavit_SetClientCPTime");
 	MarkNativeAsOptional("Shavit_StageTimeValid");
@@ -1859,6 +1858,17 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GotoEnd");
 	MarkNativeAsOptional("Shavit_UpdateLaggedMovement");
 	MarkNativeAsOptional("Shavit_PrintSteamIDOnce");
+	MarkNativeAsOptional("Shavit_GetAvgVelocity");
+	MarkNativeAsOptional("Shavit_GetMaxVelocity");
+	MarkNativeAsOptional("Shavit_SetAvgVelocity");
+	MarkNativeAsOptional("Shavit_SetMaxVelocity");
+	MarkNativeAsOptional("Shavit_GetStartVelocity");
+	MarkNativeAsOptional("Shavit_GetStageStartVelocity");
+	MarkNativeAsOptional("Shavit_SetStartVelocity");
+	MarkNativeAsOptional("Shavit_SetStageStartVelocity");
+	MarkNativeAsOptional("Shavit_SetOnlyStageMode");
+	MarkNativeAsOptional("Shavit_IsOnlyStageMode");
+	MarkNativeAsOptional("Shavit_GetMessageSetting");
 
 	__pl_shavit_bhopstats_SetNTVOptional();
 }
