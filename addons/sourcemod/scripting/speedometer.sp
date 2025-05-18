@@ -632,7 +632,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	if(gB_AllLibraryExists)
 	{
 		bReplay = (gB_ReplayPlayback && Shavit_IsReplayEntity(target));
-		target = bReplay ? Shavit_GetReplayBotInfoIndex(target) : target;
 		iTrack = (bReplay) ? Shavit_GetReplayBotTrack(target) : Shavit_GetClientTrack(target);
 		iStage = Shavit_GetClientLastStage(target);
 		iTimerStatus = (bReplay)  ? Timer_Running : Shavit_GetTimerStatus(target);
@@ -779,6 +778,10 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 }
 
 void SetPrevVelocity(int client, float vel)
+{
+	g_fLastSpeed[client] = vel;
+}
+
 void GetColorBySpeed(int client, int target, float speed, int rgb[3])
 {
 	if (speed > g_fLastSpeed[target])
