@@ -613,8 +613,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-	int target = GetClientObserverTarget(client);
-	
+	int target = GetClientObserverTarget(client, client);
+
 	if(!IsValidClient2(target))
 	{
 		return Plugin_Continue;
@@ -715,8 +715,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 	if(gI_SpeedometerHud_SpeedDynamicColor[client] == dynamicColor_mode_1)
 	{
-		GetColorBySpeed(client, target, speed, rgb);
-		g_fLastSpeed[target] = speed;
+		GetColorBySpeed(client, bReplay ? client:target, speed, rgb);
+		SetPrevVelocity(client, speed);
 	}
 	else if(!bReplay && gI_SpeedometerHud_SpeedDynamicColor[client] == dynamicColor_mode_2)
 	{
@@ -736,7 +736,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 	if (gB_SpeedometerDebug[client])
 	{
-		//PrintToChat(client, "shavit-zones: %s  shavit-replay-playback: %s  shavit-core: %s  All: %s",  gB_Zones ? "1":"0", gB_ReplayPlayback ? "1":"0", gB_Core ? "1":"0", gB_AllLibraryExists ? "1":"0");
 		SetHudTextParams(-1.0, -1.0, 0.3, rgb[0], rgb[1], rgb[2], 255, 0, 0.0, 0.0, 0.0);
 		if (gB_AllLibraryExists)
 		{
@@ -779,6 +778,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	return Plugin_Continue;
 }
 
+void SetPrevVelocity(int client, float vel)
 void GetColorBySpeed(int client, int target, float speed, int rgb[3])
 {
 	if (speed > g_fLastSpeed[target])
@@ -960,19 +960,26 @@ stock int GetClientObserverMode(int client)
 	return GetEntProp(client, Prop_Send, "m_iObserverMode");
 }
 
-stock int GetClientObserverTarget(int client)
+stock int GetClientObserverTarget(int client, int fallback = -1)
 {
-	if (IsClientObserver(client))
-	{
-		int observerMode = GetClientObserverMode(client);
+	int target = fallback;
 
-		if (observerMode >= 3 && observerMode <= 5)
+	if(IsClientObserver(client))
+	{
+		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
+
+		if (iObserverMode >= 3 && iObserverMode <= 7)
 		{
-			return GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+			int iTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+
+			if (IsValidEntity(iTarget))
+			{
+				target = iTarget;
+			}
 		}
 	}
 
-	return client;
+	return target;
 }
 
 void GetClientGains(int client, float vel[3], float angles[3])
