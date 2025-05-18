@@ -83,11 +83,14 @@ int gI_MaxRecaculateFrameDiff;
 int gI_RouteFramesAhead;
 int gI_GuideFramesAhead;
 int gI_TimeCompensation;
+int gI_DrawFrameOffsetDivision;
 
 // client stuffs
 int gI_ClientTicks[MAXPLAYERS + 1];
 int gI_ClientPrevFrame[MAXPLAYERS + 1];
 bool gB_GhostFnished[MAXPLAYERS + 1];
+
+int gI_LastFrameDrawDifference[MAXPLAYERS + 1];
 
 // client settings
 bool gB_Ghost[MAXPLAYERS + 1];
@@ -167,6 +170,12 @@ public void OnPluginStart()
 
 	gI_Tickrate = RoundToNearest(1.0 / GetTickInterval());
 	gI_TimeCompensation = gI_Tickrate / 10;
+
+	if(LibraryExists("shavit-replay-playback"))
+	{
+		Shavit_OnReplaysLoaded();
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+	}
 	
 	if (gB_Late)
 	{
@@ -201,6 +210,7 @@ public void OnConfigsExecuted()
 	gI_MaxRecaculateFrameDiff = RoundToNearest(gCV_RecaculateFrameDiff.FloatValue * gI_Tickrate);
 	gI_RouteFramesAhead = RoundToNearest(gCV_RouteFramesAhead.FloatValue * gI_Tickrate);
 	gI_GuideFramesAhead = RoundToNearest(gCV_GuideFramesAhead.FloatValue * gI_Tickrate);
+	gI_DrawFrameOffsetDivision = gI_GuideFramesAhead / 2;	
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -226,7 +236,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if(convar == gCV_GuideFramesAhead)
 	{
-		gI_GuideFramesAhead = RoundToNearest(gCV_GuideFramesAhead.FloatValue * gI_Tickrate);				
+		gI_GuideFramesAhead = RoundToNearest(gCV_GuideFramesAhead.FloatValue * gI_Tickrate);
+		gI_DrawFrameOffsetDivision = gI_GuideFramesAhead / 2;				
 	}
 }
 
@@ -687,7 +698,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		float clientPos[3];
 		GetClientAbsOrigin(client, clientPos);
 
-		int iClosestFrame = Max(1, (gA_GhostInfo[track][style][stage].hClosestPos.Find(clientPos) - 10));//gCV_RouteFramesDiff.IntValue));
+		int iClosestFrame = Max(1, (gA_GhostInfo[track][style][stage].hClosestPos.Find(clientPos) - 10));
 		int iEndFrame = Min(info.Length, iClosestFrame + gI_RouteFramesAhead);
 
 		info.GetArray(iClosestFrame, prevFrame, sizeof(frame_t));
@@ -745,8 +756,9 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		}
 
 		int iClosestFrameDiff = iClosestFrame - gI_ClientPrevFrame[client];
+		int iOriginalClosestFrame = iClosestFrame;
+		int iDrawFrameOffset = 1;
 		
-
 		if(Abs(iClosestFrameDiff) > gI_MaxRecaculateFrameDiff)
 		{
 			// closest frame has greate diff between previous frame, assign new closest frame as previous frame.
@@ -754,13 +766,14 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		}
 		else if(iClosestFrameDiff > 1)
 		{
-			// fill missing frames with previous frame when client move too fast
-			iClosestFrame = gI_ClientPrevFrame[client] + 1;			
+			// fill missing frames when client move too fast
+			iDrawFrameOffset = RoundToCeil(float(gI_LastFrameDrawDifference[client]) / gI_DrawFrameOffsetDivision);
+			iClosestFrame = gI_ClientPrevFrame[client] + iDrawFrameOffset;
 		}
 
 		gI_ClientPrevFrame[client] = iClosestFrame;
 
-		if(iClosestFrameDiff < 0)
+		if(iClosestFrameDiff < 0)	// dont draw if player go backward
 		{
 			return;
 		}
@@ -777,6 +790,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 			iMaxFrames = iClosestFrame + gI_GuideFramesAhead;
 		}
 
+		gI_LastFrameDrawDifference[client] = gI_GuideFramesAhead - iMaxFrames + iOriginalClosestFrame;
+
 		if(iClosestFrame >= info.Length)
 		{
 			return;
@@ -787,11 +802,11 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		}
 
 		info.GetArray(iMaxFrames, curFrame, sizeof(frame_t));
-		info.GetArray(iMaxFrames <= 0 ? 0 : iMaxFrames - 1, prevFrame, sizeof(frame_t));
+		info.GetArray(iMaxFrames <= iDrawFrameOffset ? 0 : iMaxFrames - iDrawFrameOffset, prevFrame, sizeof(frame_t));
 
 		if(GetVectorDistance(prevFrame.pos, curFrame.pos) > gCV_MaxFrameDistance.FloatValue)
 		{
-			return;	
+			return;
 		}
 
 		if(gB_DrawBox[client] && (!(curFrame.flags & FL_ONGROUND) && prevFrame.flags & FL_ONGROUND))
