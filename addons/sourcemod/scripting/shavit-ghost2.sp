@@ -419,7 +419,7 @@ public int MenuHandler_Ghost(Menu menu, MenuAction action, int param1, int param
 public void OnMapStart()
 {
 	AddFileToDownloadsTable("materials/sprites/laserbeam.vtf");
-	AddFileToDownloadsTable("materials/sprites/laserbeam.vtm");
+	AddFileToDownloadsTable("materials/sprites/laserbeam.vmt");
 }
 
 
