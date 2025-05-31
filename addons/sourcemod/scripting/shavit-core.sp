@@ -800,7 +800,7 @@ public Action Command_StartTimer(int client, int args)
 		// Pull out bonus number for commands like sm_b1 and sm_b2.
 		if ('1' <= sCommand[4] <= ('0' + Track_Bonus_Last))
 		{
-			track = sCommand[4] - '0';
+			track = StringToInt(sCommand[4]);
 		}
 		else if (args < 1)
 		{
