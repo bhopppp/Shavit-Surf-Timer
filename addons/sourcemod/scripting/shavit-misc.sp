@@ -63,6 +63,7 @@ char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "fol
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_AutoRestart[MAXPLAYERS+1];
 bool gB_Late = false;
+bool gB_DisableTriggers[MAXPLAYERS+1];
 int gI_LastShot[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
@@ -180,6 +181,10 @@ public void OnPluginStart()
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
 	RegAdminCmd("sm_maptimer_checkpoints", Command_MaptimerCheckpoints, ADMFLAG_RCON, "kz_bhop_yonkoma");
+
+	RegAdminCmd("sm_toggletriggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
+	RegAdminCmd("sm_triggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
+	RegAdminCmd("sm_disabletriggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
 
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
@@ -323,11 +328,6 @@ public void OnPluginStart()
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Chat = LibraryExists("shavit-chat");
 	gB_Zones = LibraryExists("shavit-zones");
-}
-
-public void OnAllPluginsLoaded()
-{
-
 }
 
 void LoadDHooks()
@@ -735,6 +735,29 @@ int GetHumanTeam()
 	}
 
 	return 0;
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if(StrEqual(classname, "trigger_multiple") || StrEqual(classname, "trigger_once") || StrEqual(classname, "trigger_push") || StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_gravity"))
+	{
+		SDKHook(entity, SDKHook_StartTouch, HookTrigger);
+		SDKHook(entity, SDKHook_EndTouch, HookTrigger);
+		SDKHook(entity, SDKHook_Touch, HookTrigger);
+	}
+}
+
+public Action HookTrigger(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		if(gB_DisableTriggers[other])
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 public Action Command_Spectate(int client, const char[] command, int args)
@@ -1391,6 +1414,7 @@ public void OnClientPutInServer(int client)
 
 	gI_LastWeaponTick[client] = 0;
 	gI_LastNoclipTick[client] = 0;
+	gB_DisableTriggers[client] = false;
 
 	if(IsFakeClient(client))
 	{
@@ -1915,6 +1939,14 @@ void DoStopTimer(int client)
 	Shavit_StopTimer(client);
 }
 
+void DoToggleTriggers(int client)
+{
+	Shavit_StopTimer(client);
+
+	gB_DisableTriggers[client] = !gB_DisableTriggers[client];
+	Shavit_PrintToChat(client, "%T", gB_DisableTriggers[client] ? "TriggerDisabled" : "TriggerEnabled", client, gB_DisableTriggers[client] ? gS_ChatStrings.sWarning:gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+}
+
 void OpenStopWarningMenu(int client, StopTimerCallback after)
 {
 	gH_AfterWarningMenu[client] = after;
@@ -1965,6 +1997,16 @@ public bool Shavit_OnStopPre(int client, int track)
 	}
 
 	return true;
+}
+
+public Action Shavit_OnTeleport(int client, int index, int target)
+{
+	if(gB_DisableTriggers[client])
+	{
+		Shavit_StopTimer(client);
+	}
+
+	return Plugin_Handled;
 }
 
 public Action Command_MaptimerCheckpoints(int client, int args)
@@ -2340,6 +2382,34 @@ public int CommandsMenu_Handler(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
+public Action Command_ToggleTriggers(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!gB_DisableTriggers[client])
+	{
+		Action result = CallOnDisableTriggersPre(client);
+
+		if (result > Plugin_Continue)
+		{
+			return Plugin_Handled;
+		}
+
+		if(!Shavit_StopTimer(client, false))
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	gB_DisableTriggers[client] = !gB_DisableTriggers[client];
+	Shavit_PrintToChat(client, "%T", gB_DisableTriggers[client] ? "TriggerDisabled" : "TriggerEnabled", client, gB_DisableTriggers[client] ? gS_ChatStrings.sWarning:gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+	return Plugin_Handled;
+}
+
 public Action Command_Specs(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -2417,6 +2487,11 @@ public Action Command_Specs(int client, int args)
 
 public Action Shavit_OnStartPre(int client)
 {
+	if(gB_DisableTriggers[client])
+	{
+		return Plugin_Stop;
+	}
+
 	if (Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
@@ -2504,6 +2579,17 @@ public Action Shavit_OnEndPre(int client, int track)
 	{
 		gI_LastStopInfo[client] = track;
 		OpenStopWarningMenu(client, DoEnd);
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
+public Action CallOnDisableTriggersPre(int client)
+{
+	if (ShouldDisplayStopWarning(client))
+	{
+		OpenStopWarningMenu(client, DoToggleTriggers);
 		return Plugin_Handled;
 	}
 
