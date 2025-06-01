@@ -2716,6 +2716,7 @@ public int Native_GotoEnd(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
+	Shavit_SetPracticeMode(client, true, false);
 	Shavit_StopTimer(client, true);
 
 	Call_StartForward(gH_Forwards_OnEnd);
