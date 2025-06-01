@@ -4035,70 +4035,61 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	if(results.FetchRow())
 	{
-		int stage = results.FetchInt(12);
-		results.FetchString(0, sName, MAX_NAME_LENGTH);
-
-		float fTime = results.FetchFloat(1);
 		char sTime[16];
-		FormatSeconds(fTime, sTime, 16);
+		char sDate[32];		
+		char sDisplay[256];		
 
-		char sDisplay[128];
-		FormatEx(sDisplay, 128, "%T: %s", "WRTime", client, sTime);
-		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
-
-		int iStyle = results.FetchInt(3);
+		results.FetchString(0, sName, MAX_NAME_LENGTH);		
+		float fTime = results.FetchFloat(1);
 		int iJumps = results.FetchInt(2);
+		int iStyle = results.FetchInt(3);
+		iSteamID = results.FetchInt(4);
+		results.FetchString(5, sDate, 32);
+		results.FetchString(6, sMap, sizeof(sMap));
+		int strafes = results.FetchInt(7);
+		float sync = results.FetchFloat(8);
 		float fPerfs = results.FetchFloat(9);
+		float fPoints = results.FetchFloat(10);
 		int iTrack = results.FetchInt(11);
+		int stage = results.FetchInt(12);
+		int iCompletions = results.FetchInt(13);
+
+		FormatSeconds(fTime, sTime, 16);
+		FormatEx(sDisplay, 256, "%T: %s", "WRTime", client, sTime);
+
+		FormatEx(sDisplay, 256, "%s\n%T: %d", sDisplay, "WRCompletions", client, iCompletions);
 
 		if(Shavit_GetStyleSettingInt(iStyle, "autobhop"))
 		{
-			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, iJumps);
+			FormatEx(sDisplay, 256, "%s\n%T: %d", sDisplay, "WRJumps", client, iJumps);
 		}
 		else
 		{
-			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, iJumps, fPerfs);
+			FormatEx(sDisplay, 256, "%s\n%T: %d (%.2f%%)", sDisplay, "WRJumps", client, iJumps, fPerfs);
 		}
 
-		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
-
-		FormatEx(sDisplay, 128, "%T: %d", "WRCompletions", client, results.FetchInt(13));
-		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
-
-		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[iStyle].sStyleName);
-		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
-
-		results.FetchString(6, sMap, sizeof(sMap));
-
-		float fPoints = results.FetchFloat(10);
+		FormatEx(sDisplay, 256, "%s\n%T: %s", sDisplay, "WRStyle", client, gS_StyleStrings[iStyle].sStyleName);
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 128, "%T: %.03f", "WRPointsCap", client, fPoints);
-			hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
+			FormatEx(sDisplay, 256, "%s\n%T: %.03f", sDisplay, "WRPointsCap", client, fPoints);
 		}
-
-		iSteamID = results.FetchInt(4);
-
-		char sDate[32];
-		results.FetchString(5, sDate, 32);
 
 		if(sDate[4] != '-')
 		{
 			FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", StringToInt(sDate));
 		}
 
-		FormatEx(sDisplay, 128, "%T: %s", "WRDate", client, sDate);
-		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
-
-		int strafes = results.FetchInt(7);
-		float sync = results.FetchFloat(8);
+		FormatEx(sDisplay, 256, "%s\n%T: %s", sDisplay, "WRDate", client, sDate);
 
 		if(iJumps > 0 || strafes > 0)
 		{
-			FormatEx(sDisplay, 128, (sync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, strafes, sync);
-			hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
+			FormatEx(sDisplay, 256, (sync != -1.0)? "%s\n%T: %d (%.02f%%)":"%T: %d", sDisplay, "WRStrafes", client, strafes, sync);
 		}
+
+		FormatEx(sDisplay, 256, "%s\n ", sDisplay);
+
+		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 
 		char sMenuItem[64];
 		char sInfo[32];
@@ -4148,7 +4139,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	if(strlen(sName) > 0)
 	{
-		FormatEx(sFormattedTitle, 256, "%s [U:1:%u]\n--- %s: [%s]", sName, iSteamID, sMap, sTrack);
+		FormatEx(sFormattedTitle, 256, "%s [U:1:%u]\n--- %s: [%s]\n ", sName, iSteamID, sMap, sTrack);
 	}
 	else
 	{
