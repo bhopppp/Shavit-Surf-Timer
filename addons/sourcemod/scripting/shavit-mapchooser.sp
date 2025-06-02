@@ -964,6 +964,33 @@ void InitiateMapVote(MapChange when)
 	delete used_indices;
 	delete tiersMap;
 
+	if(mapsAdded == 0)
+	{
+		if(when == MapChange_MapEnd)
+		{
+			int time;
+			if(GetMapTimeLimit(time))
+			{
+				if(time > 0)
+				{
+					ExtendMapTimeLimit(g_cvMapVoteExtendTime.IntValue * 60);
+				}
+			}
+
+			Shavit_PrintToChatAll("No valid maps found for voting. Current map extended.");			
+		}
+		else if(when == MapChange_Instant)
+		{
+			Shavit_PrintToChatAll("No valid maps found for voting. No map change will occur.");
+		}
+
+		// Vote actually finished, but we still need to vote again.
+		g_bMapVoteStarted = false;
+		g_fLastMapvoteTime = GetEngineTime();
+		ClearRTV();
+		return;
+	}
+
 	if ((when == MapChange_MapEnd && add_extend) || (when == MapChange_Instant))
 	{
 		for (int i = 0; i < (maxPageItems-mapsAdded-1); i++)
@@ -1153,7 +1180,7 @@ void DoMapChangeAfterMapVote(char map[PLATFORM_MAX_PATH], char displayName[PLATF
 	g_bMapVoteStarted = false;
 	g_bMapVoteFinished = true;
 
-	Shavit_PrintToChatAll("%t", "Nextmap Voting Finished", displayName, percentage_of_votes, num_votes);
+	Shavit_PrintToChatAll("%t", "Nextmap Voting Finished", map, percentage_of_votes, num_votes);
 	LogAction(-1, -1, "Voting for next map has finished. Nextmap: %s.", map);
 }
 
@@ -1244,24 +1271,15 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 				int count = menu.ItemCount;
 				char map[PLATFORM_MAX_PATH];
 				char displayName[PLATFORM_MAX_PATH];
-				menu.GetItem(0, map, sizeof(map));
 
-				// Make sure the first map in the menu isn't one of the special items.
-				// This would mean there are no real maps in the menu, because the special items are added after all maps. Don't do anything if that's the case.
-				if (strcmp(map, "extend", false) != 0 && strcmp(map, "dontchange", false) != 0 && strcmp(map, "reroll", false) != 0)
+				do
 				{
-					// Get a random map from the list.
-
-					// Make sure it's not one of the special items.
-					do
-					{
-						int item = GetRandomInt(0, count - 1);
-						menu.GetItem(item, map, sizeof(map), _, displayName, sizeof(displayName));
-					}
-					while (strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0 || strcmp(map, "reroll", false) == 0);
-
-					DoMapChangeAfterMapVote(map, displayName, 0, 0);
+					int item = GetRandomInt(0, count - 1);
+					menu.GetItem(item, map, sizeof(map), _, displayName, sizeof(displayName));
 				}
+				while (strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0 || strcmp(map, "reroll", false) == 0);
+
+				DoMapChangeAfterMapVote(map, displayName, 0, 0);
 			}
 			else
 			{
