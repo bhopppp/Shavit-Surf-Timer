@@ -438,6 +438,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	{
 		int iMinutes = (iRounded / 60);
 		int iHours = (iMinutes / 60);
+		iMinutes %= 60;
 
 		if (!full_hms)
 		{
@@ -452,8 +453,6 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		}
 		else
 		{
-			iMinutes %= 60;
-
 			if(iHours == 0)
 			{
 				FormatEx(newtime, newtimesize, "%s%s%d:%s%.2f", (time < 0.0)? "-":"", (iMinutes < 10)? "0":"", iMinutes, (fSeconds < 10)? "0":"", fSeconds);
