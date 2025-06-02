@@ -75,7 +75,7 @@ Convar g_cvMapVoteExtendLimit;
 Convar g_cvMapVoteEnableNoVote;
 Convar g_cvMapVoteEnableReRoll;
 Convar g_cvMapVoteExtendTime;
-Convar g_cvMapVoteShowTier;
+Convar g_cvMapVoteShowInfo;
 Convar g_cvMapVoteRunOff;
 Convar g_cvMapVoteRunOffPerc;
 Convar g_cvMapVoteRevoteTime;
@@ -83,6 +83,7 @@ Convar g_cvMapVotePrintToConsole;
 Convar g_cvDisplayTimeRemaining;
 
 Convar g_cvNominateMatches;
+Convar g_cvMapNominateShowInfo;
 Convar g_cvEnhancedMenu;
 
 Convar g_cvMapChangeSound;
@@ -222,7 +223,7 @@ public void OnPluginStart()
 	g_cvMapVoteEnableReRoll = new Convar("smc_mapvote_enable_reroll", "0", "Whether players are able to choose 'ReRoll' in map vote", _, true, 0.0, true, 1.0);
 	g_cvMapVoteExtendLimit = new Convar("smc_mapvote_extend_limit", "3", "How many times players can choose to extend a single map (0 = block extending, -1 = infinite extending)", _, true, -1.0, false);
 	g_cvMapVoteExtendTime = new Convar("smc_mapvote_extend_time", "10", "How many minutes should the map be extended by if the map is extended through a mapvote", _, true, 1.0, false);
-	g_cvMapVoteShowTier = new Convar("smc_mapvote_show_tier", "1", "Whether the map tier should be displayed in the map vote", _, true, 0.0, true, 1.0);
+	g_cvMapVoteShowInfo = new Convar("smc_mapvote_show_info", "2", "Whether the map info should be displayed in the map vote?\n 0 - Only display map name\n 1 - Display map tier \n 2 - Display map detailed info", _, true, 0.0, true, 2.0);
 	g_cvMapVoteDuration = new Convar("smc_mapvote_duration", "1", "Duration of time in minutes that map vote menu should be displayed for", _, true, 0.1, false);
 	g_cvMapVoteStartTime = new Convar("smc_mapvote_start_time", "5", "Time in minutes before map end that map vote starts", _, true, 1.0, false);
 
@@ -240,6 +241,7 @@ public void OnPluginStart()
 	g_cvMapVotePrintToConsole = new Convar("smc_mapvote_printtoconsole", "1", "Prints map votes that each player makes to console.", _, true, 0.0, true, 1.0);
 	g_cvDisplayTimeRemaining = new Convar("smc_display_timeleft", "0", "Display time until vote in chat", _, true, 0.0, true, 1.0);
 
+	g_cvMapNominateShowInfo = new Convar("smc_nominate_show_info", "2", "Whether the map info should be displayed in the nominate menu?\n 0 - Only display map name\n 1 - Display map tier \n 2 - Display map detailed info", _, true, 0.0, true, 2.0);
 	g_cvNominateMatches = new Convar("smc_nominate_matches", "1", "Prompts a menu which shows all maps which match argument",  _, true, 0.0, true, 1.0);
 	g_cvEnhancedMenu = new Convar("smc_enhanced_menu", "1", "Nominate menu can show maps by alphabetic order and tiers",  _, true, 0.0, true, 1.0);
 
@@ -781,7 +783,7 @@ void InitiateMapVote(MapChange when)
 	Menu menu = new Menu(Handler_MapVoteMenu, MENU_ACTIONS_ALL);
 	menu.VoteResultCallback = Handler_MapVoteFinished;
 	menu.Pagination = MENU_NO_PAGINATION;
-	menu.SetTitle("Vote Nextmap");
+	menu.SetTitle("Vote Nextmap\n ");
 
 	int maxPageItems = (gEV_Type == Engine_CSGO) ? 8 : 9;
 	int mapsToAdd = maxPageItems;
@@ -806,10 +808,23 @@ void InitiateMapVote(MapChange when)
 		maxPageItems--;
 	}
 
+	if ((when == MapChange_MapEnd && add_extend))
+	{
+		if (g_cvMapVoteEnableReRoll.BoolValue)
+			menu.AddItem("reroll", "Reroll Maps");
+		menu.AddItem("extend", "Extend Current Map\n ");
+	}
+	else if (when == MapChange_Instant)
+	{
+		if (g_cvMapVoteEnableReRoll.BoolValue)
+			menu.AddItem("reroll", "Reroll Maps");
+		menu.AddItem("dontchange", "Don't Change\n ");
+	}
+
 	char map[PLATFORM_MAX_PATH];
 	char mapdisplay[PLATFORM_MAX_PATH + 32];
 
-	StringMap tiersMap = (gB_Rankings) ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapInfo() : null;
 
 	int nominateMapsToAdd = (mapsToAdd > g_aNominateList.Length) ? g_aNominateList.Length : mapsToAdd;
 	for(int i = 0; i < nominateMapsToAdd; i++)
@@ -817,11 +832,33 @@ void InitiateMapVote(MapChange when)
 		g_aNominateList.GetString(i, map, sizeof(map));
 		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
 
-		if (tiersMap && g_cvMapVoteShowTier.BoolValue)
+		if (tiersMap && g_cvMapVoteShowInfo.IntValue > 0)
 		{
-			int tier = 0;
-			tiersMap.GetValue(mapdisplay, tier);
-			Format(mapdisplay, sizeof(mapdisplay), "[T%i] %s", tier, mapdisplay);
+			mapinfo_t mapinfo;
+			tiersMap.GetArray(mapdisplay, mapinfo, sizeof(mapinfo_t));
+
+			if (g_cvMapVoteShowInfo.IntValue == 1)
+			{
+				Format(mapdisplay, sizeof(mapdisplay), "[T%d] %s", mapinfo.iTier, mapdisplay);
+			}
+			else
+			{
+				Format(mapdisplay, sizeof(mapdisplay), "%s\n　 ", mapdisplay);
+
+				if(mapinfo.iType == 0)
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - Linear", mapdisplay, mapinfo.iTier);
+				}
+				else
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - %d Stages", mapdisplay, mapinfo.iTier, mapinfo.iStages);
+				}
+
+				if (mapinfo.iBonuses > 0)
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "%s - %d Bonus%s", mapdisplay, mapinfo.iBonuses, (mapinfo.iBonuses > 1) ? "es" : "");
+				}
+			}
 		}
 		else
 		{
@@ -881,12 +918,33 @@ void InitiateMapVote(MapChange when)
 
 		LowercaseString(mapdisplay);
 
-		if (tiersMap && g_cvMapVoteShowTier.BoolValue)
+		if (tiersMap && g_cvMapVoteShowInfo.IntValue > 0)
 		{
-			int tier = 0;
-			tiersMap.GetValue(mapdisplay, tier);
+			mapinfo_t mapinfo;
+			tiersMap.GetArray(mapdisplay, mapinfo, sizeof(mapinfo_t));
 
-			Format(mapdisplay, sizeof(mapdisplay), "[T%i] %s", tier, mapdisplay);
+			if (g_cvMapVoteShowInfo.IntValue == 1)
+			{
+				Format(mapdisplay, sizeof(mapdisplay), "[T%d] %s", mapinfo.iTier, mapdisplay);
+			}
+			else
+			{
+				Format(mapdisplay, sizeof(mapdisplay), "%s\n　 ", mapdisplay);
+
+				if(mapinfo.iType == 0)
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - Linear", mapdisplay, mapinfo.iTier);
+				}
+				else
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - %d Stages", mapdisplay, mapinfo.iTier, mapinfo.iStages);
+				}
+
+				if (mapinfo.iBonuses > 0)
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "%s - %d Bonus%s", mapdisplay, mapinfo.iBonuses, (mapinfo.iBonuses > 1) ? "es" : "");
+				}
+			}
 		}
 
 		mapsAdded += 1;
@@ -902,19 +960,6 @@ void InitiateMapVote(MapChange when)
 		{
 			menu.AddItem("", "");
 		}
-	}
-
-	if ((when == MapChange_MapEnd && add_extend))
-	{
-		if (g_cvMapVoteEnableReRoll.BoolValue)
-			menu.AddItem("reroll", "Reroll Maps");
-		menu.AddItem("extend", "Extend Current Map");
-	}
-	else if (when == MapChange_Instant)
-	{
-		if (g_cvMapVoteEnableReRoll.BoolValue)
-			menu.AddItem("reroll", "Reroll Maps");
-		menu.AddItem("dontchange", "Don't Change");
 	}
 
 	Shavit_PrintToChatAll("%t", "Nextmap Voting Started");
@@ -1151,7 +1196,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 		case MenuAction_Display:
 		{
 			Panel panel = view_as<Panel>(param2);
-			panel.SetTitle("Vote Nextmap");
+			panel.SetTitle("Vote Nextmap\n ");
 		}
 
 		case MenuAction_DisplayItem:
@@ -1410,7 +1455,7 @@ void SMC_NominateMatches(int client, const char[] mapname)
 	bool isOldMap = false;
 	char map[PLATFORM_MAX_PATH];
 	char oldMapName[PLATFORM_MAX_PATH];
-	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapInfo() : null;
 	int min = GetConVarInt(g_cvMinTier);
 	int max = GetConVarInt(g_cvMaxTier);
 
@@ -1442,15 +1487,25 @@ void SMC_NominateMatches(int client, const char[] mapname)
 
 			if (tiersMap)
 			{
-				int tier = 0;
-				tiersMap.GetValue(mapdisplay, tier);
+				mapinfo_t info;
+				tiersMap.GetArray(mapdisplay, info, sizeof(mapinfo_t));
 
-				if (!(min <= tier <= max))
+				if (!(min <= info.iTier <= max))
 				{
 					continue;
 				}
 
-				Format(mapdisplay, sizeof(mapdisplay), "%s | T%i", mapdisplay, tier);
+				if(g_cvMapNominateShowInfo.IntValue > 0)
+				{
+					if (g_cvMapNominateShowInfo.IntValue == 1)
+					{
+						Format(mapdisplay, sizeof(mapdisplay), "T%d | %s", info.iTier, mapdisplay);	
+					}
+					else
+					{
+						Format(mapdisplay, sizeof(mapdisplay), "T%d | %s | %s", info.iTier, info.iType == 0 ? "Linear  ":"Staged", mapdisplay);	
+					}
+				}
 			}
 
 			subNominateMenu.AddItem(entry, mapdisplay);
@@ -1699,7 +1754,7 @@ void CreateNominateMenu()
 	g_hNominateMenu = new Menu(NominateMenuHandler);
 
 	g_hNominateMenu.SetTitle("Nominate");
-	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapInfo() : null;
 
 	g_aMapList.SortCustom(SlowSortThatSkipsFolders);
 
@@ -1727,15 +1782,25 @@ void CreateNominateMenu()
 
 		if (tiersMap)
 		{
-			int tier = 0;
-			tiersMap.GetValue(mapdisplay, tier);
+			mapinfo_t info;
+			tiersMap.GetArray(mapdisplay, info, sizeof(mapinfo_t));
 
-			if (!(min <= tier <= max))
+			if (!(min <= info.iTier <= max))
 			{
 				continue;
 			}
 
-			Format(mapdisplay, sizeof(mapdisplay), "%s | T%d", mapdisplay, tier);
+			if(g_cvMapNominateShowInfo.IntValue > 0)
+			{
+				if (g_cvMapNominateShowInfo.IntValue == 1)
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "T%d | %s", info.iTier, mapdisplay);	
+				}
+				else
+				{
+					Format(mapdisplay, sizeof(mapdisplay), "T%d | %s | %s", info.iTier, info.iType == 0 ? "Linear  ":"Staged", mapdisplay);	
+				}
+			}
 		}
 
 		g_hNominateMenu.AddItem(mapname, mapdisplay, style);
@@ -1783,7 +1848,7 @@ void CreateTierMenus()
 	int max = GetConVarInt(g_cvMaxTier);
 
 	InitTierMenus(min,max);
-	StringMap tiersMap = (gB_Rankings) ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapInfo() : null;
 
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; ++i)
@@ -1795,11 +1860,11 @@ void CreateTierMenus()
 		char mapdisplay[PLATFORM_MAX_PATH];
 		LessStupidGetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
-		int mapTier = 0;
+		mapinfo_t info;
 
 		if (tiersMap)
 		{
-			tiersMap.GetValue(mapdisplay, mapTier);
+			tiersMap.GetArray(mapdisplay, info, sizeof(mapinfo_t));
 		}
 
 		if(StrEqual(mapname, g_cMapName))
@@ -1813,11 +1878,21 @@ void CreateTierMenus()
 			style = ITEMDRAW_DISABLED;
 		}
 
-		Format(mapdisplay, sizeof(mapdisplay), "%s | T%i", mapdisplay, mapTier);
-
-		if (min <= mapTier <= max)
+		if(g_cvMapNominateShowInfo.IntValue > 0)
 		{
-			AddMenuItem(g_aTierMenus[mapTier], mapname, mapdisplay, style);
+			if (g_cvMapNominateShowInfo.IntValue == 1)
+			{
+				Format(mapdisplay, sizeof(mapdisplay), "T%d | %s", info.iTier, mapdisplay);	
+			}
+			else
+			{
+				Format(mapdisplay, sizeof(mapdisplay), "T%d | %s | %s", info.iTier, info.iType == 0 ? "Linear  ":"Staged", mapdisplay);	
+			}
+		}
+
+		if (min <= info.iTier <= max)
+		{
+			AddMenuItem(g_aTierMenus[info.iTier], mapname, mapdisplay, style);
 		}
 	}
 
@@ -2237,7 +2312,7 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 	char map[PLATFORM_MAX_PATH];
 	Menu menu = new Menu(MapsMenuHandler);
 
-	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapInfo() : null;
 	ArrayList maps;
 
 	if (args < 1)
@@ -2271,9 +2346,10 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 
 			if (tiersMap)
 			{
-				int tier = 0;
-				tiersMap.GetValue(mapdisplay, tier);
-				Format(mapdisplay, sizeof(mapdisplay), "T%i | %s", tier, mapdisplay);
+				mapinfo_t info;
+				tiersMap.GetArray(mapdisplay, info, sizeof(mapinfo_t));
+
+				Format(mapdisplay, sizeof(mapdisplay), "T%i | %s", info.iTier, mapdisplay);
 			}
 
 			menu.AddItem(entry, mapdisplay);

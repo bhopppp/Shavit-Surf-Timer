@@ -24,6 +24,15 @@
 #endif
 #define _shavit_rankings_included
 
+enum struct mapinfo_t
+{
+	int iTier;
+	int iBonuses;
+	int iType; // 0 - linear, 1 - staged	
+	int iStages;
+	int iCheckpoints;
+}
+
 /**
  * Gets called when a map's tier is assigned.
  * Only called once per map, if the rankings plugin is enabled.
@@ -62,7 +71,7 @@ native int Shavit_GetMapTier(const char[] map = "");
  *
  * @return                          StringMap with {const char[]: map, int: tier} structure.
  */
-native StringMap Shavit_GetMapTiers();
+native StringMap Shavit_GetMapInfo();
 
 /**
  * Gets player points.
@@ -163,7 +172,7 @@ public SharedPlugin __pl_shavit_rankings =
 public void __pl_shavit_rankings_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_GetMapTier");
-	MarkNativeAsOptional("Shavit_GetMapTiers");
+	MarkNativeAsOptional("Shavit_GetMapInfo");
 	MarkNativeAsOptional("Shavit_GetPoints");
 	MarkNativeAsOptional("Shavit_GetRank");
 	MarkNativeAsOptional("Shavit_GetRankedPlayers");

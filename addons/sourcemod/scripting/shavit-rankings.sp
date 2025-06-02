@@ -85,7 +85,7 @@ char gS_Map[PLATFORM_MAX_PATH];
 EngineVersion gEV_Type = Engine_Unknown;
 
 ArrayList gA_ValidMaps = null;
-StringMap gA_MapTiers = null;
+StringMap gA_MapInfo = null;
 
 Convar gCV_BasicFinishPoints_Main = null;
 Convar gCV_BasicFinishPoints_Bonus = null;
@@ -143,7 +143,7 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	CreateNative("Shavit_GetMapTier", Native_GetMapTier);
-	CreateNative("Shavit_GetMapTiers", Native_GetMapTiers);
+	CreateNative("Shavit_GetMapInfo", Native_GetMapInfo);
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
 	CreateNative("Shavit_GetRank", Native_GetRank);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
@@ -222,7 +222,7 @@ public void OnPluginStart()
 
 	// tier cache
 	gA_ValidMaps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
-	gA_MapTiers = new StringMap();
+	gA_MapInfo = new StringMap();
 
 	if(gB_Late)
 	{
@@ -360,7 +360,7 @@ public void RefreshMapSettings()
 	sv_maxvelocity.FloatValue = gF_MaxVelocity;
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT map, tier, maxvelocity FROM %smaptiers ORDER BY map ASC;", gS_MySQLPrefix);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT map, tier, maxvelocity, maptype, bonuses, stages FROM %smapinfo;", gS_MySQLPrefix);
 	QueryLog(gH_SQL, SQL_FillMapSettingCache_Callback, sQuery, 0, DBPrio_High);
 
 	gB_TierQueried = true;
@@ -376,7 +376,7 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 	}
 
 	gA_ValidMaps.Clear();
-	gA_MapTiers.Clear();
+	gA_MapInfo.Clear();
 
 	while(results.FetchRow())
 	{
@@ -384,9 +384,24 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 		results.FetchString(0, sMap, sizeof(sMap));
 		LowercaseString(sMap);
 
-		int tier = results.FetchInt(1);
+		mapinfo_t info;
 
-		gA_MapTiers.SetValue(sMap, tier);
+		info.iTier = results.FetchInt(1);
+		info.iType = results.FetchInt(3);
+		info.iBonuses = results.FetchInt(4);
+		
+		if(info.iType == 0)
+		{
+			info.iStages = 0;
+			info.iCheckpoints = results.FetchInt(5);
+		}
+		else if(info.iType == 1)
+		{
+			info.iStages = results.FetchInt(5);
+			info.iCheckpoints = 0;
+		}
+
+		gA_MapInfo.SetArray(sMap, info, sizeof(mapinfo_t));
 		gA_ValidMaps.PushString(sMap);
 
 		if(StrEqual(sMap, gS_Map))
@@ -397,11 +412,13 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 
 		Call_StartForward(gH_Forwards_OnTierAssigned);
 		Call_PushString(sMap);
-		Call_PushCell(tier);
+		Call_PushCell(info.iTier);
 		Call_Finish();
 	}
 
-	if (!gA_MapTiers.GetValue(gS_Map, gI_Tier))
+	mapinfo_t mapinfo;
+
+	if (!gA_MapInfo.GetArray(gS_Map, mapinfo, sizeof(mapinfo_t)))
 	{
 		Call_StartForward(gH_Forwards_OnTierAssigned);
 		Call_PushString(gS_Map);
@@ -410,7 +427,7 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 
 		char sQuery[512];
 		
-		// in case some gA_MapTiers is not cached because of database connection issues
+		// in case some gA_MapInfo is not cached because of database connection issues
 		if(gI_Driver == Driver_sqlite)
 		{
 			FormatEx(sQuery, sizeof(sQuery), "INSERT OR IGNORE INTO %smaptiers (map, tier, maxvelocity) VALUES ('%s', %d, %f);", gS_MySQLPrefix, gS_Map, gI_Tier, gF_MaxVelocity);
@@ -565,13 +582,16 @@ public Action Command_Tier(int client, int args)
 	{
 		GetCmdArgString(sMap, sizeof(sMap));
 		LowercaseString(sMap);
-
-		if(!GuessBestMapName(gA_ValidMaps, sMap, sMap) || !gA_MapTiers.GetValue(sMap, tier))
-		{
-			Shavit_PrintToChat(client, "%t", "Map was not found", sMap);
-			return Plugin_Handled;
-		}
 	}
+	
+	mapinfo_t mapinfo;
+	if(!GuessBestMapName(gA_ValidMaps, sMap, sMap) || !gA_MapInfo.GetArray(sMap, mapinfo, sizeof(mapinfo_t)))
+	{
+		Shavit_PrintToChat(client, "%t", "Map was not found", sMap);
+		return Plugin_Handled;
+	}
+
+	tier = mapinfo.iTier;
 
 	Shavit_PrintToChat(client, "%T", "CurrentTier", client, gS_ChatStrings.sVariable, sMap, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
 
@@ -580,46 +600,16 @@ public Action Command_Tier(int client, int args)
 
 public Action Command_MapInfo(int client, int args)
 {
+	char sMap[PLATFORM_MAX_PATH];
+
 	if(args == 0)
 	{
-		int iStageCount = Shavit_GetStageCount(Track_Main);
-		char sType[16];	
-		char sStageInfo[16];
-
-		if(iStageCount > 1)
-		{
-			FormatEx(sType, 16, "Staged");
-			FormatEx(sStageInfo, 16, "%d Stages", iStageCount);
-		}
-		else
-		{
-			iStageCount = Shavit_GetCheckpointCount(Track_Main);
-
-			FormatEx(sType, 16, "Linear");
-			FormatEx(sStageInfo, 16, "%d Checkpoint%s", iStageCount, iStageCount > 2 ? "s":"");
-		}
-
-		int iBonusCount = Shavit_GetMapTracks(true, false);
-		char sTrackInfo[32];
-
-		FormatEx(sTrackInfo, 32, "%d Bonus%s", iBonusCount, iBonusCount > 1 ? "es":"");
-
-		int iTier;
-		gA_MapTiers.GetValue(gS_Map, iTier);
-		char sTier[8];
-		FormatEx(sTier, 8, "Tier %d", iTier);
-
-		Shavit_PrintToChat(client, "Map: %s%s%s - %s | %s%s%s | %s%s%s | %s%s%s |",
-			gS_ChatStrings.sVariable2, gS_Map, gS_ChatStrings.sText, sType,
-			gS_ChatStrings.sVariable, sTier, gS_ChatStrings.sText,
-			gS_ChatStrings.sVariable, sStageInfo, gS_ChatStrings.sText,
-			gS_ChatStrings.sVariable, sTrackInfo, gS_ChatStrings.sText);		
+		sMap = gS_Map;
 	}
 	else
 	{
-		char map[PLATFORM_MAX_PATH];
-		GetCmdArg(1, map, sizeof(map));
-		LowercaseString(map);
+		GetCmdArg(1, sMap, sizeof(sMap));
+		LowercaseString(sMap);
 
 		Menu mapmatches = new Menu(MenuHandler_MapInfoMatches);
 		mapmatches.SetTitle("%T", "Choose Map", client);
@@ -630,7 +620,7 @@ public Action Command_MapInfo(int client, int args)
 			char entry[PLATFORM_MAX_PATH];
 			gA_ValidMaps.GetString(i, entry, PLATFORM_MAX_PATH);
 
-			if (StrContains(entry, map) != -1)
+			if (StrContains(entry, sMap) != -1)
 			{
 				mapmatches.AddItem(entry, entry);
 			}
@@ -641,12 +631,12 @@ public Action Command_MapInfo(int client, int args)
 			case 0:
 			{
 				delete mapmatches;
-				Shavit_PrintToChat(client, "%t", "Map was not found", map);
+				Shavit_PrintToChat(client, "%t", "Map was not found", sMap);
 				return Plugin_Handled;
 			}
 			case 1:
 			{
-				mapmatches.GetItem(0, map, sizeof(map));
+				mapmatches.GetItem(0, sMap, sizeof(sMap));
 				delete mapmatches;
 			}
 			default:
@@ -655,18 +645,48 @@ public Action Command_MapInfo(int client, int args)
 				return Plugin_Handled;
 			}
 		}
-
-		char sQuery[512];
-		FormatEx(sQuery, sizeof(sQuery), 
-			"SELECT map, type, COUNT(map) AS data, MAX(data) AS data2 FROM ( "...
-			"SELECT DISTINCT map, track, type, data FROM %smapzones "...
-			"WHERE map = '%s' AND (type = 2 OR type = 3 OR (type = 0 AND track > 0))) z GROUP BY z.type;",
-			gS_MySQLPrefix, map);
-
-		QueryLog(gH_SQL, SQL_MapInfo_Callback, sQuery, GetClientSerial(client));
 	}
 
+	PrintMapInfo(client, sMap);	
+
 	return Plugin_Handled;
+}
+
+public void PrintMapInfo(int client, const char[] map)
+{
+	mapinfo_t mapinfo;
+
+	if(!gA_MapInfo.GetArray(map, mapinfo, sizeof(mapinfo_t)))
+	{
+		Shavit_PrintToChat(client, "%t", "Map was not found", map);
+		return;
+	}
+
+	char sType[32];
+	char sStageInfo[32];
+
+	if(mapinfo.iType == 1)
+	{
+		FormatEx(sType, 16, "Staged");
+		FormatEx(sStageInfo, 16, "%d Stages", mapinfo.iStages);
+	}
+	else
+	{
+		FormatEx(sType, 16, "Linear");
+		FormatEx(sStageInfo, 16, "%d Checkpoint%s", mapinfo.iCheckpoints, mapinfo.iCheckpoints > 2 ? "s":"");
+	}
+
+	char sTrackInfo[32];
+	FormatEx(sTrackInfo, 32, "%d Bonus%s", mapinfo.iBonuses, mapinfo.iBonuses > 1 ? "es":"");
+
+	char sTier[8];
+	FormatEx(sTier, 8, "Tier %d", mapinfo.iTier);
+
+	Shavit_PrintToChat(client, "Map: %s%s%s - %s | %s%s%s | %s%s%s | %s%s%s |",
+		gS_ChatStrings.sVariable2, map, gS_ChatStrings.sText, sType,
+		gS_ChatStrings.sVariable, sTier, gS_ChatStrings.sText,
+		gS_ChatStrings.sVariable, sStageInfo, gS_ChatStrings.sText,
+		gS_ChatStrings.sVariable, sTrackInfo, gS_ChatStrings.sText);		
 }
 
 public int MenuHandler_MapInfoMatches(Menu menu, MenuAction action, int param1, int param2)
@@ -676,14 +696,7 @@ public int MenuHandler_MapInfoMatches(Menu menu, MenuAction action, int param1, 
 		char map[PLATFORM_MAX_PATH];
 		menu.GetItem(param2, map, sizeof(map));
 
-		char sQuery[512];
-		FormatEx(sQuery, sizeof(sQuery), 
-			"SELECT map, type, COUNT(map) AS data, MAX(data) AS data2 FROM ( "...
-			"SELECT DISTINCT map, track, type, data FROM %smapzones "...
-			"WHERE map = '%s' AND (type = 2 OR type = 3 OR (type = 0 AND track > 0))) z GROUP BY z.type;",
-			gS_MySQLPrefix, map);
-
-		QueryLog(gH_SQL, SQL_MapInfo_Callback, sQuery, GetClientSerial(param1));
+		PrintMapInfo(param1, map);	
 	}
 	else if (action == MenuAction_End)
 	{
@@ -691,66 +704,6 @@ public int MenuHandler_MapInfoMatches(Menu menu, MenuAction action, int param1, 
 	}
 
 	return 0;
-}
-
-public void SQL_MapInfo_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("SQL_GetWRs_Callback failed. Reason: %s", error);
-		return;
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
-	int iStageCount = 0;
-	int iCheckpointCounts = 0;
-	int iBonusCount = 0;
-	char map[PLATFORM_MAX_PATH];
-
-	while (results.FetchRow())
-	{
-		switch (results.FetchInt(1))
-		{
-			case 0:
-			{
-				iBonusCount = results.FetchInt(2);
-			}
-			case 2:
-			{
-				iStageCount = results.FetchInt(3);
-			}
-			case 3:
-			{
-				iCheckpointCounts = results.FetchInt(3);
-			}
-		}
-
-		if(!map[0])
-			results.FetchString(0, map, sizeof(map));
-	}
-
-	if(!map[0])
-	{
-		Shavit_PrintToChat(client, "%T" , "UnzonedMap", client);
-		return;		
-	}
-
-
-	int tier;
-	gA_MapTiers.GetValue(map, tier);
-
-	Shavit_PrintToChat(client, "Map: %s%s%s - %s | %sTier %d%s | %s%d %s%s%s | %s%d Bonus%s%s |",
-		gS_ChatStrings.sVariable2, map, gS_ChatStrings.sText, iStageCount > 1 ? "Staged":"Linear",
-		gS_ChatStrings.sVariable, tier, gS_ChatStrings.sText,
-		gS_ChatStrings.sVariable, iStageCount > 1 ? iStageCount:iCheckpointCounts, iStageCount > 1 ? "Stages":"Checkpoints", 
-		iStageCount > 1 ? "":iCheckpointCounts > 1 ? "s":"", gS_ChatStrings.sText,
-		gS_ChatStrings.sVariable, iBonusCount, iBonusCount > 1 ? "es":"", gS_ChatStrings.sText);
 }
 
 public Action Command_Rank(int client, int args)
@@ -949,7 +902,11 @@ public Action Command_SetTier(int client, int args)
 		}
 	}
 
-	gA_MapTiers.SetValue(map, tier);
+	mapinfo_t mapinfo;
+	gA_MapInfo.GetArray(map, mapinfo, sizeof(mapinfo_t));
+
+	mapinfo.iTier = tier;
+	gA_MapInfo.SetArray(map, mapinfo, sizeof(mapinfo_t));
 
 	Call_StartForward(gH_Forwards_OnTierAssigned);
 	Call_PushString(map);
@@ -983,7 +940,11 @@ public int SetMapTier_MatchesMenuHandler(Menu menu, MenuAction action, int param
 
 		int tier = StringToInt(sExploded[1]);
 
-		gA_MapTiers.SetValue(sExploded[0], tier);
+		mapinfo_t mapinfo;
+		gA_MapInfo.GetArray(sExploded[0], mapinfo, sizeof(mapinfo_t));
+
+		mapinfo.iTier = tier;
+		gA_MapInfo.SetArray(sExploded[0], mapinfo, sizeof(mapinfo_t));
 
 		Call_StartForward(gH_Forwards_OnTierAssigned);
 		Call_PushString(sExploded[0]);
@@ -1887,6 +1848,21 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 			style, auth, COUNT(auth) as wrcount \
 			FROM %swrs WHERE track %c 0 GROUP BY style, auth;";
 
+	char sStageWRHolderRankTrackQueryYuck[] =
+			"%s %s%s AS \
+			SELECT \
+			0 as wrrank, \
+			style, auth, COUNT(auth) as wrcount \
+			FROM %sstagewrs WHERE GROUP BY style, auth;";
+
+	char sStageWRHolderRankTrackQueryRANK[] =
+		"%s %s%s AS \
+			SELECT \
+				RANK() OVER(PARTITION BY style ORDER BY COUNT(auth) DESC, auth ASC) \
+			as wrrank, \
+			style, auth, COUNT(auth) as wrcount \
+			FROM %sstagewrs GROUP BY style, auth;";
+
 	char sWRHolderRankOtherQueryYuck[] =
 		"%s %s%s AS \
 			SELECT \
@@ -1902,6 +1878,22 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 			-1 as style, auth, COUNT(*) as wrcount \
 			FROM %swrs %s %s %s %s GROUP BY auth;";
 
+	char sCreateMapInfoView[] = 
+		"%s %smapinfo AS \
+			SELECT \
+				MT.map, \
+				MT.tier, \
+				MT.maxvelocity, \
+				COUNT(DISTINCT CASE WHEN MZ.type = 0 AND MZ.track > 0 THEN MZ.track END) AS bonuses, \
+				COALESCE(MAX(CASE WHEN MZ.type = 3 THEN MZ.data END), \
+						CASE WHEN MAX(CASE WHEN MZ.type = 2 THEN 1 END) = 1 THEN MAX(MZ.data) \
+						ELSE 0 END) AS stages, \
+				MAX(CASE WHEN MZ.type = 2 THEN 1 ELSE 0 END) AS maptype \
+			FROM %smaptiers MT \
+			LEFT JOIN %smapzones MZ ON MT.map = MZ.map \
+			GROUP BY MT.map, MT.tier, MT.maxvelocity \
+			ORDER BY MT.map ASC;";
+
 	char sQuery[800];
 	Transaction trans = new Transaction();
 
@@ -1911,16 +1903,31 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 		AddQueryLog(trans, sQuery);
 		FormatEx(sQuery, sizeof(sQuery), "DROP VIEW IF EXISTS %swrhrankbonus;", gS_MySQLPrefix);
 		AddQueryLog(trans, sQuery);
+		FormatEx(sQuery, sizeof(sQuery), "DROP VIEW IF EXISTS %swrhrankstages;", gS_MySQLPrefix);
+		AddQueryLog(trans, sQuery);
 		FormatEx(sQuery, sizeof(sQuery), "DROP VIEW IF EXISTS %swrhrankall;", gS_MySQLPrefix);
 		AddQueryLog(trans, sQuery);
 		FormatEx(sQuery, sizeof(sQuery), "DROP VIEW IF EXISTS %swrhrankcvar;", gS_MySQLPrefix);
 		AddQueryLog(trans, sQuery);
+		FormatEx(sQuery, sizeof(sQuery), "DROP VIEW IF EXISTS %smapinfo;", gS_MySQLPrefix);
+		AddQueryLog(trans, sQuery);
 	}
+
+	FormatEx(sQuery, sizeof(sQuery), sCreateMapInfoView,
+		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		!gB_SQLWindowFunctions ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
 		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
 		gS_MySQLPrefix, "wrhrankmain", gS_MySQLPrefix, '=');
+	AddQueryLog(trans, sQuery);
+
+	FormatEx(sQuery, sizeof(sQuery),
+		!gB_SQLWindowFunctions ? sStageWRHolderRankTrackQueryYuck : sStageWRHolderRankTrackQueryRANK,
+		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
+		gS_MySQLPrefix, "wrhrankstages", gS_MySQLPrefix);
 	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
@@ -2129,7 +2136,6 @@ public int Native_GetWRHolderRank(Handle handler, int numParams)
 
 public int Native_GetMapTier(Handle handler, int numParams)
 {
-	int tier = 0;
 	char sMap[PLATFORM_MAX_PATH];
 	GetNativeString(1, sMap, sizeof(sMap));
 
@@ -2138,13 +2144,19 @@ public int Native_GetMapTier(Handle handler, int numParams)
 		return gI_Tier;
 	}
 
-	gA_MapTiers.GetValue(sMap, tier);
-	return tier;
+	mapinfo_t mapinfo;
+
+	if(!gA_MapInfo.GetArray(sMap, mapinfo, sizeof(mapinfo_t)))
+	{
+		return 0;
+	}
+
+	return mapinfo.iTier;
 }
 
-public int Native_GetMapTiers(Handle handler, int numParams)
+public int Native_GetMapInfo(Handle handler, int numParams)
 {
-	return view_as<int>(CloneHandle(gA_MapTiers, handler));
+	return view_as<int>(CloneHandle(gA_MapInfo, handler));
 }
 
 public int Native_GetPoints(Handle handler, int numParams)
