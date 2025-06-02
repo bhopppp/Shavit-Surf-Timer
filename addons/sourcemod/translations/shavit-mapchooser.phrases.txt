@@ -18,6 +18,16 @@
 		"en"  		"{1} seconds until map vote"
 	}
 	
+	"NoValidMapsMapExtended"
+	{
+		"en"  		"No valid maps found for voting. Current map extended."
+	}
+	
+	"NoValidMapsNoMapChange"
+	{
+		"en"  		"No valid maps found for voting. No map change will occur."
+	}
+	
 	"HadMenuOpen"
 	{
 		"#format"	"{1:.2f}"

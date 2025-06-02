@@ -977,11 +977,11 @@ void InitiateMapVote(MapChange when)
 				}
 			}
 
-			Shavit_PrintToChatAll("No valid maps found for voting. Current map extended.");			
+			Shavit_PrintToChatAll("%T", "NoValidMapsMapExtended", LANG_SERVER);
 		}
 		else if(when == MapChange_Instant)
 		{
-			Shavit_PrintToChatAll("No valid maps found for voting. No map change will occur.");
+			Shavit_PrintToChatAll("%T", "NoValidMapsNoMapChange", LANG_SERVER);
 		}
 
 		// Vote actually finished, but we still need to vote again.
