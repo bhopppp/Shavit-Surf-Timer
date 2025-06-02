@@ -12,11 +12,6 @@
 		"en"  		"{1} minutes until map vote"
 	}
 	
-	"VoteCountDown10Minutes"
-	{
-		"en"  		"10 minutes until map vote"
-	}
-	
 	"VoteCountDownSeconds"
 	{
 		"#format"	"{1:d}"
@@ -29,19 +24,14 @@
 		"en"  		"You had a menu open. Waiting {1}s before accepting input"
 	}
 	
-	"VoteAlready"
+	"VoteInitiated"
 	{
-		"en"  		"Map vote already"
+		"en"  		"Map vote already initiated"
 	}
 	
-	"Initiated"
+	"VoteFinished"
 	{
-		"en"  		"initiated"
-	}
-	
-	"Finished"
-	{
-		"en"  		"finished"
+		"en"  		"Map vote already finished"
 	}
 	
 	"StopSpamming"
@@ -65,21 +55,16 @@
 		"en"  		"Nominate has not been enabled yet"
 	}
 	
-	"AlreadyRTVed"
-	{
-		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv"
-	}
-	
-	"VoteNeeded"
+	"AlreadyRTVedVote"
 	{
 		"#format"	"{1:i}"
-		"en"		"(%i more vote needed)"
+		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more vote needed)"
 	}
 	
-	"VotesNeeded"
+	"AlreadyRTVedVotes"
 	{
 		"#format"	"{1:i}"
-		"en"		"(%i more votes needed)"
+		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more votes needed)"
 	}
 	
 	"MustHigherRankRTV"
@@ -144,5 +129,114 @@
 	"UsageMap"
 	{
 		"en"  		"Usage: sm_map <map>"
+	}
+	
+	"NewestMaps"
+	{
+		"#format"	"{1:i}"
+		"en"  		"{1} of Newest Maps :"
+	}
+	
+	"VoteNextmap"
+	{
+		"en"  		"Vote Nextmap\n "
+	}
+	
+	"RerollMaps"
+	{
+		"en"  		"Reroll Maps"
+	}
+	
+	"ExtendCurrentMap"
+	{
+		"en"  		"Extend Current Map\n "
+	}
+	
+	"DontChange"
+	{
+		"en"  		"Don't Change\n "
+	}
+	
+	"Linear"
+	{
+		"#format"	"{1:d}"
+		"en"  		"Tier {1} - Linear"
+	}
+	
+	"Stages"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"  		"Tier {1} - {2} Stages"
+	}
+	
+	"Bonus"
+	{
+		"#format"	"{1:d}"
+		"en"  		" - {1} Bonus"
+	}
+	
+	"Bonuses"
+	{
+		"#format"	"{1:d}"
+		"en"  		" - {1} Bonuses"
+	}
+	
+	"RunoffVoteNextmap"
+	{
+		"en"  		"Runoff Vote Nextmap"
+	}
+	
+	"MapsMatching"
+	{
+		"#format"	"{1:s}"
+		"en"  		"Nominate\nMaps matching \"{1}\"\n "
+	}
+	
+	"Nominate"
+	{
+		"en"  		"Nominate"
+	}
+	
+	"Linear2"
+	{
+		"en"  		"Linear "
+	}
+	
+	"Staged"
+	{
+		"en"  		"Staged"
+	}
+	
+	"Alphabetic"
+	{
+		"en"  		"Alphabetic"
+	}
+	
+	"NewMaps"
+	{
+		"en"  		"New maps"
+	}
+	
+	"NominateTier"
+	{
+		"#format"	"{1:i},{2:d}"
+		"en"  		"Tier {1} ({2})"
+	}
+	
+	"NominateTierMaps"
+	{
+		"#format"	"{1:i}"
+		"en"  		"Nominate\nTier \"{1}\" Maps\n "
+	}
+	
+	"NominatedMaps"
+	{
+		"en"  		"NominatedMaps"
+	}
+	
+	"MapsMatching2"
+	{
+		"#format"	"{1:s}"
+		"en"  		"Maps matching \"{1}\"\n "
 	}
 }

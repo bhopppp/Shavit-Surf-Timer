@@ -519,7 +519,7 @@ public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 			{
 				case (10 * 60) - 3:
 				{
-					Shavit_PrintToChatAll("%T", "VoteCountDown10Minutes", LANG_SERVER);
+					Shavit_PrintToChatAll("%T", "VoteCountDownMinutes", LANG_SERVER, 10);
 				}
 				case 60, 30, 5:
 				{
@@ -677,7 +677,7 @@ void NewMapsMenu(int client, bool back)
 	menu.ExitBackButton = back;		
 	
 	int mapsToShow = (gCV_MaxMapsToShow.IntValue < gA_NewestMaps.Length) ? gCV_MaxMapsToShow.IntValue : gA_NewestMaps.Length;
-	menu.SetTitle("%i of Newest Maps :", mapsToShow);
+	menu.SetTitle("%T", "NewestMaps", client, mapsToShow);
 
 	for (int i = 0; i < mapsToShow; i++)
 	{
@@ -783,7 +783,7 @@ void InitiateMapVote(MapChange when)
 	Menu menu = new Menu(Handler_MapVoteMenu, MENU_ACTIONS_ALL);
 	menu.VoteResultCallback = Handler_MapVoteFinished;
 	menu.Pagination = MENU_NO_PAGINATION;
-	menu.SetTitle("Vote Nextmap\n ");
+	menu.SetTitle("%T", "VoteNextmap", LANG_SERVER);
 
 	int maxPageItems = (gEV_Type == Engine_CSGO) ? 8 : 9;
 	int mapsToAdd = maxPageItems;
@@ -808,17 +808,27 @@ void InitiateMapVote(MapChange when)
 		maxPageItems--;
 	}
 
+	char sDisplay[PLATFORM_MAX_PATH];
+	
 	if ((when == MapChange_MapEnd && add_extend))
 	{
 		if (g_cvMapVoteEnableReRoll.BoolValue)
-			menu.AddItem("reroll", "Reroll Maps");
-		menu.AddItem("extend", "Extend Current Map\n ");
+		{
+			FormatEx(sDisplay, sizeof(sDisplay), "%T", "RerollMaps", LANG_SERVER);
+			menu.AddItem("reroll", sDisplay);
+		}
+		FormatEx(sDisplay, sizeof(sDisplay), "%T", "ExtendCurrentMap", LANG_SERVER);
+		menu.AddItem("extend", sDisplay);
 	}
 	else if (when == MapChange_Instant)
 	{
 		if (g_cvMapVoteEnableReRoll.BoolValue)
-			menu.AddItem("reroll", "Reroll Maps");
-		menu.AddItem("dontchange", "Don't Change\n ");
+		{
+			FormatEx(sDisplay, sizeof(sDisplay), "%T", "RerollMaps", LANG_SERVER);
+			menu.AddItem("reroll", sDisplay);
+		}
+		FormatEx(sDisplay, sizeof(sDisplay), "%T", "DontChange", LANG_SERVER);
+		menu.AddItem("dontchange", sDisplay);
 	}
 
 	char map[PLATFORM_MAX_PATH];
@@ -847,16 +857,16 @@ void InitiateMapVote(MapChange when)
 
 				if(mapinfo.iType == 0)
 				{
-					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - Linear", mapdisplay, mapinfo.iTier);
+					Format(mapdisplay, sizeof(mapdisplay), "%s%T", mapdisplay, "Linear", LANG_SERVER, mapinfo.iTier);
 				}
 				else
 				{
-					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - %d Stages", mapdisplay, mapinfo.iTier, mapinfo.iStages);
+					Format(mapdisplay, sizeof(mapdisplay), "%s%T", mapdisplay, "Stages", LANG_SERVER, mapinfo.iTier, mapinfo.iStages);
 				}
 
 				if (mapinfo.iBonuses > 0)
 				{
-					Format(mapdisplay, sizeof(mapdisplay), "%s - %d Bonus%s", mapdisplay, mapinfo.iBonuses, (mapinfo.iBonuses > 1) ? "es" : "");
+					Format(mapdisplay, sizeof(mapdisplay), "%s%T", mapdisplay, (mapinfo.iBonuses > 1) ? "Bonuses" : "Bonus", LANG_SERVER, mapinfo.iBonuses);
 				}
 			}
 		}
@@ -933,16 +943,16 @@ void InitiateMapVote(MapChange when)
 
 				if(mapinfo.iType == 0)
 				{
-					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - Linear", mapdisplay, mapinfo.iTier);
+					Format(mapdisplay, sizeof(mapdisplay), "%s%T", mapdisplay, "Linear", LANG_SERVER, mapinfo.iTier);
 				}
 				else
 				{
-					Format(mapdisplay, sizeof(mapdisplay), "%sTier %d - %d Stages", mapdisplay, mapinfo.iTier, mapinfo.iStages);
+					Format(mapdisplay, sizeof(mapdisplay), "%s%T", mapdisplay, "Stages", LANG_SERVER, mapinfo.iTier, mapinfo.iStages);
 				}
 
 				if (mapinfo.iBonuses > 0)
 				{
-					Format(mapdisplay, sizeof(mapdisplay), "%s - %d Bonus%s", mapdisplay, mapinfo.iBonuses, (mapinfo.iBonuses > 1) ? "es" : "");
+					Format(mapdisplay, sizeof(mapdisplay), "%s%T", mapdisplay, (mapinfo.iBonuses > 1) ? "Bonuses" : "Bonus", LANG_SERVER, mapinfo.iBonuses);
 				}
 			}
 		}
@@ -1010,7 +1020,7 @@ public void Handler_MapVoteFinished(Menu menu, int num_votes, int num_clients, c
 		{
 			/* Insufficient Winning margin - Lets do a runoff */
 			g_hVoteMenu = new Menu(Handler_MapVoteMenu, MENU_ACTIONS_ALL);
-			g_hVoteMenu.SetTitle("Runoff Vote Nextmap");
+			g_hVoteMenu.SetTitle("%T", "RunoffVoteNextmap", LANG_SERVER);
 			g_hVoteMenu.VoteResultCallback = Handler_VoteFinishedGeneric;
 
 			char map[PLATFORM_MAX_PATH];
@@ -1196,7 +1206,9 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 		case MenuAction_Display:
 		{
 			Panel panel = view_as<Panel>(param2);
-			panel.SetTitle("Vote Nextmap\n ");
+			char sDisplay[PLATFORM_MAX_PATH];
+			FormatEx(sDisplay, sizeof(sDisplay), "%T", "VoteNextmap", param1);
+			panel.SetTitle(sDisplay);
 		}
 
 		case MenuAction_DisplayItem:
@@ -1450,7 +1462,7 @@ bool SMC_FindMap(const char[] mapname, char[] output, int maxlen)
 void SMC_NominateMatches(int client, const char[] mapname)
 {
 	Menu subNominateMenu = new Menu(NominateMenuHandler);
-	subNominateMenu.SetTitle("Nominate\nMaps matching \"%s\"\n ", mapname);
+	subNominateMenu.SetTitle("%T", "MapsMatching", client, mapname);
 	bool isCurrentMap = false;
 	bool isOldMap = false;
 	char map[PLATFORM_MAX_PATH];
@@ -1503,7 +1515,7 @@ void SMC_NominateMatches(int client, const char[] mapname)
 					}
 					else
 					{
-						Format(mapdisplay, sizeof(mapdisplay), "T%d | %s | %s", info.iTier, info.iType == 0 ? "Linear ":"Staged", mapdisplay);	
+						Format(mapdisplay, sizeof(mapdisplay), "T%d | %T | %s", info.iTier, info.iType == 0 ? "Linear2":"Staged", LANG_SERVER, mapdisplay);
 					}
 				}
 			}
@@ -1598,7 +1610,7 @@ public Action Command_ForceMapVote(int client, int args)
 {
 	if(g_bMapVoteStarted || g_bMapVoteFinished)
 	{
-		Shavit_PrintToChat(client, "%T %T", "VoteAlready", client, (g_bMapVoteStarted) ? "Initiated" : "Finished", client);
+		Shavit_PrintToChat(client, "%T", (g_bMapVoteStarted) ? "VoteInitiated" : "VoteFinished", client);
 	}
 	else
 	{
@@ -1619,7 +1631,7 @@ public Action Command_Nominate(int client, int args)
 {
 	if (g_bMapVoteStarted || g_bMapVoteFinished)
 	{
-		Shavit_PrintToChat(client, "%T %T", "VoteAlready", client, (g_bMapVoteStarted) ? "Initiated" : "Finished", client);
+		Shavit_PrintToChat(client, "%T", (g_bMapVoteStarted) ? "VoteInitiated" : "VoteFinished", client);
 		return Plugin_Handled;
 	}
 
@@ -1645,7 +1657,7 @@ public Action Command_Nominate_Internal(int client, char mapname[PLATFORM_MAX_PA
 {
 	if (g_bMapVoteStarted || g_bMapVoteFinished)
 	{
-		Shavit_PrintToChat(client, "%T %T", "VoteAlready", client, (g_bMapVoteStarted) ? "Initiated" : "Finished", client);
+		Shavit_PrintToChat(client, "%T", (g_bMapVoteStarted) ? "VoteInitiated" : "VoteFinished", client);
 		return Plugin_Handled;
 	}
 
@@ -1689,7 +1701,7 @@ public Action Command_UnNominate(int client, int args)
 {
 	if (g_bMapVoteStarted || g_bMapVoteFinished)
 	{
-		Shavit_PrintToChat(client, "%T %T", "VoteAlready", client, (g_bMapVoteStarted) ? "Initiated" : "Finished", client);
+		Shavit_PrintToChat(client, "%T", (g_bMapVoteStarted) ? "VoteInitiated" : "VoteFinished", client);
 		return Plugin_Handled;
 	}
 
@@ -1753,7 +1765,7 @@ void CreateNominateMenu()
 	delete g_hNominateMenu;
 	g_hNominateMenu = new Menu(NominateMenuHandler);
 
-	g_hNominateMenu.SetTitle("Nominate");
+	g_hNominateMenu.SetTitle("%T", "Nominate", LANG_SERVER);
 	StringMap tiersMap = gB_Rankings ? Shavit_GetMapInfo() : null;
 
 	g_aMapList.SortCustom(SlowSortThatSkipsFolders);
@@ -1798,7 +1810,7 @@ void CreateNominateMenu()
 				}
 				else
 				{
-					Format(mapdisplay, sizeof(mapdisplay), "T%d | %s | %s", info.iTier, info.iType == 0 ? "Linear ":"Staged", mapdisplay);	
+					Format(mapdisplay, sizeof(mapdisplay), "T%d | %T | %s", info.iTier, info.iType == 0 ? "Linear2":"Staged", LANG_SERVER, mapdisplay);
 				}
 			}
 		}
@@ -1821,10 +1833,15 @@ void CreateEnhancedMenu()
 	g_hEnhancedMenu = new Menu(EnhancedMenuHandler);
 	g_hEnhancedMenu.ExitButton = true;
 
-	g_hEnhancedMenu.SetTitle("Nominate");
-	g_hEnhancedMenu.AddItem("Alphabetic", "Alphabetic");
+	char sDisplay[32];
+	
+	g_hEnhancedMenu.SetTitle("%T", "Nominate", LANG_SERVER);
+	
+	FormatEx(sDisplay, sizeof(sDisplay), "%T", "Alphabetic", LANG_SERVER);
+	g_hEnhancedMenu.AddItem("Alphabetic", sDisplay);
 
-	g_hEnhancedMenu.AddItem("Newmaps", "New maps");
+	FormatEx(sDisplay, sizeof(sDisplay), "%T", "NewMaps", LANG_SERVER);
+	g_hEnhancedMenu.AddItem("Newmaps", sDisplay);
 
 	for(int i = GetConVarInt(g_cvMinTier); i <= GetConVarInt(g_cvMaxTier); ++i)
 	{
@@ -1833,7 +1850,7 @@ void CreateEnhancedMenu()
 		if (count > 0)
 		{
 			char tierDisplay[32];
-			FormatEx(tierDisplay, sizeof(tierDisplay), "Tier %i (%d)", i, count);
+			FormatEx(tierDisplay, sizeof(tierDisplay), "%T", "NominateTier", LANG_SERVER, i, count);
 
 			char tierString[16];
 			IntToString(i, tierString, sizeof(tierString));
@@ -1886,7 +1903,7 @@ void CreateTierMenus()
 			}
 			else
 			{
-				Format(mapdisplay, sizeof(mapdisplay), "T%d | %s | %s", info.iTier, info.iType == 0 ? "Linear ":"Staged", mapdisplay);	
+				Format(mapdisplay, sizeof(mapdisplay), "T%d | %T | %s", info.iTier, info.iType == 0 ? "Linear2":"Staged", LANG_SERVER, mapdisplay);
 			}
 		}
 
@@ -1911,7 +1928,7 @@ void InitTierMenus(int min, int max)
 	for(int i = min; i <= max; i++)
 	{
 		Menu TierMenu = new Menu(NominateMenuHandler);
-		TierMenu.SetTitle("Nominate\nTier \"%i\" Maps\n ", i);
+		TierMenu.SetTitle("%T", "NominateTierMaps", LANG_SERVER, i);
 		TierMenu.ExitBackButton = true;
 		g_aTierMenus[i] = TierMenu;
 	}
@@ -2070,7 +2087,7 @@ public Action Command_RockTheVote(int client, int args)
 	{
 		int needed, rtvcount, total;
 		GetRTVStuff(total, needed, rtvcount);
-		Shavit_PrintToChat(client, "%T %T", "AlreadyRTVed", client, (needed == 1) ? "VoteNeeded" : "VotesNeeded", client, needed);
+		Shavit_PrintToChat(client, "%T %T", (needed == 1) ? "AlreadyRTVedVote" : "AlreadyRTVedVotes", client, needed);
 	}
 	else if(g_cvRTVMinimumPoints.IntValue != -1 && Shavit_GetPoints(client) <= g_cvRTVMinimumPoints.FloatValue)
 	{
@@ -2169,7 +2186,7 @@ public Action Command_UnRockTheVote(int client, int args)
 	}
 	else if(g_bMapVoteStarted || (g_bMapVoteFinished && g_ChangeTime != MapChange_MapEnd))
 	{
-		Shavit_PrintToChat(client, "%T %T", "VoteAlready", client, (g_bMapVoteStarted) ? "Initiated" : "Finished", client);
+		Shavit_PrintToChat(client, "%T", (g_bMapVoteStarted) ? "VoteInitiated" : "VoteFinished", client);
 	}
 	else if(g_bRockTheVote[client])
 	{
@@ -2207,7 +2224,7 @@ public Action Command_NomList(int client, int args)
 	}
 
 	Menu nomList = new Menu(Null_Callback);
-	nomList.SetTitle("Nominated Maps");
+	nomList.SetTitle("%T", "NominatedMaps", LANG_SERVER);
 	for(int i = 0; i < g_aNominateList.Length; ++i)
 	{
 		char buffer[PLATFORM_MAX_PATH];
@@ -2330,7 +2347,7 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 		LowercaseString(map);
 		ReplaceString(map, sizeof(map), "\\", "/", true);
 
-		menu.SetTitle("Maps matching \"%s\"\n ", map);
+		menu.SetTitle("%T", "MapsMatching2", client, map);
 	}
 
 	int length = maps.Length;
