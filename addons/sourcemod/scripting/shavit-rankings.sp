@@ -444,7 +444,11 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 		}
 		
 		QueryLog(gH_SQL, SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
+
+		return;
 	}
+
+	gI_Tier = mapinfo.iTier;
 }
 
 public void Shavit_OnZoneCreated(int entity, int type, int track, int data)
