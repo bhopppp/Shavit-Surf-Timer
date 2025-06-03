@@ -188,6 +188,10 @@ Handle gH_Forwards_LoadZonesHere = null;
 Handle gH_Forwards_ReachNextStage = null;
 Handle gH_Forwards_ReachNextCP = null;
 
+Handle gH_Forwards_ZoneCreated = null;
+Handle gH_Forwards_ZoneDeleted = null;
+Handle gH_Forwards_AllZoneDeleted = null;
+
 // sdkcalls
 Handle gH_PhysicsRemoveTouchedList = null;
 Handle gH_PassesTriggerFilters = null;
@@ -367,6 +371,10 @@ public void OnPluginStart()
 
 	gH_Forwards_ReachNextStage = CreateGlobalForward("Shavit_OnReachNextStage", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_ReachNextCP = CreateGlobalForward("Shavit_OnReachNextCP", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+
+	gH_Forwards_ZoneCreated = CreateGlobalForward("Shavit_OnZoneCreated", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_ZoneDeleted = CreateGlobalForward("Shavit_OnZoneDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_AllZoneDeleted = CreateGlobalForward("Shavit_OnAllZoneDeleted", ET_Event);
 
 	// cvars and stuff
 	gCV_SQLZones = new Convar("shavit_zones_usesql", "1", "Whether to automatically load zones from the database or not.\n0 - Load nothing. (You'll need a plugin to add zones with `Shavit_AddZone()`)\n1 - Load zones from database.", 0, true, 0.0, true, 1.0);
@@ -3997,6 +4005,12 @@ public void CallOnZoneDeleted(int type, int track, int data, bool all)
 {
 	if(!all)
 	{
+		Call_StartForward(gH_Forwards_ZoneDeleted);
+		Call_PushCell(type);
+		Call_PushCell(track);
+		Call_PushCell(data);
+		Call_Finish();
+
 		char sTrack[32];
 		char sZoneName[32];
 		if (type == Zone_Start || type == Zone_End)
@@ -4034,6 +4048,9 @@ public void CallOnZoneDeleted(int type, int track, int data, bool all)
 	}
 	else
 	{
+		Call_StartForward(gH_Forwards_AllZoneDeleted);
+		Call_Finish();
+
 		for(int i = 0; i < MaxClients; i++)
 		{
 			if(IsValidClient(i))
@@ -5338,6 +5355,13 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 			break;
 		}
 	}
+
+	Call_StartForward(gH_Forwards_ZoneCreated);
+	Call_PushCell(cache.iEntity);
+	Call_PushCell(cache.iType);
+	Call_PushCell(cache.iTrack);
+	Call_PushCell(cache.iData);
+	Call_Finish();
 }
 
 public Action Timer_DrawZones(Handle Timer, any drawAll)

@@ -338,7 +338,7 @@ public void OnMapStart()
 		return;
 	}
 
-	RefreshMapSettings();
+	RefreshMapSettings("");
 
 	if (gB_SqliteHatesPOW)
 	{
@@ -351,7 +351,7 @@ public void OnMapStart()
 	}
 }
 
-public void RefreshMapSettings()
+public void RefreshMapSettings(const char[] map)
 {
 	// Default tier.
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
@@ -360,7 +360,13 @@ public void RefreshMapSettings()
 	sv_maxvelocity.FloatValue = gF_MaxVelocity;
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT map, tier, maxvelocity, maptype, bonuses, stages FROM %smapinfo;", gS_MySQLPrefix);
+	char sWhere[256];
+	if(map[0])
+	{
+		FormatEx(sWhere, sizeof(sWhere), " WHERE map = '%s'", map);
+	}
+
+	FormatEx(sQuery, sizeof(sQuery), "SELECT map, tier, maxvelocity, maptype, bonuses, stages FROM %smapinfo%s;", gS_MySQLPrefix, sWhere);
 	QueryLog(gH_SQL, SQL_FillMapSettingCache_Callback, sQuery, 0, DBPrio_High);
 
 	gB_TierQueried = true;
@@ -439,6 +445,27 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 		
 		QueryLog(gH_SQL, SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
 	}
+}
+
+public void Shavit_OnZoneCreated(int entity, int type, int track, int data)
+{
+	if (type == Zone_Stage || type == Zone_Checkpoint || (type == Zone_Start && track >= Track_Bonus))
+	{
+		RefreshMapSettings(gS_Map);
+	}
+}
+
+public void Shavit_OnZoneDeleted(int type, int track, int data)
+{
+	if (type == Zone_Stage || type == Zone_Checkpoint || (type == Zone_Start && track >= Track_Bonus))
+	{
+		RefreshMapSettings(gS_Map);
+	}
+}
+
+public void Shavit_OnAllZoneDeleted()
+{
+	RefreshMapSettings(gS_Map);
 }
 
 public void OnMapEnd()
@@ -970,8 +997,6 @@ public int SetMapTier_MatchesMenuHandler(Menu menu, MenuAction action, int param
 
 	return 0;
 }
-
-
 
 public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {

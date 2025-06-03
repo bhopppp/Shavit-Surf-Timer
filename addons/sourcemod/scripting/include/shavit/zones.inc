@@ -343,6 +343,32 @@ forward void Shavit_OnReachNextStage(int client, int track, int startStage, int 
 forward void Shavit_OnReachNextCP(int client, int track, int checkpoint, float time);
 
 /**
+ * Called when a zone is created.
+ *
+ * @param entity                    Zone trigger entity index.
+ * @param type                      Zone type.
+ * @param track                     Zone track.
+ * @param data                      Zone data if any.
+ * @noreturn
+ */
+forward void Shavit_OnZoneCreated(int entity, int type, int track, int data);
+
+/**
+ * Called when a zone is deleted.
+ *
+ * @param type                      Zone type.
+ * @param track                     Zone track.
+ * @param data                      Zone ID.
+ * @noreturn
+ */
+forward void Shavit_OnZoneDeleted(int type, int track, int data);
+
+/**
+ * Called when all zones are deleted.
+ */
+forward void Shavit_OnAllZoneDeleted();
+
+/**
  * Checks if a mapzone exists.
  *
  * @param type                      Mapzone type.
