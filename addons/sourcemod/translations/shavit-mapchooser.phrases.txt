@@ -35,6 +35,12 @@
 		"en"  		"You had a menu open. Waiting {1}s before accepting input"
 	}
 	
+	"ReRolling Maps"
+	{
+		"#format"		"{1:i},{2:i}"
+		"en"			"Voting for next map has restarted. Reroll complete. (Received {1}%% of {2} votes)"
+	}
+	
 	"VoteInitiated"
 	{
 		"en"  		"Map vote already initiated"
@@ -139,7 +145,6 @@
 	}
 
 	// ---------- Menus ---------- //
-	
 	"NewestMaps"
 	{
 		"#format"	"{1:d}"
