@@ -1,8 +1,9 @@
 "Phrases"
 {
+	// ---------- Messages ---------- //
 	"NoLongerWantsRTV"
 	{
-		"#format"	"{1:N},{2:i}"
+		"#format"	"{1:N},{2:d}"
 		"en"  		"{1} no longer wants to rock the vote! ({2} more votes needed)"
 	}
 	
@@ -20,12 +21,12 @@
 	
 	"NoValidMapsMapExtended"
 	{
-		"en"  		"No valid maps found for voting. Current map extended."
+		"en"  		"No valid maps found for voting, Current map extended."
 	}
 	
-	"NoValidMapsNoMapChange"
+	"NoValidMapsVoteCanceled"
 	{
-		"en"  		"No valid maps found for voting. No map change will occur."
+		"en"  		"No valid maps found for voting, Vote canceled."
 	}
 	
 	"HadMenuOpen"
@@ -57,7 +58,7 @@
 	"RemovedNomination"
 	{
 		"#format"	"{1:s}"
-		"en"  		"Successfully removed nomination for '%s'"
+		"en"  		"Successfully removed nomination for '{1}'"
 	}
 	
 	"NominateNotEnabledYet"
@@ -67,19 +68,25 @@
 	
 	"AlreadyRTVedVote"
 	{
-		"#format"	"{1:i}"
-		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more vote needed)"
+		"#format"	"{1:d}"
+		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv ({1} more vote needed)"
 	}
 	
 	"AlreadyRTVedVotes"
 	{
-		"#format"	"{1:i}"
-		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more votes needed)"
+		"#format"	"{1:d}"
+		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv ({1} more votes needed)"
 	}
 	
-	"MustHigherRankRTV"
+	"RTVNotQualified"
 	{
-		"en"  		"You must be a higher rank to RTV!"
+		"#format"	"{1:.0f},{1:.0f}"
+		"en"  		"You need at least {1} points to RTV! ({2} points needed)"
+	}
+
+	"ReloadingCurrentMap"
+	{
+		"en"  		"Reloading current map.."
 	}
 	
 	"SpectatorsBlockedRTV"
@@ -87,13 +94,13 @@
 		"en"  		"Spectators have been blocked from RTVing"
 	}
 	
-	"MapChange"
+	"RTVMapChangeAnnounce"
 	{
 		"#format"	"{1:N},{2:s}"
 		"en"		"{1} wants to rock the vote! Map will now change to {2} ..."
 	}
 	
-	"MapChange2"
+	"RTVMajorityMapChange"
 	{
 		"#format"	"{1:s}"
 		"en"		"RTV vote now majority, map changing to {1} ..."
@@ -105,7 +112,7 @@
 		"en"  		"{1} wants to rock the vote! Map vote will now start ..."
 	}
 	
-	"MapVoteStart2"
+	"RTVMajorityVoteStart"
 	{
 		"en"  		"RTV vote now majority, map vote starting ..."
 	}
@@ -126,30 +133,22 @@
 		"en"  		"Loading unzoned map {1}"
 	}
 	
-	"ReloadingCurrentMap"
-	{
-		"en"  		"Reloading current map.."
-	}
-	
 	"InvalidMap"
 	{
 		"en"  		"Invalid map"
 	}
-	
-	"UsageMap"
-	{
-		"en"  		"Usage: sm_map <map>"
-	}
+
+	// ---------- Menus ---------- //
 	
 	"NewestMaps"
 	{
-		"#format"	"{1:i}"
+		"#format"	"{1:d}"
 		"en"  		"{1} of Newest Maps :"
 	}
 	
 	"VoteNextmap"
 	{
-		"en"  		"Vote Nextmap\n "
+		"en"  		"Vote Nextmap"
 	}
 	
 	"RerollMaps"
@@ -159,36 +158,46 @@
 	
 	"ExtendCurrentMap"
 	{
-		"en"  		"Extend Current Map\n "
+		"en"  		"Extend Current Map"
 	}
-	
+
+	"NoVote"
+	{
+		"en"		"No Vote"
+	}
+
 	"DontChange"
 	{
-		"en"  		"Don't Change\n "
+		"en"  		"Don't Change"
+	}
+
+	"MapTier"
+	{
+		"#format"	"{1:d}"
+		"en"  		"Tier {1}"
 	}
 	
 	"Linear"
 	{
-		"#format"	"{1:d}"
-		"en"  		"Tier {1} - Linear"
+		"en"  		"Linear"
 	}
 	
 	"Stages"
 	{
-		"#format"	"{1:d},{2:d}"
-		"en"  		"Tier {1} - {2} Stages"
+		"#format"	"{1:d}"
+		"en"  		"{1} Stages"
 	}
 	
-	"Bonus"
+	"MapBonusCountSingle"
 	{
 		"#format"	"{1:d}"
-		"en"  		" - {1} Bonus"
+		"en"  		"{1} Bonus"
 	}
 	
-	"Bonuses"
+	"MapBonusCountMultiple"
 	{
 		"#format"	"{1:d}"
-		"en"  		" - {1} Bonuses"
+		"en"  		"{1} Bonuses"
 	}
 	
 	"RunoffVoteNextmap"
@@ -196,23 +205,23 @@
 		"en"  		"Runoff Vote Nextmap"
 	}
 	
-	"MapsMatching"
+	"MatchedMaps"
 	{
 		"#format"	"{1:s}"
-		"en"  		"Nominate\nMaps matching \"{1}\"\n "
+		"en"  		"Maps matching \"{1}\""
 	}
 	
-	"Nominate"
+	"MenuTitle_Nominate"
 	{
 		"en"  		"Nominate"
 	}
 	
-	"Linear2"
+	"MapTypeLinear"
 	{
-		"en"  		"Linear "
+		"en"  		"Linear  "
 	}
 	
-	"Staged"
+	"MapTypeStaged"
 	{
 		"en"  		"Staged"
 	}
@@ -229,24 +238,18 @@
 	
 	"NominateTier"
 	{
-		"#format"	"{1:i},{2:d}"
+		"#format"	"{1:d},{2:d}"
 		"en"  		"Tier {1} ({2})"
 	}
 	
 	"NominateTierMaps"
 	{
-		"#format"	"{1:i}"
-		"en"  		"Nominate\nTier \"{1}\" Maps\n "
+		"#format"	"{1:d}"
+		"en"  		"Tier \"{1}\" Maps"
 	}
 	
-	"NominatedMaps"
+	"MenuTitle_NominatedMaps"
 	{
-		"en"  		"NominatedMaps"
-	}
-	
-	"MapsMatching2"
-	{
-		"#format"	"{1:s}"
-		"en"  		"Maps matching \"{1}\"\n "
+		"en"  		"Nominated Maps"
 	}
 }
