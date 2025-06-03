@@ -1,0 +1,252 @@
+"Phrases"
+{
+	"NoLongerWantsRTV"
+	{
+		"#format"	"{1:N},{2:i}"
+		"en"  		"{1} no longer wants to rock the vote! ({2} more votes needed)"
+	}
+	
+	"VoteCountDownMinutes"
+	{
+		"#format"	"{1:d}"
+		"en"  		"{1} minutes until map vote"
+	}
+	
+	"VoteCountDownSeconds"
+	{
+		"#format"	"{1:d}"
+		"en"  		"{1} seconds until map vote"
+	}
+	
+	"NoValidMapsMapExtended"
+	{
+		"en"  		"No valid maps found for voting. Current map extended."
+	}
+	
+	"NoValidMapsNoMapChange"
+	{
+		"en"  		"No valid maps found for voting. No map change will occur."
+	}
+	
+	"HadMenuOpen"
+	{
+		"#format"	"{1:.2f}"
+		"en"  		"You had a menu open. Waiting {1}s before accepting input"
+	}
+	
+	"VoteInitiated"
+	{
+		"en"  		"Map vote already initiated"
+	}
+	
+	"VoteFinished"
+	{
+		"en"  		"Map vote already finished"
+	}
+	
+	"StopSpamming"
+	{
+		"en"  		"Stop spamming"
+	}
+	
+	"HaveNotNominated"
+	{
+		"en"  		"You haven't nominated a map"
+	}
+	
+	"RemovedNomination"
+	{
+		"#format"	"{1:s}"
+		"en"  		"Successfully removed nomination for '%s'"
+	}
+	
+	"NominateNotEnabledYet"
+	{
+		"en"  		"Nominate has not been enabled yet"
+	}
+	
+	"AlreadyRTVedVote"
+	{
+		"#format"	"{1:i}"
+		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more vote needed)"
+	}
+	
+	"AlreadyRTVedVotes"
+	{
+		"#format"	"{1:i}"
+		"en"  		"You have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more votes needed)"
+	}
+	
+	"MustHigherRankRTV"
+	{
+		"en"  		"You must be a higher rank to RTV!"
+	}
+	
+	"SpectatorsBlockedRTV"
+	{
+		"en"  		"Spectators have been blocked from RTVing"
+	}
+	
+	"MapChange"
+	{
+		"#format"	"{1:N},{2:s}"
+		"en"		"{1} wants to rock the vote! Map will now change to {2} ..."
+	}
+	
+	"MapChange2"
+	{
+		"#format"	"{1:s}"
+		"en"		"RTV vote now majority, map changing to {1} ..."
+	}
+	
+	"MapVoteStart"
+	{
+		"#format"	"{1:N}"
+		"en"  		"{1} wants to rock the vote! Map vote will now start ..."
+	}
+	
+	"MapVoteStart2"
+	{
+		"en"  		"RTV vote now majority, map vote starting ..."
+	}
+	
+	"RTVNotEnabledYet"
+	{
+		"en"  		"RTV has not been enabled yet"
+	}
+	
+	"NoMapsNominated"
+	{
+		"en"  		"No Maps Nominated"
+	}
+	
+	"LoadingUnzonedMap"
+	{
+		"#format"	"{1:s}"
+		"en"  		"Loading unzoned map {1}"
+	}
+	
+	"ReloadingCurrentMap"
+	{
+		"en"  		"Reloading current map.."
+	}
+	
+	"InvalidMap"
+	{
+		"en"  		"Invalid map"
+	}
+	
+	"UsageMap"
+	{
+		"en"  		"Usage: sm_map <map>"
+	}
+	
+	"NewestMaps"
+	{
+		"#format"	"{1:i}"
+		"en"  		"{1} of Newest Maps :"
+	}
+	
+	"VoteNextmap"
+	{
+		"en"  		"Vote Nextmap\n "
+	}
+	
+	"RerollMaps"
+	{
+		"en"  		"Reroll Maps"
+	}
+	
+	"ExtendCurrentMap"
+	{
+		"en"  		"Extend Current Map\n "
+	}
+	
+	"DontChange"
+	{
+		"en"  		"Don't Change\n "
+	}
+	
+	"Linear"
+	{
+		"#format"	"{1:d}"
+		"en"  		"Tier {1} - Linear"
+	}
+	
+	"Stages"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"  		"Tier {1} - {2} Stages"
+	}
+	
+	"Bonus"
+	{
+		"#format"	"{1:d}"
+		"en"  		" - {1} Bonus"
+	}
+	
+	"Bonuses"
+	{
+		"#format"	"{1:d}"
+		"en"  		" - {1} Bonuses"
+	}
+	
+	"RunoffVoteNextmap"
+	{
+		"en"  		"Runoff Vote Nextmap"
+	}
+	
+	"MapsMatching"
+	{
+		"#format"	"{1:s}"
+		"en"  		"Nominate\nMaps matching \"{1}\"\n "
+	}
+	
+	"Nominate"
+	{
+		"en"  		"Nominate"
+	}
+	
+	"Linear2"
+	{
+		"en"  		"Linear "
+	}
+	
+	"Staged"
+	{
+		"en"  		"Staged"
+	}
+	
+	"Alphabetic"
+	{
+		"en"  		"Alphabetic"
+	}
+	
+	"NewMaps"
+	{
+		"en"  		"New maps"
+	}
+	
+	"NominateTier"
+	{
+		"#format"	"{1:i},{2:d}"
+		"en"  		"Tier {1} ({2})"
+	}
+	
+	"NominateTierMaps"
+	{
+		"#format"	"{1:i}"
+		"en"  		"Nominate\nTier \"{1}\" Maps\n "
+	}
+	
+	"NominatedMaps"
+	{
+		"en"  		"NominatedMaps"
+	}
+	
+	"MapsMatching2"
+	{
+		"#format"	"{1:s}"
+		"en"  		"Maps matching \"{1}\"\n "
+	}
+}
