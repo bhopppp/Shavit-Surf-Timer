@@ -80,7 +80,7 @@
 	
 	"RTVNotQualified"
 	{
-		"#format"	"{1:.0f},{1:.0f}"
+		"#format"	"{1:.0f},{2:.0f}"
 		"en"  		"You need at least {1} points to RTV! ({2} points needed)"
 	}
 
