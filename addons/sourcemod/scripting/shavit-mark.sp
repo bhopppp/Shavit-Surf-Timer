@@ -1493,5 +1493,5 @@ stock void AddFilesToDownloadsTable()
 	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.sw.vtx");
 	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.vvd");
 	PrecacheModel("models/expert_zone/pingtool/pingtool.mdl");
-	PrecacheSound("sound/expert_zone/pingtool/click.wav")
+	PrecacheSound("sound/expert_zone/pingtool/click.wav");
 }
