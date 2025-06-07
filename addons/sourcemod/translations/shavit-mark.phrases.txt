@@ -1,12 +1,65 @@
 "Phrases"
 {
+	"PingMenuTitle"
+	{
+		"en"		"Ping Menu"
+	}
+	"PingTips"
+	{
+		"en"		"Use command \"sm_ping\" to mark a position"
+	}
+	"CreatePingMarker"
+	{
+		"en"		"Create ping marker"
+	}
+	"RemovePingMarker"
+	{
+		"en"		"Remove ping marker"
+	}
+	"PingOptions"
+	{
+		"en"		"Options"
+	}
+	"PingOptionMenuTitle"
+	{
+		"en"		"Ping Options"
+	}
+	"PingDuration"
+	{
+		"en"		"Ping Duration"
+	}
+	"DurationLong"
+	{
+		"en"		"Until Next Ping"
+	}
+	"DurationShort"
+	{
+		"#format"	"{1:d}"
+		"en"		"Last {1} Seconds"
+	}
+	"PingColor"
+	{
+		"en"		"Ping Color"
+	}
+	"PingSound"
+	{
+		"en"		"Ping Sound"
+	}
+	"PingObject"
+	{
+		"en"		"Ping Object"
+	}
+	"PingColorMenuTitle"
+	{
+		"en"		"Ping Color"
+	}
 	"PaintMenuTitle"
 	{
 		"en"		"Paint Menu"
 	}
 	"PaintTips"
 	{
-		"en"		"Tips: Excute: bind <KEY> \"+paint\" in consle to bind a key to paint \n  "
+		"en"		"Tips: Excute: bind <KEY> \"+paint\" in consle to bind a key to paint"
 	}
 	"ModeContinuous"
 	{
@@ -197,64 +250,68 @@
 	{
 		"en"		"Large"
 	}
-	"PaintColorRandom"
+	"ColorRandom"
 	{
 		"en"		"Random"
 	}
-	"PaintColorWhite"
+	"ColorWhite"
 	{
 		"en"		"White"
 	}
-	"PaintColorBlack"
+	"ColorBlack"
 	{
 		"en"		"Black"
 	}
-	"PaintColorBlue"
+	"ColorBlue"
 	{
 		"en"		"Blue"
 	}
-	"PaintColorLightBlue"
+	"ColorLightBlue"
 	{
 		"en"		"Light Blue"
 	}
-	"PaintColorBrown"
+	"ColorBrown"
 	{
 		"en"		"Brown"
 	}
-	"PaintColorCyan"
+	"ColorCyan"
 	{
 		"en"		"Cyan"
 	}
-	"PaintColorGreen"
+	"ColorGreen"
 	{
 		"en"		"Green"
 	}
-	"PaintColorDarkGreen"
+	"ColorDarkGreen"
 	{
 		"en"		"Dark Green"
 	}
-	"PaintColorRed"
+	"ColorRed"
 	{
 		"en"		"Red"
 	}
-	"PaintColorOrange"
+	"ColorOrange"
 	{
 		"en"		"Orange"
 	}
-	"PaintColorYellow"
+	"ColorYellow"
 	{
 		"en"		"Yellow"
 	}
-	"PaintColorPink"
+	"ColorPink"
 	{
 		"en"		"Pink"
 	}
-	"PaintColorLightPink"
+	"ColorLightPink"
 	{
 		"en"		"Light Pink"
 	}
-	"PaintColorPurple"
+	"ColorPurple"
 	{
 		"en"		"Purple"
+	}
+	"ColorTurquoise"
+	{
+		"en"		"Turquoise"
 	}
 }
