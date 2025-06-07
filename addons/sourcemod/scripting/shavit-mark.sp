@@ -1219,7 +1219,7 @@ public int CreatePingEffect(int client, float pos[3], float rotation[3], int col
 	gI_PlayerPing[client] = iEntity;
 	gI_PingEntity[iEntity] = client;
 
-	SetEntityModel(iEntity, PING_MODEL_PATH);
+	SetEntityModel(iEntity, "models/expert_zone/pingtool/pingtool.mdl");
 	DispatchSpawn(iEntity);
 	ActivateEntity(iEntity);
 	SetEntPropVector(iEntity, Prop_Data, "m_angRotation", rotation);
@@ -1230,12 +1230,12 @@ public int CreatePingEffect(int client, float pos[3], float rotation[3], int col
 
 	if(gB_PingSound[client])
 	{
-		EmitSoundToClient(client, CLICK_PATH);		
+		EmitSoundToClient(client, "expert_zone/pingtool/click.wav");		
 	}
 
 	if(gI_Partner[client] > 0 && gB_PingSound[gI_Partner[client]])
 	{
-		EmitSoundToClient(gI_Partner[client], CLICK_PATH);	
+		EmitSoundToClient(gI_Partner[client], "expert_zone/pingtool/click.wav");	
 	}
 
 	gI_PlayerLastPing[client] = GetGameTickCount();
