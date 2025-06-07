@@ -1,0 +1,31 @@
+//VertexLitGeneric
+UnlitGeneric
+{
+	$basetexture "expert_zone/pingtool/circle_point"
+
+	$translucent 1
+	//$vertexcolor 1
+	//$vertexalpha 1
+
+	"$angle" 0.0
+	"$translate" "[0.0 0.0]"
+	"$center" "[0.5 0.5]"
+
+	"Proxies"
+	{
+		"LinearRamp"
+		{
+			"rate" -135
+			"initialValue" 0.0
+			"resultVar" "$angle"
+		}
+
+		"TextureTransform"
+		{
+			"translateVar" "$translate"
+			"rotateVar" "$angle"
+			"centerVar" "$center"
+			"resultVar" "$basetexturetransform"
+		}
+	}
+}
