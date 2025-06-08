@@ -134,6 +134,7 @@ ArrayList gA_StageCP_PB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // player's bes
 
 Menu gH_PBMenu[MAXPLAYERS+1];
 int gI_PBMenuPos[MAXPLAYERS+1];
+int gI_SubMenuPos[MAXPLAYERS+1];
 
 int gI_RRMenuPos[MAXPLAYERS+1];
 bool gB_RRSelectMain[MAXPLAYERS+1];
@@ -3309,6 +3310,7 @@ public int MenuHandler_WRStyleChooser(Menu menu, MenuAction action, int param1, 
 
 		gA_WRCache[param1].iLastStyle = iStyle;
 		gA_WRCache[param1].iPagePosition = GetMenuSelectionPosition();
+		gI_SubMenuPos[param1] = 0;
 
 		StartWRMenu(param1);
 	}
@@ -3475,7 +3477,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	hMenu.ExitBackButton = true;
-	hMenu.Display(client, 300);
+	hMenu.DisplayAt(client, gI_SubMenuPos[client], MENU_TIME_FOREVER);
 }
 
 public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -3489,12 +3491,15 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 		if(id != -1)
 		{
 			gI_RRMenuPos[param1] = -1;
+			gI_SubMenuPos[param1] = GetMenuSelectionPosition();
 			OpenSubMenu(param1, id, gA_WRCache[param1].iLastStage);
 		}
 		else
 		{
 			ShowWRStyleMenu(param1);
 		}
+
+		return 0;
 	}
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -3504,6 +3509,8 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 	{
 		delete menu;
 	}
+
+	gI_SubMenuPos[param1] = 0;
 
 	return 0;
 }
@@ -4218,6 +4225,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 		else
 		{
 			delete gH_PBMenu[param1];
+			gI_SubMenuPos[param1] = 0;
 		}
 	}
 	else if(action == MenuAction_End)
@@ -4494,10 +4502,11 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 
 	int iOverwrite = 0;
 	bool bIncrementCompletions = true;
+	bool bPracticeMode = Shavit_IsPracticeMode(client);
 
 	int iSteamID = GetSteamAccountID(client);
 
-	if(Shavit_GetStyleSettingInt(style, "unranked") || Shavit_IsPracticeMode(client))
+	if(Shavit_GetStyleSettingInt(style, "unranked") || bPracticeMode)
 	{
 		iOverwrite = 0;
 		bIncrementCompletions = false;
