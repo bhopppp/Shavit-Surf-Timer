@@ -3496,21 +3496,19 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 		}
 		else
 		{
+			gI_SubMenuPos[param1] = 0;
 			ShowWRStyleMenu(param1);
 		}
-
-		return 0;
 	}
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
+		gI_SubMenuPos[param1] = 0;
 		ShowWRStyleMenu(param1, gA_WRCache[param1].iPagePosition);
 	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
 	}
-
-	gI_SubMenuPos[param1] = 0;
 
 	return 0;
 }
