@@ -1912,11 +1912,11 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 				MT.map, \
 				MT.tier, \
 				MT.maxvelocity, \
-				COUNT(DISTINCT CASE WHEN MZ.type = 0 AND MZ.track > 0 THEN MZ.track END) AS bonuses, \
-				COALESCE(MAX(CASE WHEN MZ.type = 3 THEN MZ.data END), \
-						CASE WHEN MAX(CASE WHEN MZ.type = 2 THEN 1 END) = 1 THEN MAX(MZ.data) \
+				COUNT(DISTINCT CASE WHEN MZ.type = %d AND MZ.track > 0 THEN MZ.track END) AS bonuses, \
+				COALESCE(MAX(CASE WHEN MZ.type = %d THEN MZ.data END), \
+						CASE WHEN MAX(CASE WHEN MZ.type = %d THEN 1 END) = 1 THEN MAX(MZ.data) \
 						ELSE 0 END) AS stages, \
-				MAX(CASE WHEN MZ.type = 2 THEN 1 ELSE 0 END) AS maptype \
+				MAX(CASE WHEN MZ.type = %d THEN 1 ELSE 0 END) AS maptype \
 			FROM %smaptiers MT \
 			LEFT JOIN %smapzones MZ ON MT.map = MZ.map \
 			GROUP BY MT.map, MT.tier, MT.maxvelocity \
@@ -1943,7 +1943,7 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 
 	FormatEx(sQuery, sizeof(sQuery), sCreateMapInfoView,
 		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
-		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+		gS_MySQLPrefix, Zone_Start, Zone_Checkpoint, Zone_Stage, Zone_Stage, gS_MySQLPrefix, gS_MySQLPrefix);
 	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
