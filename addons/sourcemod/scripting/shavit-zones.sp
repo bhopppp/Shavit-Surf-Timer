@@ -5964,6 +5964,11 @@ public void TeleportToStartZone(int client, int track, int stage)
 	}
 
 	// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
+	if(Shavit_IsOnlyStageMode(client) && gI_ZoneStage[client][0] < 1)
+	{
+		return;
+	}
+
 	Shavit_StartTimer(client, track);
 }
 
@@ -6429,6 +6434,11 @@ public void TouchPost(int entity, int other)
 	{
 		case Zone_Stage:
 		{
+			if(gI_ZoneStage[other][0] == 0)
+			{
+				return;
+			}
+
 			if (GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1 && !Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(other), "startinair"))
 			{
 				return;
