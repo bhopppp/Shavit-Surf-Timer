@@ -223,12 +223,10 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	if(convar == gCV_RouteDrawInterval)
 	{
 		gI_DrawRouteInterval = RoundToNearest(gCV_RouteDrawInterval.FloatValue * gI_Tickrate);
-
 	}
 	else if(convar == gCV_RecaculateFrameDiff)
 	{
 		gI_MaxRecaculateFrameDiff = RoundToNearest(gCV_RecaculateFrameDiff.FloatValue * gI_Tickrate);
-	
 	}
 	else if(convar == gCV_RouteFramesAhead)
 	{
@@ -317,7 +315,7 @@ public Action Command_ToggleGhost(int client, int args)
 	}
 
 	Shavit_PrintToChat(client, "Ghost: %s", gB_Ghost[client] ? "enabled":"disabled");
-
+	
 	return Plugin_Handled;
 }
 
@@ -702,31 +700,29 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		int iEndFrame = Min(info.Length, iClosestFrame + gI_RouteFramesAhead);
 
 		info.GetArray(iClosestFrame, prevFrame, sizeof(frame_t));
+		prevDrawFrame = prevFrame;
 
-		for(int i = iClosestFrame; i < iEndFrame; i++)
+		for(int i = iClosestFrame + 1; i < iEndFrame; i++)
 		{
 			info.GetArray(i, curFrame, sizeof(frame_t));
 
-			bool bFrameOnGround = !(curFrame.flags & FL_ONGROUND) && prevFrame.flags & FL_ONGROUND;
-
 			if(GetVectorDistance(prevDrawFrame.pos, curFrame.pos) > gCV_MaxFrameDistance.FloatValue)
 			{
-				prevDrawFrame = curFrame;
 				prevFrame = curFrame;
 
 				continue;
 			}
+
+			bool bFrameOnGround = !(curFrame.flags & FL_ONGROUND) && (prevFrame.flags & FL_ONGROUND);
 			
-			if(bFrameOnGround)
+			if(bFrameOnGround && gB_DrawBox[client])
 			{
-				if(gB_DrawBox[client])
-				{
-					DrawBox(client, prevFrame.pos, gF_GhostBoxSize[client], gI_Colors[gI_GhostBoxColor[client]]);					
-				}
+				DrawBox(client, prevFrame.pos, gF_GhostBoxSize[client], gI_Colors[gI_GhostBoxColor[client]]);					
 
 				// Draw beams between previous drawn frames to jump mark
 				DrawBeam(client, prevDrawFrame.pos, prevFrame.pos, gCV_RouteDrawInterval.FloatValue, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
-
+				
+				prevDrawFrame = prevFrame;
 				prevFrame = curFrame;
 			}
 			else if (i % gCV_RouteDrawSkipFrames.IntValue != 0)
@@ -735,10 +731,13 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 				continue;
 			}
+			else
+			{
+				DrawBeam(client, prevDrawFrame.pos, curFrame.pos, gCV_RouteDrawInterval.FloatValue, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
 
-			DrawBeam(client, prevDrawFrame.pos, curFrame.pos, gCV_RouteDrawInterval.FloatValue, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
-
-			prevDrawFrame = curFrame;
+				prevFrame = curFrame;
+				prevDrawFrame = curFrame;
+			}
 		}
 	}
 	else if(gGM_GhostMode[client] == GhostMode_Guide)	// code from shavit-myroute
@@ -761,7 +760,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		
 		if(Abs(iClosestFrameDiff) > gI_MaxRecaculateFrameDiff)
 		{
-			// closest frame has greate diff between previous frame, assign new closest frame as previous frame.
+			// closest frame has great diff between previous frame, assign new closest frame as previous frame.
 			gI_ClientPrevFrame[client] = iClosestFrame;
 		}
 		else if(iClosestFrameDiff > 1)
@@ -801,20 +800,25 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 			iMaxFrames = info.Length - 2;
 		}
 
-		info.GetArray(iMaxFrames, curFrame, sizeof(frame_t));
-		info.GetArray(iMaxFrames <= iDrawFrameOffset ? 0 : iMaxFrames - iDrawFrameOffset, prevFrame, sizeof(frame_t));
+		int iPrevFrame = iMaxFrames <= iDrawFrameOffset ? 0 : iMaxFrames - iDrawFrameOffset;
 
-		if(GetVectorDistance(prevFrame.pos, curFrame.pos) > gCV_MaxFrameDistance.FloatValue)
+		for (int i = iPrevFrame; i < iMaxFrames; i++)
 		{
-			return;
-		}
+			info.GetArray(i + 1, curFrame, sizeof(frame_t));
+			info.GetArray(i, prevFrame, sizeof(frame_t));
 
-		if(gB_DrawBox[client] && (!(curFrame.flags & FL_ONGROUND) && prevFrame.flags & FL_ONGROUND))
-		{
-			DrawBox(client, prevFrame.pos, gF_GhostBoxSize[client], gI_Colors[gI_GhostBoxColor[client]]);
-		}
+			if(GetVectorDistance(prevFrame.pos, curFrame.pos) > gCV_MaxFrameDistance.FloatValue)
+			{
+				continue;
+			}
 
-		DrawBeam(client, prevFrame.pos, curFrame.pos, 1.0, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
+			if(gB_DrawBox[client] && (!(curFrame.flags & FL_ONGROUND) && prevFrame.flags & FL_ONGROUND))
+			{
+				DrawBox(client, prevFrame.pos, gF_GhostBoxSize[client], gI_Colors[gI_GhostBoxColor[client]]);
+			}
+
+			DrawBeam(client, prevFrame.pos, curFrame.pos, 1.0, gF_RouteWidth[client], gF_RouteWidth[client], gI_Colors[gI_GhostRouteColor[client]], 0.0, 0);
+		}
 	}
 
 	return;	
