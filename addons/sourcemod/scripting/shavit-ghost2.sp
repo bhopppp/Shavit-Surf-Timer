@@ -388,10 +388,25 @@ public int MenuHandler_Ghost(Menu menu, MenuAction action, int param1, int param
 		}
 		else if(StrEqual(sInfo, "style", false))
 		{
-			if (++gI_GhostStyle[param1] >= gI_Styles)
+			int iOriginalStyle = gI_GhostStyle[param1];
+			int track = Shavit_GetClientTrack(param1);
+			int stage = track > Track_Main ? 0 : (Shavit_IsOnlyStageMode(param1) || gB_StageGhost[param1]) ? Shavit_GetClientLastStage(param1) : 0;
+			int count = 0;
+
+			do
 			{
-				gI_GhostStyle[param1] = 0;
+				if(++gI_GhostStyle[param1] >= gI_Styles)
+				{
+					gI_GhostStyle[param1] = 0;
+				}
+
+				if(++count > gI_Styles)
+				{
+					gI_GhostStyle[param1] = iOriginalStyle;
+					break;
+				}
 			}
+			while(!gA_GhostInfo[track][gI_GhostStyle[param1]][stage].aFrames);
 
 			ShowGhostMenu(param1);
 		}
