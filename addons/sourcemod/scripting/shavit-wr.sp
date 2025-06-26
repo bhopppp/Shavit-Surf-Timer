@@ -135,6 +135,8 @@ ArrayList gA_StageCP_PB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // player's bes
 Menu gH_PBMenu[MAXPLAYERS+1];
 int gI_PBMenuPos[MAXPLAYERS+1];
 int gI_SubMenuPos[MAXPLAYERS+1];
+int gI_DeleteMenuStylePos[MAXPLAYERS+1];
+int gI_DeleteMenuTrackPos[MAXPLAYERS+1];
 
 int gI_RRMenuPos[MAXPLAYERS+1];
 bool gB_RRSelectMain[MAXPLAYERS+1];
@@ -316,7 +318,7 @@ public void AdminMenu_DeleteStage(Handle topmenu, TopMenuAction action, TopMenuO
 	}
 	else if(action == TopMenuAction_SelectOption)
 	{
-		Command_DeleteStageRecord(param, 0);
+		OpenDeleteStageRecordMenu(param, 0);
 	}
 }
 
@@ -1597,6 +1599,13 @@ public Action Command_DeleteStageRecord(int client, int args)
 		return Plugin_Handled;
 	}
 
+	OpenDeleteStageRecordMenu(client, 0);
+
+	return Plugin_Handled;
+}
+
+public void OpenDeleteStageRecordMenu(int client, int item)
+{
 	Menu menu = new Menu(MenuHandler_DeleteStage_First);
 	menu.SetTitle("%T\n ", "DeleteStageSingle", client);
 
@@ -1619,9 +1628,7 @@ public Action Command_DeleteStageRecord(int client, int args)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
-
-	return Plugin_Handled;
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_DeleteStage_First(Menu menu, MenuAction action, int param1, int param2)
@@ -1632,7 +1639,8 @@ public int MenuHandler_DeleteStage_First(Menu menu, MenuAction action, int param
 		menu.GetItem(param2, info, 16);
 		gA_WRCache[param1].iLastTrack = Track_Main;
 		gA_WRCache[param1].iLastStage = StringToInt(info);
-
+		gI_DeleteMenuTrackPos[param1] = GetMenuSelectionPosition();
+		
 		DeleteStageSubMenu(param1);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
@@ -1647,7 +1655,7 @@ public int MenuHandler_DeleteStage_First(Menu menu, MenuAction action, int param
 	return 0;
 }
 
-void DeleteStageSubMenu(int client)
+void DeleteStageSubMenu(int client, int item = 0)
 {
 	Menu menu = new Menu(MenuHandler_Delete);
 	menu.SetTitle("%T\n ", "DeleteMenuTitle", client);
@@ -1675,8 +1683,10 @@ void DeleteStageSubMenu(int client)
 		menu.AddItem(sInfo, (records > 0) ? sDisplay:gS_StyleStrings[iStyle].sStyleName, (records > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
+	menu.ExitBackButton = true;
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 }
 
 
@@ -1687,6 +1697,13 @@ public Action Command_Delete(int client, int args)
 		return Plugin_Handled;
 	}
 
+	OpenDeleteRecordMenu(client, 0);
+
+	return Plugin_Handled;
+}
+
+public void OpenDeleteRecordMenu(int client, int item)
+{
 	Menu menu = new Menu(MenuHandler_Delete_First);
 	menu.SetTitle("%T\n ", "DeleteTrackSingle", client);
 
@@ -1705,13 +1722,11 @@ public Action Command_Delete(int client, int args)
 			Format(sTrack, 64, "%s (%T: %d)", sTrack, "WRRecord", client, records);
 		}
 
-		menu.AddItem(sInfo, sTrack, (records > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sTrack, (records > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
-
-	return Plugin_Handled;
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, int param2)
@@ -1722,6 +1737,7 @@ public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, in
 		menu.GetItem(param2, info, 16);
 		gA_WRCache[param1].iLastTrack = StringToInt(info);
 		gA_WRCache[param1].iLastStage = 0;
+		gI_DeleteMenuTrackPos[param1] = GetMenuSelectionPosition();
 
 		DeleteSubmenu(param1);
 	}
@@ -1737,7 +1753,7 @@ public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, in
 	return 0;
 }
 
-void DeleteSubmenu(int client)
+void DeleteSubmenu(int client, int item = 0)
 {
 	Menu menu = new Menu(MenuHandler_Delete);
 	menu.SetTitle("%T\n ", "DeleteMenuTitle", client);
@@ -1763,8 +1779,10 @@ void DeleteSubmenu(int client)
 		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, gA_WRCache[client].iLastTrack) > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
+	menu.ExitBackButton = true;
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 }
 
 public Action Command_DeleteAll_Stage(int client, int args)
@@ -1796,7 +1814,7 @@ public Action Command_DeleteAll_Stage(int client, int args)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -1837,7 +1855,7 @@ public int MenuHandler_DeleteAll_Stage_First(Menu menu, MenuAction action, int p
 		}
 
 		subMenu.ExitButton = true;
-		subMenu.Display(param1, 300);
+		subMenu.Display(param1, MENU_TIME_FOREVER);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -1895,7 +1913,7 @@ void DeleteAllStageSubmenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_DeleteAllStage(Menu menu, MenuAction action, int param1, int param2)
@@ -1964,7 +1982,7 @@ public Action Command_DeleteAll(int client, int args)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -2012,7 +2030,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		}
 
 		subMenu.ExitButton = true;
-		subMenu.Display(param1, 300);
+		subMenu.Display(param1, MENU_TIME_FOREVER);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -2070,7 +2088,7 @@ void DeleteAllSubmenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int param2)
@@ -2120,8 +2138,20 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 		char info[16];
 		menu.GetItem(param2, info, 16);
 		gA_WRCache[param1].iLastStyle = StringToInt(info);
+		gI_DeleteMenuStylePos[param1] = GetMenuSelectionPosition();
 
 		OpenDelete(param1);
+	}
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		if (gA_WRCache[param1].iLastStage == 0)
+		{
+			OpenDeleteRecordMenu(param1, gI_DeleteMenuTrackPos[param1]);
+		}
+		else
+		{
+			OpenDeleteStageRecordMenu(param1, gI_DeleteMenuTrackPos[param1]);
+		}
 	}
 	else if(action == MenuAction_End)
 	{
@@ -2180,9 +2210,10 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	}
 
 	Menu menu = new Menu(OpenDelete_Handler);
-	menu.SetTitle("%t", "ListClientRecords", gS_Map, sTrack, gS_StyleStrings[iStyle].sStyleName);
+	menu.SetTitle("%T\n ", "ListClientRecords", client, gS_Map, sTrack, gS_StyleStrings[iStyle].sStyleName);
 
 	int iCount = 0;
+	float fWR = 0.0;
 
 	while(results.FetchRow())
 	{
@@ -2203,11 +2234,25 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		char sTime[16];
 		FormatSeconds(time, sTime, 16);
 
-		// 3 - jumps
-		int jumps = results.FetchInt(3);
+		if(iCount == 1)
+		{
+			fWR = time;
+		}
+
+		float diff = time - fWR;
+		char sDiff[32];
+
+		if (diff < 60.0)
+		{
+			FormatSeconds(diff, sDiff, 32);
+		}
+		else
+		{
+			FormatSeconds(diff, sDiff, 32, false, true);
+		}
 
 		char sDisplay[128];
-		FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, jumps, (jumps != 1)? "s":"");
+		FormatEx(sDisplay, 128, "#%d%s | %s (+%s)   %s", iCount, iCount >= 1000 ? "": iCount >= 100 ? " ": iCount >= 10 ? "  ":"   ", sTime, sDiff, sName);
 		menu.AddItem(sID, sDisplay);
 	}
 
@@ -2218,8 +2263,9 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		menu.AddItem("-1", sNoRecords);
 	}
 
+	menu.ExitBackButton = true;
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -2234,6 +2280,17 @@ public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int para
 		if(id != -1)
 		{
 			OpenDeleteMenu(param1, id);
+		}
+	}
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		if (gA_WRCache[param1].iLastStage == 0)
+		{
+			DeleteSubmenu(param1, gI_DeleteMenuStylePos[param1]);
+		}
+		else
+		{
+			DeleteStageSubMenu(param1, gI_DeleteMenuStylePos[param1]);
 		}
 	}
 	else if(action == MenuAction_End)
@@ -2270,7 +2327,7 @@ void OpenDeleteMenu(int client, int id)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int param2)

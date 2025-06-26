@@ -3810,7 +3810,7 @@ void OpenReplayStyleMenu(int client, int track, int stage)
 	}
 
 	menu.ExitBackButton = true;
-	menu.DisplayAt(client, 0, 300);
+	menu.DisplayAt(client, 0, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int param2)
