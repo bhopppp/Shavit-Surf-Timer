@@ -27,8 +27,8 @@
 	}
 	"ListPersonalBest"
 	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"Personal best for {1} on {2}"
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Personal best for {1} on {2}\n({3})"
 	}
 	// ---------- Completion Messages ---------- //
 	"ServerFirstCompletion"

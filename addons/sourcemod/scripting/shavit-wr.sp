@@ -245,10 +245,12 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_rr", Command_RecentRecords, "View the recent #1 times set.");
 
+	RegConsoleCmd("sm_personalbest", Command_PersonalBest, "View a player's time on a specific map.");
+	RegConsoleCmd("sm_pb", Command_PersonalBest, "View a player's time on a specific map.");
+	RegConsoleCmd("sm_pr", Command_PersonalBest, "View a player's time on a specific map.");	
 	RegConsoleCmd("sm_times", Command_PersonalBest, "View a player's time on a specific map.");
 	RegConsoleCmd("sm_time", Command_PersonalBest, "View a player's time on a specific map.");
-	RegConsoleCmd("sm_pb", Command_PersonalBest, "View a player's time on a specific map.");
-	RegConsoleCmd("sm_pr", Command_PersonalBest, "View a player's time on a specific map.");
+	RegConsoleCmd("sm_mrank", Command_PersonalBest, "View a player's time on a specific map.");
 
 	// checkpoint records stuffs
 	RegConsoleCmd("sm_cpwr", Command_CheckpointRecord, "View world record's checkpoint records on a specific map.");
@@ -2636,8 +2638,8 @@ public Action Command_CheckpointRecord(int client, int args)
 		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
 		LowercaseString(gA_WRCache[client].sClientMap);
 
-		Menu wrmatches = new Menu(CPRRMatchesMenuHandler);
-		wrmatches.SetTitle("%T", "Choose Map", client);
+		Menu mapmatches = new Menu(CPRRMatchesMenuHandler);
+		mapmatches.SetTitle("%T", "Choose Map", client);
 
 		int length = gA_ValidMaps.Length;
 		for (int i = 0; i < length; i++)
@@ -2647,26 +2649,26 @@ public Action Command_CheckpointRecord(int client, int args)
 
 			if (StrContains(entry, gA_WRCache[client].sClientMap) != -1)
 			{
-				wrmatches.AddItem(entry, entry);
+				mapmatches.AddItem(entry, entry);
 			}
 		}
 
-		switch (wrmatches.ItemCount)
+		switch (mapmatches.ItemCount)
 		{
 			case 0:
 			{
-				delete wrmatches;
+				delete mapmatches;
 				Shavit_PrintToChat(client, "%t", "Map was not found", client, gA_WRCache[client].sClientMap);
 				return Plugin_Handled;
 			}
 			case 1:
 			{
-				wrmatches.GetItem(0, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
-				delete wrmatches;
+				mapmatches.GetItem(0, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
+				delete mapmatches;
 			}
 			default:
 			{
-				wrmatches.Display(client, MENU_TIME_FOREVER);
+				mapmatches.Display(client, MENU_TIME_FOREVER);
 				return Plugin_Handled;
 			}
 		}
@@ -2981,8 +2983,8 @@ public Action Command_WorldRecord(int client, int args)
 		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
 		LowercaseString(gA_WRCache[client].sClientMap);
 
-		Menu wrmatches = new Menu(WRMatchesMenuHandler);
-		wrmatches.SetTitle("%T", "Choose Map", client);
+		Menu mapmatches = new Menu(WRMatchesMenuHandler);
+		mapmatches.SetTitle("%T", "Choose Map", client);
 
 		int length = gA_ValidMaps.Length;
 		for (int i = 0; i < length; i++)
@@ -2992,26 +2994,26 @@ public Action Command_WorldRecord(int client, int args)
 
 			if (StrContains(entry, gA_WRCache[client].sClientMap) != -1)
 			{
-				wrmatches.AddItem(entry, entry);
+				mapmatches.AddItem(entry, entry);
 			}
 		}
 
-		switch (wrmatches.ItemCount)
+		switch (mapmatches.ItemCount)
 		{
 			case 0:
 			{
-				delete wrmatches;
+				delete mapmatches;
 				Shavit_PrintToChat(client, "%t", "Map was not found", client, gA_WRCache[client].sClientMap);
 				return Plugin_Handled;
 			}
 			case 1:
 			{
-				wrmatches.GetItem(0, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
-				delete wrmatches;
+				mapmatches.GetItem(0, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
+				delete mapmatches;
 			}
 			default:
 			{
-				wrmatches.Display(client, MENU_TIME_FOREVER);
+				mapmatches.Display(client, MENU_TIME_FOREVER);
 				return Plugin_Handled;
 			}
 		}
@@ -3885,74 +3887,196 @@ public Action Command_PersonalBest(int client, int args)
 		}
 	}
 
-	LowercaseString(map);
-	TrimString(map);
-
-	if (!steamid)
-	{
-		steamid = GetSteamAccountID(client);
-		GetClientName(client, name, sizeof(name));
-	}
-
 	if (!map[0])
 	{
-		strcopy(map, sizeof(map), gS_Map);
+		strcopy(gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap), gS_Map);
 	}
-
-	char validmap[PLATFORM_MAX_PATH];
-	int length = gA_ValidMaps.Length;
-	for (int i = 0; i < length; i++)
+	else
 	{
-		char entry[PLATFORM_MAX_PATH];
-		gA_ValidMaps.GetString(i, entry, PLATFORM_MAX_PATH);
+		LowercaseString(map);
+		TrimString(map);
 
-		if (StrEqual(entry, map))
+		gA_WRCache[client].sClientMap = map;
+
+		Menu mapmatches = new Menu(PBMatchesMenuHandler);
+		mapmatches.SetTitle("%T", "Choose Map", client);
+
+		int length = gA_ValidMaps.Length;
+		for (int i = 0; i < length; i++)
 		{
-			validmap = map;
-			break;
+			char entry[PLATFORM_MAX_PATH];
+			gA_ValidMaps.GetString(i, entry, PLATFORM_MAX_PATH);
+
+			if (StrContains(entry, gA_WRCache[client].sClientMap) != -1)
+			{
+				char sInfo[PLATFORM_MAX_PATH];
+				FormatEx(sInfo, sizeof(sInfo), "%s;%d", entry, steamid);
+				mapmatches.AddItem(sInfo, entry);
+			}
 		}
 
-		if (!validmap[0] && StrContains(entry, map) != -1)
+		switch (mapmatches.ItemCount)
 		{
-			validmap = entry;
+			case 0:
+			{
+				delete mapmatches;
+				Shavit_PrintToChat(client, "%t", "Map was not found", client, gA_WRCache[client].sClientMap);
+				return Plugin_Handled;
+			}
+			case 1:
+			{
+				int stlye = 0;
+				mapmatches.GetItem(0, "", sizeof(wrcache_t::sClientMap), stlye, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
+
+				delete mapmatches;
+			}
+			default:
+			{
+				mapmatches.Display(client, MENU_TIME_FOREVER);
+				return Plugin_Handled;
+			}
 		}
 	}
 
-	if (!validmap[0])
-	{
-		Shavit_PrintToChat(client, "%T", "Map was not found", client, map);
-		return Plugin_Handled;
-	}
-
-	DataPack pack = new DataPack();
-	pack.WriteCell(GetClientSerial(client));
-	pack.WriteString(validmap);
-	pack.WriteString(name);
-
-	char query[2048];
-	FormatEx(query, sizeof(query),
-	"SELECT id, style, track, 0 as stage, time, name FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.auth = %d AND p.map = '%s' UNION ALL "...
-	"SELECT id, style, track, stage, time, name FROM %sstagetimes s JOIN %susers u ON s.auth = u.auth WHERE s.auth = %d AND s.map = '%s';",
-	gS_MySQLPrefix, gS_MySQLPrefix, steamid, validmap, gS_MySQLPrefix, gS_MySQLPrefix, steamid, validmap);
-
-	QueryLog(gH_SQL, SQL_PersonalBest_Callback, query, pack, DBPrio_Low);
+	RetrievePBMenu(client, steamid);
 
 	return Plugin_Handled;
 }
 
-public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+public int PBMatchesMenuHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char sInfo[PLATFORM_MAX_PATH];
+		char sExploded[2][PLATFORM_MAX_PATH];
+		menu.GetItem(param2, sInfo, sizeof(sInfo));
+		ExplodeString(sInfo, ";", sExploded, 2, PLATFORM_MAX_PATH);
+
+		gA_WRCache[param1].sClientMap = sExploded[0];
+		int steamid = StringToInt(sExploded[1]);
+
+		RetrievePBMenu(param1, steamid);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public void RetrievePBMenu(int client, int steamid)
+{
+	Menu menu = new Menu(MenuHandler_PBStyleChooser);
+	menu.SetTitle("%T", "WRMenuTitle", client);
+
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = styles[i];
+
+		if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
+		{
+			continue;
+		}
+
+		char sInfo[64];
+		FormatEx(sInfo, sizeof(sInfo), "%d;%d", iStyle, steamid);
+
+		menu.AddItem(sInfo, gS_StyleStrings[iStyle].sStyleName);
+	}
+
+	// should NEVER happen
+	if(menu.ItemCount == 0)
+	{
+		char sMenuItem[64];
+		FormatEx(sMenuItem, 64, "%T", "WRStyleNothing", client);
+		menu.AddItem("-1", sMenuItem);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_PBStyleChooser(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		if(!IsValidClient(param1))
+		{
+			return 0;
+		}
+
+		char sInfo[64];
+		char sExploded[2][64];
+		menu.GetItem(param2, sInfo, 64);
+
+		ExplodeString(sInfo, ";", sExploded, 2, 64, true);
+
+		int iStyle = StringToInt(sExploded[0]);
+		int iSteamID = StringToInt(sExploded[1]);
+
+		char name[MAX_NAME_LENGTH];
+		
+		if(iStyle == -1)
+		{
+			Shavit_PrintToChat(param1, "%T", "NoStyles", param1, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+			return 0;
+		}
+
+		if(iSteamID == 0)
+		{
+			iSteamID = GetSteamAccountID(param1);
+			GetClientName(param1, name, sizeof(name));
+		}
+		else
+		{
+			IntToString(iSteamID, name, sizeof(name));
+		}
+
+		gA_WRCache[param1].iLastStyle = iStyle;
+
+		DataPack pack = new DataPack();
+		pack.WriteCell(GetClientSerial(param1));
+		pack.WriteString(gA_WRCache[param1].sClientMap);
+		pack.WriteCell(iSteamID);		
+		pack.WriteString(name);
+
+		char query[2048];
+		FormatEx(query, sizeof(query), 
+			"SELECT track, 0 AS stage, time FROM %swrs WHERE map = '%s' AND style = %d UNION ALL \
+			SELECT track, stage, time FROM %sstagewrs WHERE map = '%s' AND style = %d;",
+			gS_MySQLPrefix, gA_WRCache[param1].sClientMap, iStyle,
+			gS_MySQLPrefix, gA_WRCache[param1].sClientMap, iStyle);
+
+		gA_WRCache[param1].bPendingMenu = true;
+		QueryLog(gH_SQL, SQL_PersonalBest_First_Callback, query, pack, DBPrio_Low);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public void SQL_PersonalBest_First_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
 	data.Reset();
 	int client = GetClientFromSerial(data.ReadCell());
 	char map[PLATFORM_MAX_PATH];
 	data.ReadString(map, sizeof(map));
+	int iSteamID = data.ReadCell();
 	char name[MAX_NAME_LENGTH];
 	data.ReadString(name, sizeof(name));
-	delete data;
 
 	if(results == null)
 	{
-		LogError("Timer (SQL_PersonalBest_Callback) error! Reason: %s", error);
+		LogError("Timer (SQL_PersonalBest_First_Callback) error! Reason: %s", error);
+		gA_WRCache[client].bPendingMenu = false;
 		return;
 	}
 
@@ -3963,7 +4087,96 @@ public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const ch
 
 	if (!results.RowCount)
 	{
-		Shavit_PrintToChat(client, "%T", "NoPB", client, gS_ChatStrings.sVariable, name, gS_ChatStrings.sText, gS_ChatStrings.sVariable, map, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "WRMapNoRecords", client);
+		gA_WRCache[client].bPendingMenu = false;
+		return;
+	}
+
+	float fTrackWRs[TRACKS_SIZE];
+	float fStageWRs[MAX_STAGES];
+
+	while (results.FetchRow())
+	{
+		int track = results.FetchInt(0);
+		int stage = results.FetchInt(1);
+		float time = results.FetchFloat(2);
+
+		if (stage == 0)
+		{
+			fTrackWRs[track] = time;
+		}
+		else
+		{
+			fStageWRs[stage] = time;
+		}
+	}
+
+	char query[2048];
+	FormatEx(query, sizeof(query),
+		"SELECT id, style, track, 0 AS stage, time, name, ranks, total \
+		FROM ( \
+			SELECT p.id, p.style, p.track, 0 AS stage, p.time, u.name, \
+				RANK() OVER (PARTITION BY p.map, p.style, p.track ORDER BY p.time ASC) AS ranks, \
+				COUNT(p.map) OVER(PARTITION BY p.track, p.style) total, \
+				p.auth \
+			FROM %splayertimes p \
+			JOIN %susers u ON p.auth = u.auth \
+			WHERE p.map = '%s' AND p.style = %d  \
+		) ranked \
+		WHERE ranked.auth = %d \
+		UNION ALL \
+		SELECT id, style, track, stage, time, name, ranks, total \
+		FROM ( \
+			SELECT s.id, s.style, s.track, s.stage, s.time, u.name, \
+				RANK() OVER (PARTITION BY s.map, s.style, s.track, s.stage ORDER BY s.time ASC) AS ranks, \
+				COUNT(s.map) OVER(PARTITION BY s.track, s.stage, s.style) total, \
+				s.auth \
+			FROM %sstagetimes s \
+			JOIN %susers u ON s.auth = u.auth \
+			WHERE s.map = '%s' AND s.style = %d \
+		) ranked \
+		WHERE ranked.auth = %d ORDER BY track, stage;",
+		gS_MySQLPrefix, gS_MySQLPrefix, gA_WRCache[client].sClientMap, gA_WRCache[client].iLastStyle, iSteamID,
+		gS_MySQLPrefix, gS_MySQLPrefix, gA_WRCache[client].sClientMap, gA_WRCache[client].iLastStyle, iSteamID);
+
+	data.WriteFloatArray(fTrackWRs, sizeof(fTrackWRs), true);
+	data.WriteFloatArray(fStageWRs, sizeof(fStageWRs), true);
+
+	QueryLog(gH_SQL, SQL_PersonalBest_Second_Callback, query, data, DBPrio_Low);
+}
+
+public void SQL_PersonalBest_Second_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	data.Reset();
+	int client = GetClientFromSerial(data.ReadCell());
+	char map[PLATFORM_MAX_PATH];
+	data.ReadString(map, sizeof(map));
+	data.ReadCell();
+	char name[MAX_NAME_LENGTH];
+	data.ReadString(name, sizeof(name));
+
+	float fTrackWRs[TRACKS_SIZE];
+	float fStageWRs[MAX_STAGES];
+
+	data.ReadFloatArray(fTrackWRs, sizeof(fTrackWRs));
+	data.ReadFloatArray(fStageWRs, sizeof(fStageWRs));
+
+	if(results == null)
+	{
+		LogError("Timer (SQL_PersonalBest_Second_Callback) error! Reason: %s", error);
+		gA_WRCache[client].bPendingMenu = false;
+		return;
+	}
+
+	if (client == 0)
+	{
+		return;
+	}
+
+	if (!results.RowCount)
+	{
+		Shavit_PrintToChat(client, "%T", "NoPB", client, gS_ChatStrings.sVariable, name, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, map, gS_ChatStrings.sText);
+		gA_WRCache[client].bPendingMenu = false;
 		return;
 	}
 
@@ -3978,42 +4191,52 @@ public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const ch
 		int track = results.FetchInt(2);
 		int stage = results.FetchInt(3);
 		float time = results.FetchFloat(4);
+		int rank = results.FetchInt(6);
+		int total = results.FetchInt(7);
 
 		if (!name[0])
 		{
 			results.FetchString(5, name, sizeof(name));
 		}
 
+		float fTimeDiff;
 		char track_name[32];
 
 		if(stage == 0)
 		{
 			GetTrackName(client, track, track_name, sizeof(track_name));
+			fTimeDiff = time - fTrackWRs[track];
 		}
 		else
 		{
 			FormatEx(track_name, sizeof(track_name), "%T %d", "StageText", client, stage);
+			fTimeDiff = time - fStageWRs[stage];
 		}
+
+		char sTimeDiff[32];
+		FormatSeconds(fTimeDiff, sTimeDiff, sizeof(sTimeDiff), true, fTimeDiff < 60.0 ? false : true);
 
 		char formated_time[32];
 		FormatSeconds(time, formated_time, sizeof(formated_time));
 
 		char display[256];
-		Format(display, sizeof(display), "%s - %s: %s", track_name, gS_StyleStrings[style].sStyleName, formated_time);
+		Format(display, sizeof(display), "%s - %T: %d / %d\n%T: %s (WR +%s)\n ", 
+		track_name, "WRRank", client, rank, total, "WRTime", client, formated_time, sTimeDiff);
 
 		char info[16];
-
 		FormatEx(info, sizeof(info), "%s%d", stage == 0 ? "":"s", id);
 		menu.AddItem(info, display);
 	}
 
-	menu.SetTitle("%T\n ", "ListPersonalBest", client, name, map);
+	menu.SetTitle("%T\n ", "ListPersonalBest", client, name, map, gS_StyleStrings[gA_WRCache[client].iLastStyle].sStyleName);
 
 	menu.ExitButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 
 	delete gH_PBMenu[client];
 	gH_PBMenu[client] = menu;
+
+	gA_WRCache[client].bPendingMenu = false;
 }
 
 public int PersonalBestMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
