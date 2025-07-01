@@ -5763,7 +5763,7 @@ void ResetClientTargetNameAndClassName(int client, int track)
 	if(gCV_ForceTargetnameReset.IntValue == 3 ||
 	  (gCV_ForceTargetnameReset.IntValue == 1 && track == Track_Main) ||
 	  (gCV_ForceTargetnameReset.IntValue == 2 && track >= Track_Bonus))
-	  {
+	{
 		DispatchKeyValue(client, "targetname", targetname);
 
 		if (!classname[0])
@@ -5772,7 +5772,7 @@ void ResetClientTargetNameAndClassName(int client, int track)
 		}
 
 		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
-	  }
+	}
 }
 
 public void Shavit_OnRestart(int client, int track, bool tostartzone)
@@ -6224,6 +6224,7 @@ public void StartTouchPost(int entity, int other)
 		{
 			if(!bReplay && (Shavit_GetTimerStatus(other) == Timer_Stopped || track == Track_Main || Shavit_GetClientTrack(other) == track))
 			{
+				ResetClientTargetNameAndClassName(other, track);
 				UpdateClientZoneStage(other);
 			}
 		}
