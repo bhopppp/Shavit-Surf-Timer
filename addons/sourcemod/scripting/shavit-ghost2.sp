@@ -101,6 +101,7 @@ int gGM_GhostMode[MAXPLAYERS + 1];
 int gI_GhostRouteColor[MAXPLAYERS + 1];
 int gI_GhostBoxColor[MAXPLAYERS + 1];
 int gI_GhostStyle[MAXPLAYERS + 1];
+int gI_GhostIgnorez[MAXPLAYERS + 1];
 
 float gF_RouteWidth[MAXPLAYERS + 1];
 float gF_GhostBoxSize[MAXPLAYERS + 1];
@@ -113,6 +114,7 @@ Handle gH_GhostRouteWidthCookie;
 Handle gH_GhostDrawBoxCookie;
 Handle gH_GhostBoxColorCookie;
 Handle gH_GhostBoxSizeCookie;
+Handle gH_GhostIgnorezCookie;
 
 //Convars
 Convar gCV_MaxFrameDistance = null;
@@ -123,6 +125,7 @@ Convar gCV_RouteFramesAhead = null;
 Convar gCV_RouteDrawSkipFrames = null;
 
 int gI_Sprite;
+int gI_SpriteIgnorez;
 bool gB_Late;
 
 
@@ -145,6 +148,7 @@ public void OnPluginStart()
 {
 	RegConsoleCmd("sm_ghost", Command_Ghost, "Shows ghost menu to client.");
 	RegConsoleCmd("sm_toggleghost", Command_ToggleGhost, "Toggle ghost usage.");
+	RegConsoleCmd("sm_toggleignorez", Command_ToggleIgnorez, "Toggle ghost ignorez.");
 
 	gH_GhostCookie = RegClientCookie("ghost_enable", "Ghost enable", CookieAccess_Public);
 	gH_GhostModeCookie = RegClientCookie("ghost_mode", "Ghost mode", CookieAccess_Public);
@@ -153,6 +157,7 @@ public void OnPluginStart()
 	gH_GhostDrawBoxCookie = RegClientCookie("ghost_drawbox", "Ghost drawbox", CookieAccess_Public);
 	gH_GhostBoxColorCookie = RegClientCookie("ghost_boxcolor", "Ghost boxcolor", CookieAccess_Public);
 	gH_GhostBoxSizeCookie = RegClientCookie("ghost_boxsize", "Ghost boxsize", CookieAccess_Public);
+	gH_GhostIgnorezCookie = RegClientCookie("ghost_ignorez", "Ghost ignorez", CookieAccess_Public);
 
 	gCV_GuideFramesAhead = new Convar("shavit_ghost_guide_framesahead", "1.5", "How many seconds of frames ahead should be drawn to client in Guide mode", 0, true, 0.1, true, 4.0);
 	gCV_RecaculateFrameDiff = new Convar("shavit_ghost_guide_recaculateframediff", "3.0", "How many seconds of frame difference should recalculating the next closest frame", 0, true, 2.0, true, 5.0);
@@ -205,6 +210,7 @@ public void OnClientConnected(int client)
 public void OnConfigsExecuted() 
 {
 	gI_Sprite = PrecacheModel("sprites/laserbeam.vmt");
+	gI_SpriteIgnorez = PrecacheModel("shavit/laserbeam_ignorez.vmt");
 
 	gI_DrawRouteInterval = RoundToNearest(gCV_RouteDrawInterval.FloatValue * gI_Tickrate);
 	gI_MaxRecaculateFrameDiff = RoundToNearest(gCV_RecaculateFrameDiff.FloatValue * gI_Tickrate);
@@ -277,6 +283,12 @@ public void OnClientCookiesCached(int client)
 		SetClientCookieInt(client, gH_GhostBoxColorCookie, 1);
 	}
 
+	if (!GetClientCookieInt(client, gH_GhostIgnorezCookie, gI_GhostIgnorez[client]))
+	{
+		gI_GhostIgnorez[client] = 0;
+		SetClientCookieInt(client, gH_GhostIgnorezCookie, 0);
+	}
+
 	gF_GhostBoxSize[client] = 10.0;
 	SetClientCookieFloat(client, gH_GhostBoxSizeCookie, 10.0);
 
@@ -315,7 +327,22 @@ public Action Command_ToggleGhost(int client, int args)
 	}
 
 	Shavit_PrintToChat(client, "Ghost: %s", gB_Ghost[client] ? "enabled":"disabled");
-	
+
+	return Plugin_Handled;
+}
+
+public Action Command_ToggleIgnorez(int client, int args) 
+{
+	if(!IsValidClient2(client)) 
+	{
+		return Plugin_Handled;
+	}
+
+	gI_GhostIgnorez[client] = !gI_GhostIgnorez[client];
+	SetClientCookieBool(client, gH_GhostIgnorezCookie, gI_GhostIgnorez[client]);
+
+	Shavit_PrintToChat(client, "Ghost Ignorez: %s", gI_GhostIgnorez[client] ? "enabled":"disabled");
+
 	return Plugin_Handled;
 }
 
@@ -350,6 +377,9 @@ public void ShowGhostMenu(int client)
 
 	FormatEx(sMenu, sizeof(sMenu), "Use stage route: %s\n ", gB_StageGhost[client] ? "ON":"OFF");
 	menu.AddItem("stage", sMenu, Shavit_GetStageCount(Track_Main) > 1 ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);		
+
+	FormatEx(sMenu, sizeof(sMenu), "Toggle Ignorez: %s (sm_toggleignorez)", gI_GhostIgnorez[client] ? "Enabled":"Disabled");
+	menu.AddItem("toggleignorez", sMenu, ITEMDRAW_DEFAULT);
 
 	menu.AddItem("option", "Ghost Options");
 
@@ -416,6 +446,13 @@ public int MenuHandler_Ghost(Menu menu, MenuAction action, int param1, int param
 
 			ShowGhostMenu(param1);
 		}
+		else if(StrEqual(sInfo, "toggleignorez", false))
+		{
+			gI_GhostIgnorez[param1] = !gI_GhostIgnorez[param1];
+			SetClientCookieBool(param1, gH_GhostIgnorezCookie, gI_GhostIgnorez[param1]);
+
+			ShowGhostMenu(param1);
+		}
 		else if(StrEqual(sInfo, "option", false))
 		{
 			ShowGhostOptionMenu(param1);
@@ -433,6 +470,7 @@ public void OnMapStart()
 {
 	AddFileToDownloadsTable("materials/sprites/laserbeam.vtf");
 	AddFileToDownloadsTable("materials/sprites/laserbeam.vmt");
+	AddFileToDownloadsTable("materials/shavit/laserbeam_ignorez.vmt");
 }
 
 
@@ -867,8 +905,16 @@ void DrawBox(int client, float pos[3], float size, int color[4])
 
 void DrawBeam(int client, float startvec[3], float endvec[3], float life, float width, float endwidth, int color[4], float amplitude, int speed) 
 {
-	TE_SetupBeamPoints(startvec, endvec, gI_Sprite, 0, 0, 66, life, width, endwidth, 0, amplitude, color, speed);
-	TE_SendToClient(client);
+	if(gI_GhostIgnorez[client])
+	{
+		TE_SetupBeamPoints(startvec, endvec, gI_SpriteIgnorez, 0, 0, 66, life, width, endwidth, 0, amplitude, color, speed);
+		TE_SendToClient(client);
+	}
+	else
+	{
+		TE_SetupBeamPoints(startvec, endvec, gI_Sprite, 0, 0, 66, life, width, endwidth, 0, amplitude, color, speed);
+		TE_SendToClient(client);
+	}
 }
 
 // Caculate stuffs
