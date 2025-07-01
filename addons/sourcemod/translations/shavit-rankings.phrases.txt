@@ -21,7 +21,7 @@
 		"#format"	"{1:s},{2:.0f},{3:s},{4:s},{5:.0f},{6:s}"
 		"en"		"sv_maxvelocity changed from {1}{2}{3} to {4}{5}{6}."
 	}
-	"Rank"
+	"PlayerRanking"
 	{
 		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:d},{6:s},{7:d},{8:s},{9:.1f},{10:s}"
 		"en"		"{1}{2}{3} is ranked {4}{5}{6} out of {7} with {8}{9}{10} points."

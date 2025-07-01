@@ -760,7 +760,7 @@ public Action Command_Rank(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
+	Shavit_PrintToChat(client, "%T", "PlayerRanking", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
 		gS_ChatStrings.sVariable, (gA_Rankings[target].iRank > gI_RankedPlayers)? gI_RankedPlayers:gA_Rankings[target].iRank, gS_ChatStrings.sText,
 		gI_RankedPlayers,
 		gS_ChatStrings.sVariable, gA_Rankings[target].fPoints, gS_ChatStrings.sText);
@@ -896,7 +896,6 @@ public Action Command_SetTier(int client, int args)
 		mapmatches.SetTitle("%T", "Choose Map", client);
 
 		int length = gA_ValidMaps.Length;
-		int iLastIndex = -1;
 		for (int i = 0; i < length; i++)
 		{
 			char entry[PLATFORM_MAX_PATH];
@@ -907,7 +906,6 @@ public Action Command_SetTier(int client, int args)
 				char sInfo[PLATFORM_MAX_PATH];
 				FormatEx(sInfo, sizeof(sInfo), "%s;%d", entry, tier);
 				mapmatches.AddItem(sInfo, entry);
-				iLastIndex = i;
 			}
 		}
 
@@ -921,7 +919,9 @@ public Action Command_SetTier(int client, int args)
 			}
 			case 1:
 			{
-				gA_ValidMaps.GetString(iLastIndex, map, sizeof(map));
+				int stlye = 0;
+				mapmatches.GetItem(0, "", sizeof(map), stlye, map, sizeof(map));
+
 				delete mapmatches;
 			}
 			default:
