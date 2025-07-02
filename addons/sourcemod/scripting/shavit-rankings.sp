@@ -361,13 +361,17 @@ public void RefreshMapSettings(const char[] map)
 
 	char sQuery[512];
 	char sWhere[256];
+
+	bool bSingleMap = false;
+
 	if(map[0])
 	{
 		FormatEx(sWhere, sizeof(sWhere), " WHERE map = '%s'", map);
+		bSingleMap = true;
 	}
 
 	FormatEx(sQuery, sizeof(sQuery), "SELECT map, tier, maxvelocity, maptype, bonuses, stages FROM %smapinfo%s;", gS_MySQLPrefix, sWhere);
-	QueryLog(gH_SQL, SQL_FillMapSettingCache_Callback, sQuery, 0, DBPrio_High);
+	QueryLog(gH_SQL, SQL_FillMapSettingCache_Callback, sQuery, bSingleMap, DBPrio_High);
 
 	gB_TierQueried = true;
 }
@@ -381,8 +385,11 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 		return;
 	}
 
-	gA_ValidMaps.Clear();
-	gA_MapInfo.Clear();
+	if (!data)
+	{
+		gA_ValidMaps.Clear();
+		gA_MapInfo.Clear();		
+	}
 
 	while(results.FetchRow())
 	{
@@ -420,6 +427,11 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 		Call_PushString(sMap);
 		Call_PushCell(info.iTier);
 		Call_Finish();
+	}
+
+	if(data)
+	{
+		return;
 	}
 
 	mapinfo_t mapinfo;
