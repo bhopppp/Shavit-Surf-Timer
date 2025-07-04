@@ -92,6 +92,7 @@ ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
 int gI_TimesTeleported[MAXPLAYERS+1];
 bool gB_InCheckpointMenu[MAXPLAYERS+1];
+bool gB_CPMenuClosedByMenu[MAXPLAYERS+1];
 
 int gI_UsingCheckpointsOwner[MAXPLAYERS+1]; // 0 = use player's own checkpoints
 
@@ -117,7 +118,7 @@ int gI_Offset_m_afButtonForced = 0;
 public Plugin myinfo =
 {
 	name = "[shavit-surf] Checkpoints",
-	author = "shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2, *Surf integration version modified by KikI",
+	author = "shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2, *Surf integration version modified by KikI",
 	description = "Checkpoints for shavit surf timer. (This plugin is base on shavit's bhop timer)",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer  https://github.com/bhopppp/Shavit-Surf-Timer"
@@ -450,9 +451,25 @@ public Action Timer_PersistCPMenu(Handle timer)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && ShouldReopenCheckpointMenu(i))
+		if(!IsClientInGame(i) || IsFakeClient(i))
 		{
-			OpenCPMenu(i);
+			continue;
+		}
+		
+		if(IsPlayerAlive(i))
+		{
+			if (ShouldReopenCheckpointMenu(i))
+			{
+				OpenCPMenu(i);
+
+				gB_CPMenuClosedByMenu[i] = false;
+			}
+			else if(GetClientMenu(i, null) == MenuSource_None && gB_CPMenuClosedByMenu[i])
+			{
+				OpenCPMenu(i);
+
+				gB_CPMenuClosedByMenu[i] = false;
+			}	
 		}
 	}
 
@@ -514,6 +531,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	gB_SaveStates[client] = false;
+	gB_CPMenuClosedByMenu[client] = false;
 	gI_UsingCheckpointsOwner[client] = 0;
 }
 
@@ -579,9 +597,14 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		if (bKzcheckpoints)
 		{
 			gI_UsingCheckpointsOwner[client] = 0;
+		
+			if (Shavit_GetStyleSettingBool(oldstyle, "segments"))
+				OpenCheckpointsMenu(client);
 		}
-
-		OpenCheckpointsMenu(client);
+		else if (bSegmented && Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
+		{
+			OpenCheckpointsMenu(client);
+		}
 
 		if (!Shavit_GetStyleSettingBool(oldstyle, "segments") && !Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
 		{
@@ -607,7 +630,7 @@ public Action Shavit_OnStart(int client)
 public void Shavit_OnRestart(int client, int track, bool tostartzone)
 {
 	if(gB_InCheckpointMenu[client] &&
-		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
+		(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") || Shavit_GetStyleSettingInt(gI_Style[client], "segments")) &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -1329,6 +1352,11 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	}
 	else if (action == MenuAction_Cancel)
 	{
+		if (param2 == MenuCancel_Interrupted) //menu was closed by another menu
+		{
+			gB_CPMenuClosedByMenu[param1] = true;
+		}
+
 		gB_InCheckpointMenu[param1] = false;
 	}
 	else if(action == MenuAction_End)
