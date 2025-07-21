@@ -681,7 +681,6 @@ public void OnClientDisconnect(int client)
 	delete gH_PBMenu[client];
 }
 
-
 void UpdateClientCache(int client)
 {
 	int iSteamID = GetSteamAccountID(client);
@@ -3551,6 +3550,12 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 		{
 			gI_RRMenuPos[param1] = -1;
 			gI_SubMenuPos[param1] = GetMenuSelectionPosition();
+
+			if(gH_PBMenu[param1])
+			{
+				delete gH_PBMenu[param1];
+			}
+
 			OpenSubMenu(param1, id, gA_WRCache[param1].iLastStage);
 		}
 		else
@@ -3806,6 +3811,12 @@ public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 			ExplodeString(sInfo, ";", sExploded, 3, 256, true);
 			gI_RRMenuPos[param1] = GetMenuSelectionPosition();
 			gA_WRCache[param1].sClientMap = sExploded[2];
+
+			if(gH_PBMenu[param1])
+			{
+				delete gH_PBMenu[param1];
+			}
+
 			OpenSubMenu(param1, StringToInt(sExploded[1]), StringToInt(sExploded[0]));
 		}
 	}
@@ -3968,7 +3979,8 @@ public int PBMatchesMenuHandler(Menu menu, MenuAction action, int param1, int pa
 public void RetrievePBMenu(int client, int steamid)
 {
 	Menu menu = new Menu(MenuHandler_PBStyleChooser);
-	menu.SetTitle("%T", "WRMenuTitle", client);
+	
+	menu.SetTitle("%T", "PBMenuTitle", client);
 
 	int[] styles = new int[gI_Styles];
 	Shavit_GetOrderedStyles(styles, gI_Styles);

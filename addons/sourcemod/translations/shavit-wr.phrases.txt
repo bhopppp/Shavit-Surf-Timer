@@ -248,6 +248,10 @@
 	{
 		"en"		"Choose a style:\n "
 	}
+	"PBMenuTitle"
+	{
+		"en"		"Choose a style:\n "
+	}
 	"WRMenuStageTitle"
 	{
 		"en"		"Choose a stage:\n "
