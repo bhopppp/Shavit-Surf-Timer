@@ -315,31 +315,28 @@
 	}
 	"ZoneSetAiraccelerate"
 	{
-		"#format"	"{1:d}"
-		"en"		"Airaccelerate: {1}"
+
+		"en"		"Airaccelerate"
 	}
 	"ZoneSetSpeedLimit"
 	{
-		"#format"	"{1:d}"
-		"en"		"Custom speed limit: {1}"
+		"en"		"Custom speed limit"
 	}
 	"ZoneSetSpeedLimitUnlimited"
 	{
-		"#format"	"{1:d}"
-		"en"		"Custom speed limit: {1} (No Limit)"
+		"en"		"Custom speed limit: 0 (No Limit)"
 	}
 	"ZoneSetStage"
 	{
-		"#format"	"{1:d}"
-		"en"		"Stage: {1}"
+		"en"		"Stage"
 	}
 	"ZoneSpeedLimitOption"
 	{
-		"en"		"Speed Limit Options"
+		"en"		"Zone Speed Limit Options"
 	}
 	"SpeedLimitOptionMenuTitle"
 	{
-		"en"		"Speed Limit Options"
+		"en"		"Zone Speed Limit Options"
 	}
 	"ZoneSpeedLimitSettingOverridden"
 	{
@@ -371,22 +368,20 @@
 	}
 	"ZoneSetCheckpoint"
 	{
-		"#format"	"{1:d}"
-		"en"		"Checkpoint: {1}"
+		"en"		"Checkpoint"
 	}
 	"ZoneSetGravity"
 	{
-		"#format"   "{1:f}"
-		"en"        "Gravity scale: {1}"
+		"en"        "Gravity scale"
 	}
 	"ZoneSetSpeedmod"
 	{
-		"#format"   "{1:f}"
-		"en"        "Speedmod: {1}"
+		"en"        "Speedmod"
 	}
-	"ZoneEnterDataChat"
+	"ZoneAcceptingInputChat"
 	{
-		"en"		"Input your desired data in chat."
+		"#format"   "{1:s}{2:T}{3:s}"
+		"en"        "Accepting input in chat: {1}{2}{3}."
 	}
 	"ZoneBadInputData"
 	{
@@ -471,6 +466,113 @@
 	"TpToZone"
 	{
 		"en"        "Teleport to a zone"
+	}
+	"ZoneAdvancedOptionMenuTitle"
+	{
+		"en"        "Zone Advanced Options"
+	}
+	"ZoneAdvancedOption"
+	{
+		"en"        "Zone Advanced Options"
+	}
+	"ZoneFilterPatternTooLong"
+	{
+		"#format"	"{1:d}"
+		"en"        "Filter pattern must be less than {1} characters."
+	}
+	"ZoneFilterPatternInvalid"
+	{
+		"en"        "Invalid filter pattern."
+	}
+	"ZoneOutputTooLong"
+	{
+		"#format"	"{1:d}"
+		"en"        "Output must be less than {1} characters."
+	}
+	"ZoneOutputInvalid"
+	{
+		"en"        "Invalid zone output."
+	}
+	"ZoneIgnoreFilter"
+	{
+		"en"        "Ignore filter activator"
+	}
+	"ZoneFilterMode"
+	{
+		"en"        "Filter mode"
+	}
+	"ZoneFilter"
+	{
+		"en"        "Filter"
+	}
+	"ZoneFilterName"
+	{
+		"en"        "Targetname"
+	}
+	"ZoneFilterClass"
+	{
+		"en"        "Classname"
+	}
+	"ZoneFilterNormal"
+	{
+		"en"        "Normal [Match = Pass]"
+	}
+	"ZoneFilterInverted"
+	{
+		"en"        "Inverted [Mismatch = Pass]"
+	}
+	"ZoneFilterDisabled"
+	{
+		"en"        "Disabled"
+	}
+	"ZoneFilterPattern"
+	{
+		"en"        "Filter pattern"
+	}
+	"ZoneOutput"
+	{
+		"en"        "Output"
+	}
+	"ZoneOutputTiming"
+	{
+		"en"		"Output timing"
+	}
+	"ZoneOutputStartTouch"
+	{
+		"en"		"OnStartTouch"
+	}
+	"ZoneOutputEndTouch"
+	{
+		"en"		"OnEndTouch"
+	}
+	"ZoneOutputType"
+	{
+		"en"        "Output type"
+	}
+	"ZoneOutputClass"
+	{
+		"en"        "Classname"
+	}
+	"ZoneOutputName"
+	{
+		"en"        "Targetname"
+	}
+	"ZoneInputResetTips"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Reset by inputting '{1} * {2}' in chat."
+	}
+	"ZoneFilterReseted"
+	{
+		"en"		"Zone filter pattern has been reset."
+	}
+	"ZoneOutputReseted"
+	{
+		"en"		"Zone output has been reset."
+	}
+	"ZoneAdvancedOptionConflict"
+	{
+		"en"		"Warning: Filter-Output conflict detected!"
 	}
 	// ---------- Custom Zone ---------- //
 	"CustomZoneOption"
@@ -647,6 +749,10 @@
 	"Zone_Speedmod"
 	{
 		"en"		"Speedmod Zone"
+	}
+	"Zone_Output"
+	{
+		"en"		"Output Zone"
 	}
 	"Zone_NoJump"
 	{

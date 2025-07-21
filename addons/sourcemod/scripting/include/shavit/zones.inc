@@ -48,16 +48,25 @@ enum
 	Zone_NoTimerGravity,	// prevents the timer from setting gravity while inside this zone
 	Zone_Gravity,			// lets you set a specific gravity while inside this zone
 	Zone_Speedmod,			// creates a player_speedmod
+	Zone_Output,			// outputs a targetname / classname when player enter or leave this zone
 	ZONETYPES_SIZE
 };
 
 enum
 {
-	ZF_ForceRender = (1 << 0),
-	ZF_Hammerid    = (1 << 1), // used by ZoneForm_{trigger_{multiple, teleport}, func_[rot_]button} sometimes
-	ZF_Solid       = (1 << 2), // forces the zone to block people...
-	ZF_DrawAsBox   = (1 << 3), // Draw trigger_multiple as box	
-	ZF_Origin      = (1 << 4), // sTarget is the entity's origin formatted as "%X %X %X"
+	ZF_ForceRender  = (1 << 0),
+	ZF_Hammerid     = (1 << 1), // used by ZoneForm_{trigger_{multiple, teleport}, func_[rot_]button} sometimes
+	ZF_Solid        = (1 << 2), // forces the zone to block people...
+	ZF_DrawAsBox    = (1 << 3), // Draw trigger_multiple as box	
+	ZF_Origin       = (1 << 4), // sTarget is the entity's origin formatted as "%X %X %X"
+	// zone filter bit flags
+	ZF_FilterIgnore = (1 << 5), // ignore the filter when the zone is triggered
+	ZF_FilterMatchPass = (1 << 6), // trigger zone logic when targetname matches
+	ZF_FilterMisMatchPass = (1 << 7), // trigger zone logic when targetname dismatches
+	ZF_FilterClassname = (1 << 8), // use classname as filter
+	ZF_OutputTargetname = (1 << 9), // output a targetname
+	ZF_OutputClassname = (1 << 10), // output a classname
+	ZF_OutputEndTouch = (1 << 11), // output on EndTouch
 };
 
 enum // Zone speed limit flag. Used by specify prestrafe limit to each stage zone. 
@@ -131,7 +140,7 @@ enum struct zone_cache_t
 	float fDestination[3]; // Used by Zone_CustomSpawn, Zone_Teleport, and Zone_Stage.
 	int iForm; // ZoneForm_*
 	char sSource[16]; // "sql", "autobutton", "autozone", "sourcejump", "http", etc...
-	char sTarget[64]; // either the hammerid or the targetname
+	char sTarget[64]; // either the hammerid or the targetname or used for box form zone filter and output.
 }
 
 stock void GetZoneName(int client, int zoneType, char[] output, int size)
@@ -156,6 +165,7 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		"Zone_NoTimerGravity",
 		"Zone_Gravity",
 		"Zone_Speedmod",
+		"Zone_Output",
 	};
 
 	if (zoneType < 0 || zoneType >= ZONETYPES_SIZE)
@@ -278,6 +288,20 @@ stock bool Shavit_ParseZoneTargetname(const char[] targetname, bool button, int&
 		{
 			if (mapname_for_log[0]) 
 				LogError("invalid %s number in prebuilt map zone (%s) on %s", type == Zone_Stage ? "stage":"checkpoint", targetname, mapname_for_log);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+stock bool IsValidPattern(const char[] str)
+{
+	int len = strlen(str);
+	for (int i = 0; i < len; i++)
+	{
+		if (!((str[i] >= 'a' && str[i] <= 'z') || (str[i] >= 'A' && str[i] <= 'Z') || (str[i] >= '0' && str[i] <= '9') || str[i] == '_'))
+		{
 			return false;
 		}
 	}

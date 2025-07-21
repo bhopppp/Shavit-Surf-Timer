@@ -85,6 +85,14 @@ enum struct stagemenu_info_t
 	char sInfo[8];
 }
 
+enum
+{
+	ChatInput_None,
+	ChatInput_Data,
+	ChatInput_Filter,
+	ChatInput_Output,
+}
+
 // 0 - nothing
 // 1 - wait for E tap to setup first coord
 // 2 - wait for E tap to setup second coord
@@ -95,7 +103,7 @@ int gI_CurrentTraceEntity = 0;
 zone_cache_t gA_EditCache[MAXPLAYERS+1];
 int gI_HookListPos[MAXPLAYERS+1];
 int gI_ZoneID[MAXPLAYERS+1];
-bool gB_WaitingForChatInput[MAXPLAYERS+1];
+int gI_ChatInput[MAXPLAYERS+1];
 float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 
@@ -1157,6 +1165,7 @@ bool JumpToZoneType(KeyValues kv, int type, int track)
 		{"No Timer Gravity", ""},
 		{"Gravity", ""},
 		{"Speedmod", ""},
+		{"Output", ""},
 	};
 
 	char key[4][50];
@@ -3181,13 +3190,16 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 		}
 		else if (StrEqual(info, "hook"))
 		{
-			if (gA_EditCache[param1].iFlags & ZF_Hammerid)
-				IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Data, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
-			else if (gA_EditCache[param1].iFlags & ZF_Origin)
-				EntToOriginHex(gA_EditCache[param1].iEntity, gA_EditCache[param1].sTarget, false);
-			else
-				GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, gA_EditCache[param1].iForm == ZoneForm_trigger_teleport ? "m_target" : "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
-
+			if (gA_EditCache[param1].iForm != ZoneForm_Box)
+			{
+				if (gA_EditCache[param1].iFlags & ZF_Hammerid)
+					IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Data, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
+				else if (gA_EditCache[param1].iFlags & ZF_Origin)
+					EntToOriginHex(gA_EditCache[param1].iEntity, gA_EditCache[param1].sTarget, false);
+				else
+					GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, gA_EditCache[param1].iForm == ZoneForm_trigger_teleport ? "m_target" : "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
+			}
+			
 			CreateEditMenu(param1, true);
 			return 0;
 		}
@@ -4257,7 +4269,7 @@ void Reset(int client)
 	gF_LockPos[client] = 0.0;
 	gI_HookListPos[client] = -1;
 	delete gH_StupidTimer[client];
-	gB_WaitingForChatInput[client] = false;
+	gI_ChatInput[client] = ChatInput_None;
 	gI_ZoneID[client] = -1;
 
 	gV_WallSnap[client] = ZERO_VECTOR;
@@ -4731,7 +4743,19 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		}
 		else if(StrEqual(sInfo, "no"))
 		{
-			Reset(param1);
+			if (gI_ZoneID[param1] == -1)
+			{
+				if(gA_EditCache[param1].iForm != ZoneForm_Box || gI_HookListPos[param1] != -1)
+				{
+					OpenHookMenu_Editor(param1);					
+				}
+			}
+			else
+			{
+				OpenEditMenu(param1, gI_LastMenuPos[param1]);
+				Reset(param1);				
+			}
+
 			return 0;
 		}
 		else if(StrEqual(sInfo, "adjust"))
@@ -4743,28 +4767,34 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		{
 			UpdateTeleportZone(param1);
 		}
+		else if(StrEqual(sInfo, "advanced"))
+		{
+			CreateZoneAdvancedOptionMenu(param1);
+			return 0;
+		}
 		else if(StrEqual(sInfo, "speedlimit"))
 		{
 			CreateSpeedLimitOptionMenu(param1);
 			return 0;
 		}
-		else if(StrEqual(sInfo, "resetspeed"))
-		{
-			gA_EditCache[param1].iSpeedLimitFlags ^= ZSLF_ResetSpeedAfterTeleported;
-		}
 		else if(StrEqual(sInfo, "datafromchat"))
 		{
-			gB_WaitingForChatInput[param1] = true;
-			Shavit_PrintToChat(param1, "%T", "ZoneEnterDataChat", param1);
+			gI_ChatInput[param1] = ChatInput_Data;
+
+			char sTrans[64];
+			switch (gA_EditCache[param1].iType)
+			{
+				case Zone_Stage: FormatEx(sTrans, sizeof(sTrans), "ZoneSetStage");
+				case Zone_Checkpoint: FormatEx(sTrans, sizeof(sTrans), "ZoneSetCheckpoint");
+				case Zone_Airaccelerate: FormatEx(sTrans, sizeof(sTrans), "ZoneSetAiraccelerate");
+				case Zone_CustomSpeedLimit: FormatEx(sTrans, sizeof(sTrans), "ZoneSetSpeedLimit");
+				case Zone_Gravity: FormatEx(sTrans, sizeof(sTrans), "ZoneSetGravity");
+				case Zone_Speedmod: FormatEx(sTrans, sizeof(sTrans), "ZoneSetSpeedmod");
+			}
+
+			Shavit_PrintToChat(param1, "%T", "ZoneAcceptingInputChat", 
+			param1, gS_ChatStrings.sVariable2, sTrans, param1, gS_ChatStrings.sText);
 			return 0;
-		}
-		else if(StrEqual(sInfo, "forcerender"))
-		{
-			gA_EditCache[param1].iFlags ^= ZF_ForceRender;
-		}
-		else if(StrEqual(sInfo, "drawasbox"))
-		{
-			gA_EditCache[param1].iFlags ^= ZF_DrawAsBox;
 		}
 
 		CreateEditMenu(param1, false, GetMenuSelectionPosition());
@@ -4797,31 +4827,136 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if(gB_WaitingForChatInput[client] && gI_MapStep[client] == 4)
+	if(gI_ChatInput[client] != ChatInput_None && gI_MapStep[client] == 4)
 	{
-		if (gA_EditCache[client].iType == Zone_Gravity || gA_EditCache[client].iType == Zone_Speedmod)
+		if(gI_ChatInput[client] == ChatInput_Data)
 		{
-			gA_EditCache[client].iData = view_as<int>(StringToFloat(sArgs));
-		}
-		else if(gA_EditCache[client].iType == Zone_Stage || gA_EditCache[client].iType == Zone_Checkpoint)
-		{
-			int input = StringToInt(sArgs);
-
-			if(gA_EditCache[client].iData > 0)
+			if (gA_EditCache[client].iType == Zone_Gravity || gA_EditCache[client].iType == Zone_Speedmod)
 			{
-				gA_EditCache[client].iData = input;
+				gA_EditCache[client].iData = view_as<int>(StringToFloat(sArgs));
+			}
+			else if(gA_EditCache[client].iType == Zone_Stage || gA_EditCache[client].iType == Zone_Checkpoint)
+			{
+				int input = StringToInt(sArgs);
+
+				if(gA_EditCache[client].iData > 0)
+				{
+					gA_EditCache[client].iData = input;
+				}
+				else
+				{
+					Shavit_PrintToChat(client, "%T", "ZoneBadInputData", client);
+				}
 			}
 			else
 			{
-				Shavit_PrintToChat(client, "%T", "ZoneBadInputData", client);
+				gA_EditCache[client].iData = StringToInt(sArgs);
 			}
+
+			CreateEditMenu(client);			
 		}
-		else
+		else if(gI_ChatInput[client] == ChatInput_Filter)
 		{
-			gA_EditCache[client].iData = StringToInt(sArgs);
+			int maxlength = 30;
+
+			if(strlen(sArgs) > maxlength)
+			{
+				Shavit_PrintToChat(client, "%T", "ZoneFilterPatternTooLong", client, maxlength);
+			}
+			else if(StrContains(sArgs, "*", false) > -1)
+			{
+				if(gA_EditCache[client].iType == Zone_Output)
+				{
+					int split = FindCharInString(gA_EditCache[client].sTarget, ';');
+
+					if(split != -1)
+					{
+						gA_EditCache[client].sTarget[split+1] = '\0';
+					}
+				}
+				else
+				{
+					gA_EditCache[client].sTarget[0] = '\0';				
+				}
+
+				Shavit_PrintToChat(client, "%T", "ZoneFilterReseted", client);
+			}
+			else if(!IsValidPattern(sArgs))
+			{
+				Shavit_PrintToChat(client, "%T", "ZoneFilterPatternInvalid", client);
+			}
+			else
+			{
+				bool bHasOutput = gA_EditCache[client].iType == Zone_Stage || gA_EditCache[client].iType == Zone_Checkpoint || 
+					gA_EditCache[client].iType == Zone_Start || gA_EditCache[client].iType == Zone_Output || gA_EditCache[client].iType == Zone_Teleport;
+
+				if(bHasOutput)
+				{
+					int split = FindCharInString(gA_EditCache[client].sTarget, ';');
+
+					if(split == -1)
+					{
+						FormatEx(gA_EditCache[client].sTarget, sizeof(zone_cache_t::sTarget), ";%s", sArgs);
+					}
+					else
+					{
+						char sFilter[64];
+						gA_EditCache[client].sTarget[split] = '\0';
+						FormatEx(sFilter, sizeof(sFilter), "%s;%s", gA_EditCache[client].sTarget, sArgs);
+						strcopy(gA_EditCache[client].sTarget, sizeof(zone_cache_t::sTarget), sFilter);
+					}
+				} 
+				else
+				{
+					strcopy(gA_EditCache[client].sTarget, sizeof(zone_cache_t::sTarget), sArgs);					
+				}
+			}
+
+			CreateZoneAdvancedOptionMenu(client);
+		}
+		else if(gI_ChatInput[client] == ChatInput_Output)
+		{
+			int maxlength = 30;
+
+			if(strlen(sArgs) > maxlength)
+			{
+				Shavit_PrintToChat(client, "%T", "ZoneOutputTooLong", client, maxlength);
+			}
+			else if(StrContains(sArgs, "*", false) > -1)
+			{
+				int split = FindCharInString(gA_EditCache[client].sTarget, ';');
+
+				if(split != -1)
+				{
+					FormatEx(gA_EditCache[client].sTarget, sizeof(zone_cache_t::sTarget), "%s", gA_EditCache[client].sTarget[split]);
+				}
+
+				Shavit_PrintToChat(client, "%T", "ZoneOutputReseted", client, gA_EditCache[client].sTarget);
+			}
+			else if(!IsValidPattern(sArgs))
+			{
+				Shavit_PrintToChat(client, "%T", "ZoneOutputInvalid", client);
+			}
+			else
+			{
+				int split = FindCharInString(gA_EditCache[client].sTarget, ';');
+				
+				if(split == -1)
+				{
+					FormatEx(gA_EditCache[client].sTarget, sizeof(zone_cache_t::sTarget), "%s;", sArgs);
+				}
+				else
+				{
+					char sOutput[64];
+					FormatEx(sOutput, sizeof(sOutput), "%s;%s", sArgs, gA_EditCache[client].sTarget[split+1]);
+					strcopy(gA_EditCache[client].sTarget, sizeof(zone_cache_t::sTarget), sOutput);
+				}				
+			}
+
+			CreateZoneAdvancedOptionMenu(client);
 		}
 
-		CreateEditMenu(client);
+		gI_ChatInput[client] = ChatInput_None;
 
 		return Plugin_Handled;
 	}
@@ -4921,7 +5056,7 @@ void CreateEditMenu(int client, bool autostage=false, int item=0)
 			menu.AddItem("yes", sMenuItem);
 		}
 
-		FormatEx(sMenuItem, 64, "%T\n", "ZoneSetCancel", client);
+		FormatEx(sMenuItem, 64, "%T\n ", "ZoneSetCancel", client);
 		menu.AddItem("no", sMenuItem);
 
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetTPZone", client);
@@ -4949,23 +5084,16 @@ void CreateEditMenu(int client, bool autostage=false, int item=0)
 
 	if(gA_EditCache[client].iForm == ZoneForm_Box)
 	{
-		FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
+		FormatEx(sMenuItem, 64, "%T\n ", "ZoneSetAdjust", client);
 		menu.AddItem("adjust", sMenuItem, ITEMDRAW_DEFAULT);		
 	}
 
-	if(gA_EditCache[client].iForm == ZoneForm_trigger_multiple)
-	{
-		FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iFlags & ZF_DrawAsBox) > 0)? "ItemEnabled":"ItemDisabled", client, "ZoneDrawAsBox", client);
-		menu.AddItem("drawasbox", sMenuItem);
-	}
-
-	FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iFlags & ZF_ForceRender) > 0)? "ItemEnabled":"ItemDisabled", client, "ZoneForceRender", client);
-	
-	menu.AddItem("forcerender", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdvancedOption", client);
+	menu.AddItem("advanced", sMenuItem);
 
 	if(gA_EditCache[client].iType == Zone_Start)
 	{
-		FormatEx(sMenuItem, 64, "%T", "ZoneSpeedLimitOption", client);
+		FormatEx(sMenuItem, 64, "%T\n ", "ZoneSpeedLimitOption", client);
 		menu.AddItem("speedlimit", sMenuItem);
 	}
 	else if (gA_EditCache[client].iType == Zone_Stage)
@@ -4983,7 +5111,7 @@ void CreateEditMenu(int client, bool autostage=false, int item=0)
 			gA_EditCache[client].iData = gI_HighestStage[gA_EditCache[client].iTrack] + 1;
 		}
 
-		FormatEx(sMenuItem, 64, "%T", "ZoneSetStage", client, gA_EditCache[client].iData);
+		FormatEx(sMenuItem, 64, "%T: %d", "ZoneSetStage", client, gA_EditCache[client].iData);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 	else if(gA_EditCache[client].iType == Zone_Checkpoint)
@@ -4993,28 +5121,23 @@ void CreateEditMenu(int client, bool autostage=false, int item=0)
 			gA_EditCache[client].iData = gI_HighestCheckpoint[gA_EditCache[client].iTrack] + 1;
 		}
 
-		FormatEx(sMenuItem, 64, "%T", "ZoneSetCheckpoint", client, gA_EditCache[client].iData);
+		FormatEx(sMenuItem, 64, "%T: %d", "ZoneSetCheckpoint", client, gA_EditCache[client].iData);
 		menu.AddItem("datafromchat", sMenuItem);
-	}
-	else if(gA_EditCache[client].iType == Zone_Teleport)
-	{
-		FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iSpeedLimitFlags & ZSLF_ResetSpeedAfterTeleported) > 0) ? "ItemEnabled":"ItemDisabled", client, "ZoneResetSpeedAfterTeleport", client);
-		menu.AddItem("resetspeed", sMenuItem);
 	}
 	else if (gA_EditCache[client].iType == Zone_Airaccelerate)
 	{
-		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gA_EditCache[client].iData);
+		FormatEx(sMenuItem, 64, "%T: %d", "ZoneSetAiraccelerate", client, gA_EditCache[client].iData);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 	else if (gA_EditCache[client].iType == Zone_CustomSpeedLimit)
 	{
 		if (gA_EditCache[client].iData == 0)
 		{
-			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimitUnlimited", client, gA_EditCache[client].iData);
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimitUnlimited", client);
 		}
 		else
 		{
-			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gA_EditCache[client].iData);
+			FormatEx(sMenuItem, 64, "%T: %d", "ZoneSetSpeedLimit", client, gA_EditCache[client].iData);
 		}
 
 		menu.AddItem("datafromchat", sMenuItem);
@@ -5022,22 +5145,243 @@ void CreateEditMenu(int client, bool autostage=false, int item=0)
 	else if (gA_EditCache[client].iType == Zone_Gravity)
 	{
 		float g = view_as<float>(gA_EditCache[client].iData);
-		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetGravity", client, g);
+		FormatEx(sMenuItem, sizeof(sMenuItem), "%T: %.2f", "ZoneSetGravity", client, g);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 	else if (gA_EditCache[client].iType == Zone_Speedmod)
 	{
 		float speed = view_as<float>(gA_EditCache[client].iData);
-		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetSpeedmod", client, speed);
+		FormatEx(sMenuItem, sizeof(sMenuItem), "%T: %.2f", "ZoneSetSpeedmod", client, speed);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 
-	if (hookmenu || gI_ZoneID[client] != -1)
-		menu.ExitBackButton = true;
-	else
-		menu.ExitButton = true;
+	menu.ExitButton = false;
 	
 	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
+}
+
+void CreateZoneAdvancedOptionMenu(int client, int item=0)
+{
+	Menu menu = new Menu(MenuHandler_ZoneAdvancedOption);
+	char sMenuItem[64];
+
+	menu.SetTitle("%T\n ", "ZoneAdvancedOptionMenuTitle", client);
+
+	bool bConflict = (gA_EditCache[client].iType == Zone_Start || gA_EditCache[client].iType == Zone_Stage) 
+	&& (((gA_EditCache[client].iFlags & ZF_FilterClassname) > 0 && (gA_EditCache[client].iFlags & ZF_OutputClassname) > 0)
+	|| ((gA_EditCache[client].iFlags & ZF_FilterClassname) == 0 && (gA_EditCache[client].iFlags & ZF_OutputTargetname) > 0)) 
+	&& (gA_EditCache[client].iFlags & (ZF_FilterMatchPass|ZF_FilterMisMatchPass));
+
+	FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iFlags & ZF_ForceRender) > 0)? "ItemEnabled":"ItemDisabled", client, "ZoneForceRender", client);
+	if (gA_EditCache[client].iForm != ZoneForm_trigger_multiple && gA_EditCache[client].iType != Zone_Teleport)
+	{
+		FormatEx(sMenuItem, 64, "%s\n \n ", sMenuItem);
+
+		if(bConflict)
+		{
+			FormatEx(sMenuItem, 64, "%s%T", sMenuItem, "ZoneAdvancedOptionConflict", client);
+		}
+	}
+
+	menu.AddItem("forcerender", sMenuItem);
+
+	if(gA_EditCache[client].iType == Zone_Teleport)
+	{
+		FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iSpeedLimitFlags & ZSLF_ResetSpeedAfterTeleported) > 0) ? "ItemEnabled":"ItemDisabled", client, "ZoneResetSpeedAfterTeleport", client);
+		
+		if (gA_EditCache[client].iForm != ZoneForm_trigger_multiple)
+		{
+			FormatEx(sMenuItem, 64, "%s\n \n ", sMenuItem);
+
+			if(bConflict)
+			{
+				FormatEx(sMenuItem, 64, "%s%T", sMenuItem, "ZoneAdvancedOptionConflict", client);
+			}
+		}
+		
+		menu.AddItem("resetspeed", sMenuItem);
+	}
+
+	if(gA_EditCache[client].iForm == ZoneForm_trigger_multiple)
+	{
+		FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iFlags & ZF_DrawAsBox) > 0)? "ItemEnabled":"ItemDisabled", client, "ZoneDrawAsBox", client);
+		menu.AddItem("drawasbox", sMenuItem);
+
+		FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iFlags & ZF_FilterIgnore) > 0)? "ItemEnabled":"ItemDisabled", client, "ZoneIgnoreFilter", client);
+		menu.AddItem("ignorefilter", sMenuItem);
+	}
+	else if(gA_EditCache[client].iForm == ZoneForm_Box)
+	{
+		char sFilterStrings[2][32];
+		strcopy(sFilterStrings[1], 32, gA_EditCache[client].sTarget);
+
+		bool bHasOutput = gA_EditCache[client].iType == Zone_Stage || gA_EditCache[client].iType == Zone_Checkpoint || 
+		gA_EditCache[client].iType == Zone_Start || gA_EditCache[client].iType == Zone_Output || gA_EditCache[client].iType == Zone_Teleport;
+
+		if(bHasOutput)
+		{
+			ExplodeString(gA_EditCache[client].sTarget, ";", sFilterStrings, 2, 32);
+		}
+
+		bool bMatchPass = (gA_EditCache[client].iFlags & ZF_FilterMatchPass) != 0;
+		bool bMismatchPass = (gA_EditCache[client].iFlags & ZF_FilterMisMatchPass) != 0;
+
+		FormatEx(sMenuItem, 64, "%T: %T", "ZoneFilterMode", client, 
+		bMatchPass ? "ZoneFilterNormal" : (bMismatchPass ? "ZoneFilterInverted" : "ZoneFilterDisabled"), client);
+		menu.AddItem("filtermode", sMenuItem);
+
+		FormatEx(sMenuItem, 64, "%T: %T", "ZoneFilter", client, 
+		(gA_EditCache[client].iFlags & ZF_FilterClassname) ? "ZoneFilterClass" : "ZoneFilterName", client);
+		menu.AddItem("filter", sMenuItem);
+
+		if (sFilterStrings[1][0] == '\0')
+		{
+			FormatEx(sMenuItem, 64, "%T: N/A\n ", "ZoneFilterPattern", client);
+			menu.AddItem("filterfromchat_empty", sMenuItem);
+		}
+		else
+		{
+			FormatEx(sMenuItem, 64, "%T: '%s'\n ", "ZoneFilterPattern", client, sFilterStrings[1]);
+			menu.AddItem("filterfromchat", sMenuItem);
+		}
+
+		if (bHasOutput) // i prefer this in bottom of menu c:
+		{
+			bool bOutputName = (gA_EditCache[client].iFlags & ZF_OutputTargetname) > 0;
+			bool bOutputClass = (gA_EditCache[client].iFlags & ZF_OutputClassname) > 0;
+			
+			FormatEx(sMenuItem, 64, "%T: %T", "ZoneOutputType", client, 
+			bOutputName ? "ZoneOutputName": bOutputClass ?"ZoneOutputClass":"ZoneFilterDisabled", client);
+			menu.AddItem("outputtype", sMenuItem);
+
+			if (gA_EditCache[client].iType != Zone_Teleport)
+			{
+				FormatEx(sMenuItem, 64, "%T: %T", "ZoneOutputTiming", client, 
+				gA_EditCache[client].iFlags & ZF_OutputEndTouch ? "ZoneOutputEndTouch":"ZoneOutputStartTouch", client);
+				menu.AddItem("outputtiming", sMenuItem);
+			}
+
+			if (sFilterStrings[0][0] == '\0')
+			{
+				FormatEx(sMenuItem, 64, "%T: N/A", "ZoneOutput", client);
+				menu.AddItem("outputfromchat_empty", sMenuItem);
+			}
+			else
+			{
+				FormatEx(sMenuItem, 64, "%T: '%s'", "ZoneOutput", client, sFilterStrings[0]);
+				menu.AddItem("outputfromchat", sMenuItem);
+			}
+		}
+	}
+
+	menu.ExitBackButton = true;
+	menu.ExitButton = false;
+
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_ZoneAdvancedOption(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[32];
+		menu.GetItem(param2, sInfo, 32);
+
+		if(StrEqual(sInfo, "resetspeed"))
+		{
+			gA_EditCache[param1].iSpeedLimitFlags ^= ZSLF_ResetSpeedAfterTeleported;
+		}
+		else if(StrEqual(sInfo, "forcerender"))
+		{
+			gA_EditCache[param1].iFlags ^= ZF_ForceRender;
+		}
+		else if(StrEqual(sInfo, "drawasbox"))
+		{
+			gA_EditCache[param1].iFlags ^= ZF_DrawAsBox;
+		}
+		else if(StrEqual(sInfo, "ignorefilter"))
+		{
+			gA_EditCache[param1].iFlags ^= ZF_FilterIgnore;
+		}
+		else if(StrEqual(sInfo, "filtermode"))
+		{
+			int mask = (ZF_FilterMatchPass | ZF_FilterMisMatchPass);
+
+			if (!(gA_EditCache[param1].iFlags & mask))
+			{
+				gA_EditCache[param1].iFlags |= ZF_FilterMatchPass;
+			}
+			else if (gA_EditCache[param1].iFlags & ZF_FilterMatchPass)
+			{
+				gA_EditCache[param1].iFlags ^= mask;
+			}
+			else
+			{
+				gA_EditCache[param1].iFlags &= ~mask;
+			}
+		}
+		else if(StrEqual(sInfo, "filter"))
+		{
+			gA_EditCache[param1].iFlags ^= ZF_FilterClassname;
+		}
+		else if(StrContains(sInfo, "filterfromchat", false) == 0)
+		{
+			gI_ChatInput[param1] = ChatInput_Filter;
+			Shavit_PrintToChat(param1, "%T", "ZoneAcceptingInputChat", param1, gS_ChatStrings.sVariable, "ZoneFilterPattern", param1, gS_ChatStrings.sText);
+
+			if(StrEqual(sInfo, "filterfromchat"))
+			{
+				Shavit_PrintToChat(param1, "%T", "ZoneInputResetTips", param1, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			}
+
+			return 0;
+		}
+		else if(StrEqual(sInfo, "outputtype"))
+		{
+			int mask = (ZF_OutputTargetname | ZF_OutputClassname);
+
+			if (!(gA_EditCache[param1].iFlags & mask))
+			{
+				gA_EditCache[param1].iFlags |= ZF_OutputTargetname;
+			}
+			else if (gA_EditCache[param1].iFlags & ZF_OutputTargetname)
+			{
+				gA_EditCache[param1].iFlags ^= mask;
+			}
+			else
+			{
+				gA_EditCache[param1].iFlags &= ~mask;
+			}
+		}
+		else if(StrEqual(sInfo, "outputtiming"))
+		{
+			gA_EditCache[param1].iFlags ^= ZF_OutputEndTouch;
+		}
+		else if(StrContains(sInfo, "outputfromchat", false) == 0)
+		{
+			gI_ChatInput[param1] = ChatInput_Output;
+			Shavit_PrintToChat(param1, "%T", "ZoneAcceptingInputChat", param1, gS_ChatStrings.sVariable2, "ZoneOutput", param1, gS_ChatStrings.sText);
+
+			if(StrEqual(sInfo, "outputfromchat"))
+			{
+				Shavit_PrintToChat(param1, "%T", "ZoneInputResetTips", param1, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			}
+
+			return 0;
+		}
+
+		CreateZoneAdvancedOptionMenu(param1, GetMenuSelectionPosition());
+	}
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		CreateEditMenu(param1);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
 }
 
 void CreateSpeedLimitOptionMenu(int client, int item=0)
@@ -6172,7 +6516,14 @@ public void StartTouchPost(int entity, int other)
 
 	if (gA_ZoneCache[zone].iForm == ZoneForm_trigger_multiple || gA_ZoneCache[zone].iForm == ZoneForm_trigger_teleport)
 	{
-		if (!SDKCall(gH_PassesTriggerFilters, entity, other))
+		if (!(gA_ZoneCache[zone].iFlags & ZF_FilterIgnore || SDKCall(gH_PassesTriggerFilters, entity, other)))
+		{
+			return;
+		}
+	}
+	else if(gA_ZoneCache[zone].iForm == ZoneForm_Box)
+	{
+		if(!CustomZoneFilter(other, zone))
 		{
 			return;
 		}
@@ -6197,6 +6548,7 @@ public void StartTouchPost(int entity, int other)
 		{
 			if(!bReplay)
 			{
+				CustomZoneOutput(other, zone, false);
 				TeleportEntity(other, gA_ZoneCache[zone].fDestination, NULL_VECTOR, ((gA_ZoneCache[zone].iSpeedLimitFlags & ZSLF_ResetSpeedAfterTeleported) > 0) ? ZERO_VECTOR:NULL_VECTOR);				
 			}
 		}
@@ -6225,6 +6577,7 @@ public void StartTouchPost(int entity, int other)
 			if(!bReplay && (Shavit_GetTimerStatus(other) == Timer_Stopped || track == Track_Main || Shavit_GetClientTrack(other) == track))
 			{
 				ResetClientTargetNameAndClassName(other, track);
+				CustomZoneOutput(other, zone, false);
 				UpdateClientZoneStage(other);
 			}
 		}
@@ -6259,6 +6612,8 @@ public void StartTouchPost(int entity, int other)
 					int iLastStage = Shavit_GetClientLastStage(other);
 					if (stage > iLastStage)
 					{
+						CustomZoneOutput(other, zone, false);
+
 						if(stage == iLastStage + 1)
 						{
 							Shavit_FinishStage(other, track, iLastStage);
@@ -6286,11 +6641,17 @@ public void StartTouchPost(int entity, int other)
 					}
 					else if(stage == iLastStage)
 					{
+						CustomZoneOutput(other, zone, false);
+
 						if (!Shavit_IsOnlyStageMode(other) && Shavit_GetClientStageTime(other) > 0.8)
 						{
 							Shavit_SetClientStageAttempt(other, stage, -1);							
 						}
 					}
+				}
+				else if(status == Timer_Stopped)
+				{
+					CustomZoneOutput(other, zone, false);
 				}
 			}
 		}
@@ -6307,6 +6668,8 @@ public void StartTouchPost(int entity, int other)
 			{
 				if (checkpoint > iLastCP)
 				{
+					CustomZoneOutput(other, zone, false);
+
 					Call_StartForward(gH_Forwards_ReachNextCP);
 					Call_PushCell(other);
 					Call_PushCell(track);
@@ -6325,6 +6688,11 @@ public void StartTouchPost(int entity, int other)
 			FloatToString(view_as<float>(gA_ZoneCache[zone].iData), s, sizeof(s));
 			SetVariantString(s);
 			AcceptEntityInput(entity, "ModifySpeed", other, entity, 0);
+		}
+
+		case Zone_Output:
+		{
+			CustomZoneOutput(other, zone, false);
 		}
 	}
 
@@ -6356,20 +6724,20 @@ public void EndTouchPost(int entity, int other)
 	if (other < 1 || other > MaxClients || IsFakeClient(other))
 		return;
 
-	int entityzone = gI_EntityZone[entity];
+	int zone = gI_EntityZone[entity];
 
-	if (entityzone == -1)
+	if (zone == -1)
 		return;
 
-	int type = gA_ZoneCache[entityzone].iType;
-	int track = gA_ZoneCache[entityzone].iTrack;
+	int type = gA_ZoneCache[zone].iType;
+	int track = gA_ZoneCache[zone].iTrack;
 
 	if (type < 0 || track < 0) // odd
 	{
 		return;
 	}
 
-	gB_InsideZoneID[other][entityzone] = false;
+	gB_InsideZoneID[other][zone] = false;
 	RecalcInsideZone(other);
 
 	switch(type)
@@ -6385,6 +6753,7 @@ public void EndTouchPost(int entity, int other)
 			if(Shavit_GetClientTrack(other) == track)
 			{
 				UpdateClientZoneStage(other);
+				CustomZoneOutput(other, zone, true);
 			}
 		}
 			
@@ -6392,7 +6761,28 @@ public void EndTouchPost(int entity, int other)
 		{
 			if(Shavit_GetClientTrack(other) == track)
 			{
+				if (gA_ZoneCache[zone].iData == Shavit_GetClientLastStage(other))
+				{
+					CustomZoneOutput(other, zone, true);					
+				}
+
 				UpdateClientZoneStage(other);
+			}
+		}
+
+		case Zone_Checkpoint:
+		{
+			if (Shavit_GetClientTrack(other) == track && gA_ZoneCache[zone].iData == Shavit_GetClientLastStage(other))
+			{
+				CustomZoneOutput(other, zone, true);					
+			}
+		}
+
+		case Zone_Output:
+		{
+			if(Shavit_GetClientTrack(other) == track)
+			{
+				CustomZoneOutput(other, zone, true);
 			}
 		}
 	}
@@ -6401,9 +6791,9 @@ public void EndTouchPost(int entity, int other)
 	Call_PushCell(other);
 	Call_PushCell(type);
 	Call_PushCell(track);
-	Call_PushCell(entityzone);
+	Call_PushCell(zone);
 	Call_PushCell(entity);
-	Call_PushCell(gA_ZoneCache[entityzone].iData);
+	Call_PushCell(gA_ZoneCache[zone].iData);
 	Call_Finish();
 }
 
@@ -6425,10 +6815,22 @@ public void TouchPost(int entity, int other)
 
 	if (gA_ZoneCache[zone].iForm == ZoneForm_trigger_multiple || gA_ZoneCache[zone].iForm == ZoneForm_trigger_teleport)
 	{
-		if (!SDKCall(gH_PassesTriggerFilters, entity, other))
+		if (!(gA_ZoneCache[zone].iFlags & ZF_FilterIgnore || SDKCall(gH_PassesTriggerFilters, entity, other)))
 		{
 			return;
 		}
+	}
+	else if(gA_ZoneCache[zone].iForm == ZoneForm_Box)
+	{
+		if(!CustomZoneFilter(other, zone))
+		{
+			return;
+		}
+	}
+
+	if (!gB_InsideZoneID[other][zone] || (gI_InsideZone[other][track] & (1 << type)) == 0)
+	{
+		StartTouchPost(entity, other);
 	}
 
 	// do precise stuff here, this will be called *A LOT*
@@ -6540,6 +6942,79 @@ public void TouchPost(int entity, int other)
 	}
 }
 
+public bool CustomZoneFilter(int client, int zone)
+{
+	if(!(gA_ZoneCache[zone].iFlags & (ZF_FilterMatchPass | ZF_FilterMisMatchPass)))
+	{
+		return true;
+	}
+
+	char sKey[64];
+	if (gA_ZoneCache[zone].iFlags & ZF_FilterClassname)
+	{
+		GetEntPropString(client, Prop_Data, "m_iClassname", sKey, sizeof(sKey));
+	}
+	else 
+	{
+		GetEntPropString(client, Prop_Data, "m_iName", sKey, sizeof(sKey));
+	}
+
+	bool bHasOutput = gA_ZoneCache[zone].iType == Zone_Stage || gA_ZoneCache[zone].iType == Zone_Checkpoint || 
+	gA_ZoneCache[zone].iType == Zone_Start || gA_ZoneCache[zone].iType == Zone_Output || gA_ZoneCache[zone].iType == Zone_Teleport;
+	
+	char sPattern[64];
+	if (bHasOutput)
+	{
+		int split = FindCharInString(gA_ZoneCache[zone].sTarget, ';');
+		strcopy(sPattern, sizeof(sPattern), gA_ZoneCache[zone].sTarget[split+1]);
+	}
+	else
+	{
+		sPattern = gA_ZoneCache[zone].sTarget;
+	}
+
+	bool bInverted = (gA_ZoneCache[zone].iFlags & ZF_FilterMisMatchPass) > 0;
+
+	if(StrEqual(sPattern, sKey))
+	{
+		return !bInverted;
+	}
+	else
+	{
+		return bInverted;
+	}
+}
+
+public void CustomZoneOutput(int client, int zone, bool end)
+{
+	if((gA_ZoneCache[zone].iFlags & (ZF_OutputTargetname | ZF_OutputClassname)) > 0)
+	{
+		if((gA_ZoneCache[zone].iFlags & ZF_OutputEndTouch) > 0 != end)
+		{
+			return;
+		}
+
+		char sPattern[64];
+		strcopy(sPattern, sizeof(sPattern), gA_ZoneCache[zone].sTarget);
+
+		int split = FindCharInString(sPattern, ';');
+		
+		if(split != -1)
+		{
+			sPattern[split] = '\0';				
+		}
+
+		if(gA_ZoneCache[zone].iFlags & ZF_OutputClassname)
+		{
+			SetEntPropString(client, Prop_Data, "m_iClassname", sPattern);
+		}
+		else
+		{
+			DispatchKeyValue(client, "targetname", sPattern);
+		}				
+	}
+}
+
 public void UsePost_HookedButton(int entity, int activator, int caller, UseType type, float value)
 {
 	if (activator < 1 || activator > MaxClients || IsFakeClient(activator))
@@ -6566,7 +7041,7 @@ void ButtonLogic(int activator, int type, int track)
 
 		GetClientAbsOrigin(activator, gF_ClimbButtonCache[activator][track][0]);
 		GetClientEyeAngles(activator, gF_ClimbButtonCache[activator][track][1]);
-		Shavit_PrintToChatAll("Starting Timer here");
+		
 		Shavit_StartTimer(activator, track);
 	}
 	else if (type == Zone_End && !Shavit_IsPaused(activator) && Shavit_GetTimerStatus(activator) == Timer_Running && Shavit_GetClientTrack(activator) == track)
