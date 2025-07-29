@@ -40,6 +40,9 @@
 #define RESPONSE_DECLINE 2
 #define RESPONSE_CANCEL 3
 
+#define PING_MODEL_PATH "models/expert_zone/pingtool/pingtool.mdl"
+#define PING_SOUND_PATH "expert_zone/pingtool/click.wav"
+
 /* Colour name, file name */
 char gS_PaintColors[][][64] =    // Modify this to add/change colours
 {
@@ -306,11 +309,6 @@ public void OnMapEnd()
 	{
 		RemovePing(i);
 	}
-}
-
-public void OnClientDisconnected(int client)
-{
-	RemovePing(client);
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -910,6 +908,8 @@ public void OnClientDisconnect(int client)
 		gI_Partner[gI_Partner[client]] = 0;
 		gI_Partner[client] = 0;
 	}
+
+	RemovePing(client);
 }
 
 public void OpenPartnerMenu(int client)
@@ -1219,7 +1219,7 @@ public int CreatePingEffect(int client, float pos[3], float rotation[3], int col
 	gI_PlayerPing[client] = iEntity;
 	gI_PingEntity[iEntity] = client;
 
-	SetEntityModel(iEntity, "models/expert_zone/pingtool/pingtool.mdl");
+	SetEntityModel(iEntity, PING_MODEL_PATH);
 	DispatchSpawn(iEntity);
 	ActivateEntity(iEntity);
 	SetEntPropVector(iEntity, Prop_Data, "m_angRotation", rotation);
@@ -1230,12 +1230,12 @@ public int CreatePingEffect(int client, float pos[3], float rotation[3], int col
 
 	if(gB_PingSound[client])
 	{
-		EmitSoundToClient(client, "expert_zone/pingtool/click.wav");		
+		EmitSoundToClient(client, PING_SOUND_PATH);		
 	}
 
 	if(gI_Partner[client] > 0 && gB_PingSound[gI_Partner[client]])
 	{
-		EmitSoundToClient(gI_Partner[client], "expert_zone/pingtool/click.wav");	
+		EmitSoundToClient(gI_Partner[client], PING_SOUND_PATH);	
 	}
 
 	gI_PlayerLastPing[client] = GetGameTickCount();
@@ -1478,7 +1478,10 @@ stock bool GetClientCookieInt(int client, Handle cookie, int& value)
 
 stock void AddFilesToDownloadsTable()
 {
-	AddFileToDownloadsTable("sound/expert_zone/pingtool/click.wav");
+	char sPath[PLATFORM_MAX_PATH];
+	FormatEx(sPath, sizeof(sPath), "sound/%s", PING_SOUND_PATH);
+
+	AddFileToDownloadsTable(sPath);
 	AddFileToDownloadsTable("materials/decals/paint/paint_decal.vtf");
 	AddFileToDownloadsTable("materials/decals/paint/paint_eraser.vtf");
 	AddFileToDownloadsTable("materials/expert_zone/pingtool/circle_arrow.vtf");
@@ -1489,9 +1492,9 @@ stock void AddFilesToDownloadsTable()
 	AddFileToDownloadsTable("materials/expert_zone/pingtool/grad.vmt");
 	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.dx80.vtx");
 	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.dx90.vtx");
-	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.mdl");
+	AddFileToDownloadsTable(PING_MODEL_PATH);
 	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.sw.vtx");
 	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.vvd");
-	PrecacheModel("models/expert_zone/pingtool/pingtool.mdl");
-	PrecacheSound("expert_zone/pingtool/click.wav");
+	PrecacheModel(PING_MODEL_PATH);
+	PrecacheSound(PING_SOUND_PATH);
 }
