@@ -1,0 +1,90 @@
+"Phrases"
+{
+	"GhostMenuTitle"
+	{
+		"en"		"Ghost Menu"
+	}
+	"ToggleGhost"
+	{
+		"#format"	"{1:T}"
+		"en"		"Toggle Ghost: {1} (sm_toggleghost)"
+	}
+	"GhostMode"
+	{
+		"#format"	"{1:T}"
+		"en"		"Ghost Mode: {1}"
+	}
+	"GhostModeRace"
+	{
+		"en"		"Race"
+	}
+	"GhostModeRoute"
+	{
+		"en"		"Route"
+	}
+	"GhostModeGuide"
+	{
+		"en"		"Guide"
+	}
+	"ChangeStyle"
+	{
+		"en"		"Change Style"
+	}
+	"StageRoute"
+	{
+		"#format"	"{1:T}"
+		"en"		"Stage route: {1}"
+	}
+	"ToggleIgnorez"
+	{
+		"#format"	"{1:T}"
+		"en"		"Display through wall: {1}"
+	}
+	"GhostOptions"
+	{
+		"en"		"Ghost Options"
+	}
+	"RouteColor"
+	{
+		"en"		"Route color"
+	}
+	"RouteWidth"
+	{
+		"en"		"Route width"
+	}
+	"CurrentWidth"
+	{
+		"#format"	"{1:.1f}"
+		"en"		"Current width: {1}"
+	}
+	"JumpMarkerDraw"
+	{
+		"#format"	"{1:T}"
+		"en"		"Draw jump marker box: {1}"
+	}
+	"JumpMarkerColor"
+	{
+		"en"		"Jump marker box color"
+	}
+	"JumpMarkerSize"
+	{
+		"en"		"Jump marker box size"
+	}
+	"CurrentJumpMarkerSize"
+	{
+		"#format"	"{1:.1f}"
+		"en"		"Current box size: {1}"
+	}
+	"Enabled"
+	{
+		"en"		"Enabled"
+	}
+	"Disabled"
+	{
+		"en"		"Disabled"
+	}
+	"GhostOptionsMenuTitle"
+	{
+		"en"		"Ghost Options:"
+	}
+}

@@ -159,14 +159,7 @@
 			{
 				"windows"	"\xF3\x0F\x10\x80\x2A\x2A\x2A\x2A\xF3\x0F\x59\x45\x2A\xF3\x0F\x11\x45"
 				"linux"	    "\xF3\x0F\x10\xB8\x2A\x2A\x2A\x2A\xA1"
-			}			
-			// search "sv_maxusrcmdprocessticks_warning at server" to find CPlayerMove::RunCommand
- 			// then sig the the `mov REG1,dword ptr [REG2 + OFFSET_TO_BUTTON_DISABLED_HERE]`
- 			"CBasePlayer->m_afButtonDisabled"
- 			{
- 				"windows"   "\x8B\x87\x2A\x2A\x2A\x2A\xF7\xD0\x21\x43"
- 				"linux"     "\x8B\x83\x2A\x2A\x2A\x2A\xF7\xD0"
- 			}
+			}
 		}
 	}
 
@@ -174,11 +167,25 @@
 	{
 		"Addresses"
 		{
+			"TELimit"
+			{
+				"linux"
+                {
+                    "signature" "TELimitPatchLocation"
+					"offset"	"1"
+                }
+				
+				"windows"
+                {
+                    "signature" "TELimitPatchLocation"
+					"offset"	"1"
+                }
+			}
 		}
 
 		"Offsets"
 		{
-			// https://asherkin.github.io/vtable/
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "func_pushable" and you can find CBaseTrigger::PassesTriggerFilters / CBaseVPhysicsTrigger::PassesTriggerFilters. Follow references to these functions to find the vtable and then calculate the offset...
 			"CBaseTrigger::PassesTriggerFilters"
 			{
@@ -187,7 +194,7 @@
 				"linux"     "204"
 				"linux64"   "204"
 			}
-			// https://asherkin.github.io/vtable/ (if updated)
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "start %f %f %f" and then check the function call offsets above it and convert them to vtable offsets (divide by 4 most likely or whatever)
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
@@ -196,7 +203,7 @@
 				"linux"     "446"
 				"linux64"   "446"
 			}
-			// https://asherkin.github.io/vtable/
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "Invalid counterterrorist spawnpoint" and then look for the first function call in each iteration of the loop
 			"CGameRules::IsSpawnPointValid"
 			{
@@ -205,7 +212,7 @@
 				"linux"     "77"
 				"linux64"   "77"
 			}
-			// https://asherkin.github.io/vtable/
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "water" to find CBasePlayer::UpdateStepSound. At the bottom there's a vtable call to ::PlayStepSound. Grab that, divide by 4, subtract 1. Bam, UpdateStepSound...
 			"CBasePlayer::UpdateStepSound"
 			{
@@ -216,8 +223,8 @@
 			}
 			// find in CCSGameMovement::CheckForLadders which references CCSPlayer::CanGrabLadder
 			//
-			// Find CCSPlayer::CanGrabLadder by searching for 4096.0f, finding functions that reference...
-			// It might look like this
+			// Find CCSPlayer::CanGrabLadder by searching for 4096.0f, then find the function (CheckForLadders) that references it...
+			//  CanGrabLadder might look like this on Windows (or just use symbols on Linux)
 			//    undefined4 __thiscall CCSPlayer::CanGrabLadder(int param_1_00,float *param_1,float *param_2)
 			//    {
 			//      float10 extraout_ST0;
@@ -305,7 +312,7 @@
 				"linux"     "@_ZN13CCSBotManager16MaintainBotQuotaEv"
 				"linux64"   "@_ZN13CCSBotManager16MaintainBotQuotaEv"
 			}
-			// search string: "Server is hibernating" to find SetHibernating and then go its references
+			// search string: "Server is hibernating" to find SetHibernating and then go to its references
 			// NOTE 2025-02-19: Function has been inlined on Windows into SV_Think...
 			"CGameServer::UpdateHibernationState"
 			{
@@ -325,7 +332,7 @@
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 				"linux64"   "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
-			// search string: "Could not add bot to the game: Team is full" to find CCSBotManager::BotAddCommand and then follow the if-statement up to find the function call that was fall (because TeamFull())
+			// search string: "Could not add bot to the game: Team is full" to find CCSBotManager::BotAddCommand and then follow the if-statement up to find the function call that was full (because TeamFull())
 			// protip: on csgo we just use mp_randomspawn instead.
 			"CCSGameRules::TeamFull"
 			{
@@ -354,13 +361,20 @@
 				"linux64"   "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x48\x8B\x07"
 			}
 			// search "sv_maxusrcmdprocessticks_warning at server" to find CPlayerMove::RunCommand
- 			// then sig the the `mov REG1,dword ptr [REG2 + OFFSET_TO_BUTTON_DISABLED_HERE]`
+			// then sig the the `mov REG1,dword ptr [REG2 + OFFSET_TO_BUTTON_DISABLED_HERE]`
 			"CBasePlayer->m_afButtonDisabled"
 			{
 				"windows"   "\x8B\x87\x2A\x2A\x2A\x2A\xF7\xD0\x23\xC1"
 				"windows64" "\x8B\x87\x2A\x2A\x2A\x2A\xF7\xD0"
 				"linux"     "\x8B\x93\x2A\x2A\x2A\x2A\xF7\xD2"
 				"linux64"   "\x8B\x83\x2A\x2A\x2A\x2A\xF7\xD0\x21\xD0"
+			}
+
+			"TELimitPatchLocation"
+			{
+				"library"		"engine"
+				"windows"		"\xB8\x2A\x2A\x2A\x2A\xBA\x2A\x2A\x2A\x2A\x0F\x45\xD0\x52\x8B\x01\x8D\x55\xBC\x52\x8B\x55\x08\xFF\xB6\x2A\x2A\x2A\x2A\xFF\xB2\x2A\x2A\x2A\x2A\x56\xFF\x90"
+				"linux"			"\x3C\x2A\x8B\x93\x2A\x2A\x2A\x2A\x19\xC0\x59\x25\x2A\x2A\x2A\x2A\x83\xC0\x40\x8B\x0A\x50\x56\xFF\xB3"
 			}
 		}
 	}

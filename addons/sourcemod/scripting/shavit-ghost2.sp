@@ -1,5 +1,7 @@
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
+#include <dhooks>
 #include <cstrike>
 #include <clientprefs>
 #include <closestpos>
@@ -54,9 +56,9 @@ int gI_Colors[11][4] =
 
 char gS_GhostModeName[3][16] =
 {
-	"Race",
-	"Route",
-	"Guide",
+	"GhostModeRace",
+	"GhostModeRoute",
+	"GhostModeGuide",
 };
 
 enum struct ghost_info_t
@@ -101,7 +103,10 @@ int gGM_GhostMode[MAXPLAYERS + 1];
 int gI_GhostRouteColor[MAXPLAYERS + 1];
 int gI_GhostBoxColor[MAXPLAYERS + 1];
 int gI_GhostStyle[MAXPLAYERS + 1];
-int gI_GhostIgnorez[MAXPLAYERS + 1];
+bool gB_GhostIgnorez[MAXPLAYERS + 1];
+
+int gI_TELimitData;
+Address TELimitAddress;
 
 float gF_RouteWidth[MAXPLAYERS + 1];
 float gF_GhostBoxSize[MAXPLAYERS + 1];
@@ -127,6 +132,8 @@ Convar gCV_RouteDrawSkipFrames = null;
 int gI_Sprite;
 int gI_SpriteIgnorez;
 bool gB_Late;
+bool gB_Linux;
+EngineVersion gEV_Type = Engine_Unknown;
 
 
 public Plugin myinfo = 
@@ -146,6 +153,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart() 
 {
+	gEV_Type = GetEngineVersion();
+
 	RegConsoleCmd("sm_ghost", Command_Ghost, "Shows ghost menu to client.");
 	RegConsoleCmd("sm_toggleghost", Command_ToggleGhost, "Toggle ghost usage.");
 	RegConsoleCmd("sm_toggleignorez", Command_ToggleIgnorez, "Toggle ghost ignorez.");
@@ -173,6 +182,10 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
+	LoadDHooks();
+
+	LoadTranslations("shavit-ghost2.phrases");
+
 	gI_Tickrate = RoundToNearest(1.0 / GetTickInterval());
 	gI_TimeCompensation = gI_Tickrate / 10;
 
@@ -199,6 +212,54 @@ public void OnPluginStart()
 			OnClientCookiesCached(i);
 		}
 	}
+}
+
+void LoadDHooks()
+{
+	GameData gamedata = new GameData("shavit.games");
+
+	if (gamedata == null)
+	{
+		SetFailState("Failed to load shavit gamedata");
+	}
+
+	gB_Linux = (gamedata.GetOffset("OS") == 2);
+
+	gEV_Type = GetEngineVersion();
+
+	if(gEV_Type == Engine_CSS)
+	{
+		//TELimit
+		TELimitAddress = GameConfGetAddress(gamedata, "TELimit");
+
+		if(TELimitAddress == Address_Null)
+		{
+			SetFailState("Failed to get address for TELimit");
+		}
+		
+		gI_TELimitData = LoadFromAddress(TELimitAddress, NumberType_Int8);
+		
+		if(gB_Linux)
+		{
+			StoreToAddress(TELimitAddress, 0x02, NumberType_Int8);
+		}
+		else
+		{
+			StoreToAddress(TELimitAddress, 0xFF, NumberType_Int8);
+		}	
+	}
+
+	delete gamedata;
+}
+
+public void OnPluginEnd()
+{
+	if(TELimitAddress == Address_Null)
+	{
+		return;		
+	}
+	
+	StoreToAddress(TELimitAddress, gI_TELimitData, NumberType_Int8);
 }
 
 public void OnClientConnected(int client)
@@ -283,10 +344,10 @@ public void OnClientCookiesCached(int client)
 		SetClientCookieInt(client, gH_GhostBoxColorCookie, 1);
 	}
 
-	if (!GetClientCookieInt(client, gH_GhostIgnorezCookie, gI_GhostIgnorez[client]))
+	if (!GetClientCookieBool(client, gH_GhostIgnorezCookie, gB_GhostIgnorez[client]))
 	{
-		gI_GhostIgnorez[client] = 0;
-		SetClientCookieInt(client, gH_GhostIgnorezCookie, 0);
+		gB_GhostIgnorez[client] = false;
+		SetClientCookieInt(client, gH_GhostIgnorezCookie, false);
 	}
 
 	gF_GhostBoxSize[client] = 10.0;
@@ -321,7 +382,7 @@ public Action Command_ToggleGhost(int client, int args)
 	gB_Ghost[client] = !gB_Ghost[client];
 	SetClientCookieBool(client, gH_GhostCookie, gB_Ghost[client]);
 	
-	if (gGM_GhostMode[client] == GhostMode_Size)
+	if (gGM_GhostMode[client] == GhostMode_Race)
 	{
 		SynchronizeClientTick(client);				
 	}
@@ -338,10 +399,10 @@ public Action Command_ToggleIgnorez(int client, int args)
 		return Plugin_Handled;
 	}
 
-	gI_GhostIgnorez[client] = !gI_GhostIgnorez[client];
-	SetClientCookieBool(client, gH_GhostIgnorezCookie, gI_GhostIgnorez[client]);
+	gB_GhostIgnorez[client] = !gB_GhostIgnorez[client];
+	SetClientCookieBool(client, gH_GhostIgnorezCookie, gB_GhostIgnorez[client]);
 
-	Shavit_PrintToChat(client, "Ghost Ignorez: %s", gI_GhostIgnorez[client] ? "enabled":"disabled");
+	Shavit_PrintToChat(client, "Ghost Ignorez: %s", gB_GhostIgnorez[client] ? "enabled":"disabled");
 
 	return Plugin_Handled;
 }
@@ -349,14 +410,13 @@ public Action Command_ToggleIgnorez(int client, int args)
 public void ShowGhostMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_Ghost, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem|MenuAction_Display);
-	menu.SetTitle("Ghost Menu\n ");
+	menu.SetTitle("%T\n ", "GhostMenuTitle", client);
 
 	char sMenu[64];
-	FormatEx(sMenu, sizeof(sMenu), "Toggle Ghost: %s (sm_toggleghost)", gB_Ghost[client] ? "Enabled":"Disabled");
+	FormatEx(sMenu, sizeof(sMenu), "%T", "ToggleGhost", client, gB_Ghost[client] ? "Enabled":"Disabled", client);
 	menu.AddItem("toggle", sMenu, ITEMDRAW_DEFAULT);
 	
-	FormatEx(sMenu, sizeof(sMenu), "Switch Ghost Mode: %s %s", gS_GhostModeName[gGM_GhostMode[client]], 
-		gGM_GhostMode[client] == GhostMode_Guide ? "(Recommand)":"");
+	FormatEx(sMenu, sizeof(sMenu), "%T", "GhostMode", client, gS_GhostModeName[gGM_GhostMode[client]], client);
 	menu.AddItem("mode", sMenu, ITEMDRAW_DEFAULT);
 	
 	int track = Shavit_GetClientTrack(client);
@@ -365,23 +425,24 @@ public void ShowGhostMenu(int client)
 	char sTime[32];
 	if(!gA_GhostInfo[track][gI_GhostStyle[client]][stage].aFrames)
 	{
-		FormatEx(sTime, 32, "Invalid");
+		FormatEx(sTime, 32, "N/A");
 	}
 	else
 	{
 		FormatSeconds(gA_GhostInfo[track][gI_GhostStyle[client]][stage].fTime, sTime, 32, false, false, true);
 	}
 
-	FormatEx(sMenu, sizeof(sMenu), "Change Style: %s (%s)", gS_StyleStrings[gI_GhostStyle[client]].sStyleName, sTime);
+	FormatEx(sMenu, sizeof(sMenu), "%T: %s (%s)", "ChangeStyle", client, gS_StyleStrings[gI_GhostStyle[client]].sStyleName, sTime);
 	menu.AddItem("style", sMenu, ITEMDRAW_DEFAULT);
 
-	FormatEx(sMenu, sizeof(sMenu), "Use stage route: %s\n ", gB_StageGhost[client] ? "ON":"OFF");
+	FormatEx(sMenu, sizeof(sMenu), "%T\n ", "StageRoute", client, gB_StageGhost[client] ? "Enabled":"Disabled", client);
 	menu.AddItem("stage", sMenu, Shavit_GetStageCount(Track_Main) > 1 ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);		
 
-	FormatEx(sMenu, sizeof(sMenu), "Toggle Ignorez: %s (sm_toggleignorez)", gI_GhostIgnorez[client] ? "Enabled":"Disabled");
+	FormatEx(sMenu, sizeof(sMenu), "%T", "ToggleIgnorez", client, gB_GhostIgnorez[client] ? "Enabled":"Disabled", client);
 	menu.AddItem("toggleignorez", sMenu, ITEMDRAW_DEFAULT);
 
-	menu.AddItem("option", "Ghost Options");
+	FormatEx(sMenu, sizeof(sMenu), "%T", "GhostOptions", client);
+	menu.AddItem("option", sMenu);
 
 	menu.Display(client, MENU_TIME_FOREVER);
 }
@@ -397,7 +458,7 @@ public int MenuHandler_Ghost(Menu menu, MenuAction action, int param1, int param
 		{
 			gB_Ghost[param1] = !gB_Ghost[param1];
 			SetClientCookieBool(param1, gH_GhostCookie, gB_Ghost[param1]);
-			if (gGM_GhostMode[param1] == GhostMode_Size)
+			if (gGM_GhostMode[param1] == GhostMode_Race)
 			{
 				SynchronizeClientTick(param1);				
 			}
@@ -448,8 +509,8 @@ public int MenuHandler_Ghost(Menu menu, MenuAction action, int param1, int param
 		}
 		else if(StrEqual(sInfo, "toggleignorez", false))
 		{
-			gI_GhostIgnorez[param1] = !gI_GhostIgnorez[param1];
-			SetClientCookieBool(param1, gH_GhostIgnorezCookie, gI_GhostIgnorez[param1]);
+			gB_GhostIgnorez[param1] = !gB_GhostIgnorez[param1];
+			SetClientCookieBool(param1, gH_GhostIgnorezCookie, gB_GhostIgnorez[param1]);
 
 			ShowGhostMenu(param1);
 		}
@@ -477,31 +538,31 @@ public void OnMapStart()
 public void ShowGhostOptionMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_GhostOption);
-	menu.SetTitle("Ghost Options:\n ");
+	menu.SetTitle("%T\n ", "GhostOptionsMenuTitle", client);
 	char sMenu[64];
 	char sColor[32];
 	
 	GetColorName(gI_GhostRouteColor[client], sColor, 32);
-	FormatEx(sMenu, sizeof(sMenu), "Route color: %s\n ", sColor);
+	FormatEx(sMenu, sizeof(sMenu), "%T: %s\n ", "RouteColor", client, sColor);
 	menu.AddItem("routecolor", sMenu, ITEMDRAW_DEFAULT);
 	
-	FormatEx(sMenu, sizeof(sMenu), "＋＋Route width\n Current width: %.1f", gF_RouteWidth[client]);
+	FormatEx(sMenu, sizeof(sMenu), "＋＋%T\n %T", "RouteWidth", client, "CurrentWidth", client, gF_RouteWidth[client]);
 	menu.AddItem("plusroutewidth", sMenu, gF_RouteWidth[client] >= 5.0 ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
-	FormatEx(sMenu, sizeof(sMenu), "－－Route width\n ");
+	FormatEx(sMenu, sizeof(sMenu), "－－%T\n ", "RouteWidth", client);
 	menu.AddItem("minusroutewidth", sMenu, gF_RouteWidth[client] <= 0.1 ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	
-	FormatEx(sMenu, sizeof(sMenu), "Draw jump marker box: %s", gB_DrawBox[client] ? "Enabled":"Disabled");
+	FormatEx(sMenu, sizeof(sMenu), "%T", "JumpMarkerDraw", client, gB_DrawBox[client] ? "Enabled":"Disabled", client);
 	menu.AddItem("drawbox", sMenu, ITEMDRAW_DEFAULT);
 
 	GetColorName(gI_GhostBoxColor[client], sColor, 32);
-	FormatEx(sMenu, sizeof(sMenu), "Jump marker box color: %s\n ", sColor);
+	FormatEx(sMenu, sizeof(sMenu), "%T: %s\n ", "JumpMarkerColor", client, sColor);
 	menu.AddItem("boxcolor", sMenu, ITEMDRAW_DEFAULT);
 
-	FormatEx(sMenu, sizeof(sMenu), "＋＋Jump marker box size\n Current box size: %.1f", gF_GhostBoxSize[client]);
+	FormatEx(sMenu, sizeof(sMenu), "＋＋%T\n %T", "JumpMarkerSize", client, "CurrentJumpMarkerSize", client, gF_GhostBoxSize[client]);
 	menu.AddItem("plusboxsize", sMenu, gF_GhostBoxSize[client] >= 15.0 ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
-	FormatEx(sMenu, sizeof(sMenu), "－－Jump marker box size");
+	FormatEx(sMenu, sizeof(sMenu), "－－%T", "JumpMarkerSize", client);
 	menu.AddItem("minusboxsize", sMenu, gF_GhostBoxSize[client] <= 5.0 ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
 	menu.ExitBackButton = true;
@@ -594,7 +655,7 @@ public bool LoadGhostInfo(int track, int style, int stage)
 	{
 		return false;	
 	}
-		
+
 	gA_GhostInfo[track][style][stage].iPreFrames = Shavit_GetReplayPreFrames(style, track, stage);
 	gA_GhostInfo[track][style][stage].iPostFrames = Shavit_GetReplayPostFrames(style, track, stage);
 	gA_GhostInfo[track][style][stage].iFrameCount = Shavit_GetReplayFrameCount(style, track, stage);
@@ -905,7 +966,7 @@ void DrawBox(int client, float pos[3], float size, int color[4])
 
 void DrawBeam(int client, float startvec[3], float endvec[3], float life, float width, float endwidth, int color[4], float amplitude, int speed) 
 {
-	if(gI_GhostIgnorez[client])
+	if(gB_GhostIgnorez[client])
 	{
 		TE_SetupBeamPoints(startvec, endvec, gI_SpriteIgnorez, 0, 0, 66, life, width, endwidth, 0, amplitude, color, speed);
 		TE_SendToClient(client);
