@@ -407,7 +407,7 @@ public void OnPluginStart()
 	
 	char defaultFlags[16];
 	IntToString(DEFAULT_SPEEDLIMITFLAG, defaultFlags, sizeof(defaultFlags));
-	gCV_DefaultZonePrespeedLimit = new Convar("shavit_zone_defaultzoneprespeedlimit", defaultFlags, "Default Zone prespeed limit settings as a bitflag\nLimit horizental speed				1\nBlock bunnyhop						2\nBlock pre-jump						4\nReduce speed when exceeding limit	8", 0, true, 0.0);
+	gCV_DefaultZonePrespeedLimit = new Convar("shavit_zone_defaultzoneprespeedlimit", defaultFlags, "Default Zone prespeed limit settings as a bitflag\nLimit horizental speed				1\nBlock bunnyhop					2\nBlock pre-jump					4\nReduce speed when exceeding limit			8\nStart timer when vertical speed existed			16", 0, true, 0.0);
 
 	gCV_SQLZones.AddChangeHook(OnConVarChanged);
 	gCV_PrebuiltZones.AddChangeHook(OnConVarChanged);
