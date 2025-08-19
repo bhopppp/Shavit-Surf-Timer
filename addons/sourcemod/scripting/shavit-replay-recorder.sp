@@ -124,12 +124,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPlayerPreFrames", Native_GetPlayerPreFrames);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetStageStartFrames", Native_GetStageStartFrames);
+	CreateNative("Shavit_GetStageReachFrames", Native_GetStageReachFrames);
 	CreateNative("Shavit_GetPlayerFrameOffsets", Native_GetPlayerFrameOffsets);	
 	CreateNative("Shavit_SetPlayerFrameOffsets", Native_SetPlayerFrameOffsets);
 	CreateNative("Shavit_HijackAngles", Native_HijackAngles);
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_SetPlayerPreFrames", Native_SetPlayerPreFrames);
 	CreateNative("Shavit_SetStageStartFrames", Native_SetStageStartFrames);
+	CreateNative("Shavit_SetStageReachFrames", Native_SetStageReachFrames);
 	CreateNative("Shavit_EditReplayFrames", Native_EditReplayFrames);
 
 	if (!FileExists("cfg/sourcemod/plugin.shavit-replay-recorder.cfg") && FileExists("cfg/sourcemod/plugin.shavit-replay.cfg"))
@@ -281,14 +283,16 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
+	gB_RecordingEnabled[client] = false;
+
+	if (gB_GrabbingPostFrames[client][1])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+	}
+
 	if (gB_GrabbingPostFrames[client][0])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
-	}		
-
-	if(gB_GrabbingPostFrames[client][1])
-	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
 	}
 }
 
@@ -358,14 +362,14 @@ public Action Shavit_OnStart(int client)
 		gI_HijackFrames[client] = 0;
 	}
 
+	if (gB_GrabbingPostFrames[client][1])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+	}
+
 	if (gB_GrabbingPostFrames[client][0])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
-	}
-
-	if(gB_GrabbingPostFrames[client][1])
-	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
 	}
 
 	if(gB_DelayClearFrame[client])
@@ -454,14 +458,14 @@ public Action Shavit_OnStageStart(int client, int stage)
 
 public void Shavit_OnStop(int client)
 {
-	if (gB_GrabbingPostFrames[client][0])
-	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
-	}
-
 	if(gB_GrabbingPostFrames[client][1])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+	}
+
+	if (gB_GrabbingPostFrames[client][0])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
 	}
 
 	ClearFrames(client);
@@ -524,6 +528,12 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 
 public Action Timer_PostFrames(Handle timer, int client)
 {
+	if (gB_GrabbingPostFrames[client][1])
+	{
+		gH_PostFramesTimer[client][1] = null;
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+	}
+
 	gH_PostFramesTimer[client][0] = null;
 	FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
 
@@ -533,7 +543,11 @@ public Action Timer_PostFrames(Handle timer, int client)
 public Action Timer_StagePostFrames(Handle timer, int client)
 {
 	gH_PostFramesTimer[client][1] = null;
-	FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+
+	if (gB_GrabbingPostFrames[client][1])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+	}
 
 	return Plugin_Stop;
 }
@@ -635,7 +649,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	bool bShouldEdit = (stage > 1 && !Shavit_IsOnlyStageMode(client));
 
 	ArrayList aSaveFrames = null;
-	ArrayList aFrameOffsets = new ArrayList();
+	ArrayList aFrameOffsets = null;
 	int iPreFrames;
 	int iStartFrame;
 	int iEndFrame;
@@ -644,13 +658,13 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	if (bShouldEdit) // need edit replay
 	{
 		ArrayList aOriginalFrames = view_as<ArrayList>(CloneHandle(gA_PlayerFrames[client]));
+		aFrameOffsets = new ArrayList();
 
 		iPreFrames = CaculateStagePreFrames(client, gI_LastPlayerStageStartFrames[client]);
 		iStartFrame = gI_LastPlayerStageStartFrames[client] - iPreFrames;
 		iEndFrame = gI_PlayerFrames[client];
 		iFrameCount = iEndFrame - iStartFrame;
 		aSaveFrames = EditReplayFrames(iStartFrame, iEndFrame, aOriginalFrames, false);
-
 		saved = SaveReplay(style, track, stage, time, iSteamID, iPreFrames, aSaveFrames, aFrameOffsets, iFrameCount, postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
 	}
 	else
@@ -899,7 +913,7 @@ public ArrayList EditReplayFrames(int start, int end, ArrayList frames, bool pre
 	
 	copy.Resize(iFrameCount);
 
-	for(int i = 0; i < end; i++)
+	for(int i = 0; i < iFrameCount; i++)
 	{
 		iTicks = start + i;
 
@@ -1064,6 +1078,11 @@ public int Native_GetStageStartFrames(Handle handler, int numParams)
 	return gI_PlayerStageStartFrames[GetNativeCell(1)];
 }
 
+public int Native_GetStageReachFrames(Handle handler, int numParams)
+{
+	return gI_StageReachFrame[GetNativeCell(1)];
+}
+
 public int Native_SetPlayerPreFrames(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
@@ -1079,6 +1098,15 @@ public int Native_SetStageStartFrames(Handle handler, int numParams)
 	int frames = GetNativeCell(2);
 
 	gI_PlayerStageStartFrames[client] = frames;
+	return 1;
+}
+
+public int Native_SetStageReachFrames(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int frames = GetNativeCell(2);
+
+	gI_StageReachFrame[client] = frames;
 	return 1;
 }
 
@@ -1167,10 +1195,17 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	ArrayList data = view_as<ArrayList>(GetNativeCell(2));
 	bool cheapCloneHandle = view_as<bool>(GetNativeCell(3));
 
+	if (gB_GrabbingPostFrames[client][1])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1]);
+	}
+
 	if (gB_GrabbingPostFrames[client][0])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0]);
 	}
+
+	gB_RecordingEnabled[client] = true;
 
 	if (cheapCloneHandle)
 	{

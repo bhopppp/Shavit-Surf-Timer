@@ -2744,7 +2744,18 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			int used_cells = (info.aCache.iReplayVersion >= 0x02) ? ((info.aCache.iReplayVersion >= 0x0A) ? 11 : 8) : 6;
 
 			frame_t aFrame;
-			info.aCache.aFrames.GetArray(info.iTick, aFrame, used_cells);
+
+			if (info.iTick >= info.aCache.aFrames.Length)
+			{
+				
+				LogError("Timer (Replay Playback) Playing tick of replaybot out of frame array index.");
+				UnloadReplay(info.iStyle, info.iTrack, info.iStage, true, true);
+			}
+			else
+			{
+				info.aCache.aFrames.GetArray(info.iTick, aFrame, used_cells);
+			}
+			
 			buttons = aFrame.buttons;
 
 			int cacheidx = GetBotInfoIndex(info.iEnt);

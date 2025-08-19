@@ -835,6 +835,7 @@ void LoadPersistentData(int serial)
 void DeleteCheckpointCache(cp_cache_t cache)
 {
 	delete cache.aFrames;
+	delete cache.aFrameOffsets;
 	delete cache.aEvents;
 	delete cache.aOutputWaits;
 	delete cache.customdata;
@@ -1767,6 +1768,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 
 		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
 		cpcache.iStageStartFrames = Shavit_GetStageStartFrames(target);
+		cpcache.iStageReachFrames = Shavit_GetStageReachFrames(target);
 	}
 
 	if (gB_Eventqueuefix && !IsFakeClient(target))
@@ -2022,6 +2024,7 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		Shavit_SetPlayerFrameOffsets(client, cpcache.aFrameOffsets, isPersistentData);
 		Shavit_SetPlayerPreFrames(client, cpcache.iPreFrames);
 		Shavit_SetStageStartFrames(client, cpcache.iStageStartFrames);
+		Shavit_SetStageReachFrames(client, cpcache.iStageReachFrames);
 	}
 
 	if (gB_Eventqueuefix && cpcache.aEvents != null && cpcache.aOutputWaits != null)

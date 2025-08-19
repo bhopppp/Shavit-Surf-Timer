@@ -125,6 +125,25 @@ native int Shavit_GetStageStartFrames(int client);
  */
 native void Shavit_SetStageStartFrames(int client, int frames);
 
+/*
+ * Gets player's first recording frame that entered current stage zone.
+ *
+ * @param client                    Client index
+ *
+ * @return						  	Latest recording framee when stage timer start
+ */
+native int Shavit_GetStageReachFrames(int client);
+
+/*
+ * Sets player's first recording frame that entered current stage zone.
+ *
+ * @param client                    Client index
+ * @param frames                    Number of frame to set
+ *
+ * @noreturn
+ */
+native void Shavit_SetStageReachFrames(int client, int frames);
+
 /**
  * Retrieves a player's frame offsets.
  *
