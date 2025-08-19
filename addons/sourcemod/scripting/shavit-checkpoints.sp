@@ -1712,21 +1712,23 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		snapshot.fplayer_speedmod = 1.0;
 		snapshot.iLastStage = Shavit_GetReplayBotCurrentStage(target);
 
-		snapshot.aStageStartInfo.fStageStartTime = 0.0;
-		snapshot.aStageStartInfo.iFullTicks = 0;
-		snapshot.aStageStartInfo.iFractionalTicks = 0;
-		snapshot.aStageStartInfo.iJumps = 0;
-		snapshot.aStageStartInfo.iStrafes = 0;
-		snapshot.aStageStartInfo.iGoodGains = 0;
-		snapshot.aStageStartInfo.iTotalMeasures = 0;
-
 		snapshot.bStageTimeValid = false;
 		snapshot.bOnlyStageMode = Shavit_GetReplayBotStage(target) > 0 ? true : false;
 
 		float ticks = float(Shavit_GetReplayBotRealTick(target) - Shavit_GetReplayCachePreFrames(target));
 		float fraction = FloatFraction(ticks);
 		snapshot.iFullTicks = RoundFloat(ticks-fraction);
+		snapshot.iZoneIncrement = snapshot.iFullTicks;
 		snapshot.iFractionalTicks = RoundFloat(fraction * 10000.0);
+
+		snapshot.aStageStartInfo.fStageStartTime = 0.0;
+		snapshot.aStageStartInfo.iFullTicks = snapshot.iFullTicks;
+		snapshot.aStageStartInfo.iZoneIncrement = snapshot.iFullTicks;
+		snapshot.aStageStartInfo.iFractionalTicks = snapshot.iFractionalTicks;
+		snapshot.aStageStartInfo.iJumps = 0;
+		snapshot.aStageStartInfo.iStrafes = 0;
+		snapshot.aStageStartInfo.iGoodGains = 0;
+		snapshot.aStageStartInfo.iTotalMeasures = 0;
 
 		cpcache.fSpeed = Shavit_GetStyleSettingFloat(snapshot.bsStyle, "timescale") * Shavit_GetStyleSettingFloat(snapshot.bsStyle, "speed");
 		ScaleVector(cpcache.fVelocity, 1 / cpcache.fSpeed);
