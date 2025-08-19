@@ -2045,13 +2045,13 @@ void VelocityChanges(int data)
 
 	float fSpeedLimit = GetStyleSettingFloat(gA_Timers[client].bsStyle, "velocity_limit");
 
+	if (gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, -1))
+	{
+		fSpeedLimit = gF_ZoneSpeedLimit[client];
+	}
+
 	if (fSpeedLimit > 0.0)
 	{
-		if (gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, -1))
-		{
-			fSpeedLimit = gF_ZoneSpeedLimit[client];
-		}
-
 		float fSpeed_New = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
 
 		if (fSpeedLimit != 0.0 && fSpeed_New > 0.0)
@@ -2067,7 +2067,10 @@ void VelocityChanges(int data)
 	}
 
 	if (fAbsOrig[0] == fAbsVelocity[0] && fAbsOrig[1] == fAbsVelocity[1] && fAbsOrig[2] == fAbsVelocity[2])
-		return;
+	{
+		return;		
+	}
+
 
 	if(!gCV_VelocityTeleport.BoolValue)
 	{
@@ -3863,7 +3866,6 @@ public void CheckClientStartVelocity(int client, bool stagestart)
 		if(gCV_PrestrafeZone.IntValue == 2)
 		{
 			bZoneLimited = gA_Timers[client].bOnlyStageMode || !((iSpeedLimitFlags & ZSLF_LimitSpeed) > 0 || (iSpeedLimitFlags & ZSLF_ReduceSpeed) > 0);
-
 		}
 		else if(gCV_PrestrafeZone.IntValue == 3)
 		{
