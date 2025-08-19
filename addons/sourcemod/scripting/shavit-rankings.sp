@@ -704,22 +704,22 @@ public void PrintMapInfo(int client, const char[] map)
 
 	if(mapinfo.iType == 1)
 	{
-		FormatEx(sType, 16, "Staged");
-		FormatEx(sStageInfo, 16, "%d Stages", mapinfo.iStages);
+		FormatEx(sType, 16, "%T", "MapTypeStaged", client);
+		FormatEx(sStageInfo, 16, "%T", "MapInfoStageCountMultiple", client, mapinfo.iStages);
 	}
 	else
 	{
-		FormatEx(sType, 16, "Linear");
-		FormatEx(sStageInfo, 16, "%d Checkpoint%s", mapinfo.iCheckpoints, mapinfo.iCheckpoints > 2 ? "s":"");
+		FormatEx(sType, 16, "%T", "MapTypeLinear", client);
+		FormatEx(sStageInfo, 16, "%T", mapinfo.iCheckpoints > 1 ? "MapInfoCheckpointCountMultiple":"MapInfoCheckpointCountSingle", client, mapinfo.iCheckpoints);
 	}
 
 	char sTrackInfo[32];
-	FormatEx(sTrackInfo, 32, "%d Bonus%s", mapinfo.iBonuses, mapinfo.iBonuses > 1 ? "es":"");
+	FormatEx(sTrackInfo, 32, "%T", mapinfo.iBonuses > 1 ? "MapInfoBonusCountMultiple":"MapInfoBonusCountSingle", client, mapinfo.iBonuses);
 
 	char sTier[8];
-	FormatEx(sTier, 8, "Tier %d", mapinfo.iTier);
+	FormatEx(sTier, 8, "%T", "MapInfoTier", client, mapinfo.iTier);
 
-	Shavit_PrintToChat(client, "Map: %s%s%s - %s | %s%s%s | %s%s%s | %s%s%s |",
+	Shavit_PrintToChat(client, "%T", "MapInfo", client,
 		gS_ChatStrings.sVariable2, map, gS_ChatStrings.sText, sType,
 		gS_ChatStrings.sVariable, sTier, gS_ChatStrings.sText,
 		gS_ChatStrings.sVariable, sStageInfo, gS_ChatStrings.sText,
@@ -840,9 +840,12 @@ public Action Command_SetMaxVelocity(int client, int args)
 		}
 	}
 
-	for(int i = 0; i < MaxClients; i++)
+	for(int i = 1; i <= MaxClients; i++)
 	{
-		Shavit_PrintToChat(i, "%T", "SetMaxVelocity", i, gS_ChatStrings.sVariable2, fOldMaxVelocity, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, fMaxVelocity, gS_ChatStrings.sText);
+		if(IsValidClient(i))
+		{
+			Shavit_PrintToChat(i, "%T", "SetMaxVelocity", i, gS_ChatStrings.sVariable2, fOldMaxVelocity, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, fMaxVelocity, gS_ChatStrings.sText);
+		}
 	}
 	
 	Shavit_LogMessage("%L - set sv_maxvelocity of `%s` to %f", client, gS_Map, fMaxVelocity);
@@ -950,7 +953,14 @@ public Action Command_SetTier(int client, int args)
 	Call_PushCell(tier);
 	Call_Finish();
 
-	Shavit_PrintToChat(client, "%T", "SetTier", client, gS_ChatStrings.sVariable, map, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsValidClient(i) && !IsFakeClient(i))
+		{
+			Shavit_PrintToChat(i, "%T", "SetTier", i, gS_ChatStrings.sVariable, map, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
+		}
+	}
+
 	Shavit_LogMessage("%L - set tier of `%s` to %d", client, map, tier);
 
 	char sQuery[512];
@@ -988,7 +998,14 @@ public int SetMapTier_MatchesMenuHandler(Menu menu, MenuAction action, int param
 		Call_PushCell(tier);
 		Call_Finish();
 
-		Shavit_PrintToChat(param1, "%T", "SetTier", param1, gS_ChatStrings.sVariable, sExploded[0], gS_ChatStrings.sText, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if((IsValidClient(i) && !IsFakeClient(i)))
+			{
+				Shavit_PrintToChat(i, "%T", "SetTier", i, gS_ChatStrings.sVariable, sExploded[0], gS_ChatStrings.sText, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
+			}
+		}
+		
 		Shavit_LogMessage("%L - set tier of `%s` to %d", param1, sExploded[0], tier);
 
 		char sQuery[512];
