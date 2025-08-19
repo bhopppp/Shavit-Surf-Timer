@@ -1730,7 +1730,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 
 		cpcache.fSpeed = Shavit_GetStyleSettingFloat(snapshot.bsStyle, "timescale") * Shavit_GetStyleSettingFloat(snapshot.bsStyle, "speed");
 		ScaleVector(cpcache.fVelocity, 1 / cpcache.fSpeed);
-		cpcache.fGravity = Shavit_GetStyleSettingFloat(target, "gravity");
+		cpcache.fGravity = Shavit_GetStyleSettingFloat(snapshot.bsStyle, "gravity");
 	}
 	else
 	{
