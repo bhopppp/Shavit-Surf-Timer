@@ -178,6 +178,14 @@ public void OnMapStart()
 			gA_PersisReplayInfo.GetArray(i, aData);
 			DeletePersistentData(i, aData, true);
 		}
+
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			for(int j = 0; j < MAX_REPLAY; j++)
+			{
+				ResetReplayData(gA_ReplayInfo[i][j], true);
+			}			
+		}
 	}
 }
 
