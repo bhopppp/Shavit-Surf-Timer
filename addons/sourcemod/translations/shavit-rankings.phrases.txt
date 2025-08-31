@@ -74,4 +74,23 @@
 	{
 		"en"		"No ranked players found."
 	}
+	"TopWRHolderStyleMenuTitle"
+	{
+		"en"		"Choose a style:"
+	}
+	"TopMapWRHolders"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"Top Map Record Holders ({1}) - {2}"
+	}
+	"TopBonusWRHolders"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"Top Bonus Record Holders ({1}) - {2}"
+	}
+	"TopStageWRHolders"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"Top Stage Record Holders ({1}) - {2}"
+	}
 }

@@ -115,10 +115,14 @@ ranking_t gA_Rankings[MAXPLAYERS+1];
 int gI_RankedPlayers = 0;
 Menu gH_Top100Menu = null;
 
+Menu gH_TopWRHolderMenu[3][STYLE_LIMIT];
+
+
 Handle gH_Forwards_OnTierAssigned = null;
 Handle gH_Forwards_OnRankAssigned = null;
 
 // Timer settings.
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 float gF_MaxVelocity;
@@ -127,7 +131,8 @@ bool gB_WorldRecordsCached = false;
 bool gB_WRHolderTablesMade = false;
 bool gB_WRHoldersRefreshed = false;
 bool gB_WRHoldersRefreshedTimer = false;
-int gI_WRHolders[2][STYLE_LIMIT];
+bool gB_TopWRHoldersMenuMade = false;
+int gI_WRHolders[3][STYLE_LIMIT];
 int gI_WRHoldersAll;
 int gI_WRHoldersCvar;
 
@@ -174,6 +179,18 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_rank", Command_Rank, "Show your or someone else's rank. Usage: sm_rank [name]");
 	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players.");
+
+	RegConsoleCmd("sm_wrholder", Command_TopWRHolders, "Show the top map world record holders");
+	RegConsoleCmd("sm_topwr", Command_TopWRHolders, "Show the top map world record holders");
+	RegConsoleCmd("sm_topworldrecord", Command_TopWRHolders, "Show the top map world record holders");
+
+	RegConsoleCmd("sm_topwrb", Command_TopWRHolders, "Show the top bonus world record holders");
+	RegConsoleCmd("sm_topbwr", Command_TopWRHolders, "Show the top bonus world record holders");
+	RegConsoleCmd("sm_bwrholder", Command_TopWRHolders, "Show the top bonus world record holders");
+
+	RegConsoleCmd("sm_wrcpholder", Command_TopWRHolders, "Show the top stage world record holders");
+	RegConsoleCmd("sm_topwrcp", Command_TopWRHolders, "Show the top stage world record holders");
+	RegConsoleCmd("sm_topswr", Command_TopWRHolders, "Show the top stage world record holders");
 
 	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_settier <tier> [map]");
 	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_setmaptier <tier> [map] (sm_settier alias)");
@@ -244,6 +261,11 @@ public void Shavit_OnChatConfigLoaded()
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
 	gI_Styles = styles;
+
+	for(int i = 0; i < styles; i++)
+	{
+		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -327,18 +349,23 @@ public void OnMapStart()
 		return;
 	}
 
-	if (gB_WRHolderTablesMade && !gB_WRHoldersRefreshed)
+	if (gB_WRHolderTablesMade)
 	{
-		RefreshWRHolders();
-	}
+		if(!gB_WRHoldersRefreshed)
+		{
+			RefreshWRHolders();			
+		}
 
-	// do NOT keep running this more than once per map, as UpdateAllPoints() is called after this eventually and locks up the database while it is running
-	if (gB_TierQueried)
-	{
-		return;
-	}
+		if(!gB_TierQueried)
+		{
+			RefreshMapSettings("");
+		}
 
-	RefreshMapSettings("");
+		if(!gB_TopWRHoldersMenuMade)
+		{
+			UpdateTopWRHolderMenus();			
+		}
+	}
 
 	if (gB_SqliteHatesPOW)
 	{
@@ -485,10 +512,20 @@ public void OnMapEnd()
 	gB_WRHoldersRefreshed = false;
 	gB_WRHoldersRefreshedTimer = false;
 	gB_WorldRecordsCached = false;
+	gB_TopWRHoldersMenuMade = false;
 }
 
 public void Shavit_OnWRDeleted(int style, int id, int track, int stage, int accountid, const char[] mapname)
 {
+	if(track >= Track_Bonus)
+	{
+		UpdateTopWRHolderMenu(1, style);
+	}
+	else
+	{
+		UpdateTopWRHolderMenu(stage == 0 ? 0:2, style);
+	}
+
 	if (!StrEqual(gS_Map, mapname))
 	{
 		return;
@@ -784,6 +821,90 @@ public Action Command_Top(int client, int args)
 	}
 
 	return Plugin_Handled;
+}
+
+public Action Command_TopWRHolders(int client, int args)
+{
+	if(!IsValidClient(client) || IsFakeClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
+
+	if(StrContains(sCommand, "cp", false) != -1 || StrContains(sCommand, "s", false) != -1)
+	{
+		CreateTopWRHolderStyleMenu(client, 2);
+	}
+	else if(StrContains(sCommand, "b", false) != -1)
+	{
+		CreateTopWRHolderStyleMenu(client, 1);
+	}
+	else
+	{
+		CreateTopWRHolderStyleMenu(client, 0);
+	}
+
+	return Plugin_Handled;
+}
+
+public void CreateTopWRHolderStyleMenu(int client, int type)
+{
+	Menu menu = new Menu(MenuHandler_TopWRHolderStyle);
+	menu.SetTitle("%T\n ", "TopWRHolderStyleMenuTitle", client);
+
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = styles[i];
+
+		if(Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
+		{
+			continue;
+		}
+
+		char sInfo[8];
+		FormatEx(sInfo, sizeof(sInfo), "%d;%d", type, iStyle);
+
+		char sDisplay[64];
+		strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
+
+		menu.AddItem(sInfo, sDisplay, (gH_TopWRHolderMenu[type][iStyle] != null) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_TopWRHolderStyle(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[32];
+		menu.GetItem(param2, sInfo, 32);
+
+		char sExploded[2][8];
+		ExplodeString(sInfo, ";", sExploded, 2, 8);
+
+		int type = StringToInt(sExploded[0]);
+		int style = StringToInt(sExploded[1]);
+
+		if(gH_TopWRHolderMenu[type][style] != null)
+		{
+			gH_TopWRHolderMenu[type][style].SetTitle("%T\n ", 
+			type == 0 ? "TopMapWRHolders":type == 1 ? "TopBonusWRHolders":"TopStageWRHolders", param1, gI_WRHolders[type][style], gS_StyleStrings[style].sStyleName);
+
+			gH_TopWRHolderMenu[type][style].Display(param1, MENU_TIME_FOREVER);
+		}
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
 }
 
 public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
@@ -1494,6 +1615,11 @@ public void Trans_OnReallyRecalcFail(Database db, any data, int numQueries, cons
 
 public void Shavit_OnFinishStage_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
 {
+	if (rank == 1)
+	{
+		UpdateTopWRHolderMenu(2, style);		
+	}
+
 	if (Shavit_GetStyleSettingBool(style, "unranked") || Shavit_GetStyleSettingFloat(style, "rankingmultiplier") == 0.0)
 	{
 		return;
@@ -1518,6 +1644,11 @@ public void Shavit_OnFinishStage_Post(int client, int style, float time, int jum
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
 {
+	if (rank == 1)
+	{
+		UpdateTopWRHolderMenu(track == Track_Main ? 0:1, style);
+	}
+
 	if (Shavit_GetStyleSettingBool(style, "unranked") || Shavit_GetStyleSettingFloat(style, "rankingmultiplier") == 0.0)
 	{
 		return;
@@ -1749,6 +1880,93 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 	}
 }
 
+void UpdateTopWRHolderMenus()
+{
+	ResetTopWRHolderMenus();
+
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), 
+		"SELECT 0 AS type, r.wrrank, r.wrcount, r.style, r.auth, u.name FROM %swrhrankmain r LEFT JOIN %susers u ON r.auth = u.auth "...
+		"UNION ALL SELECT 1 AS type, r.wrrank, r.wrcount, r.style, r.auth, u.name FROM %swrhrankbonus r LEFT JOIN %susers u ON r.auth = u.auth "...
+		"UNION ALL SELECT 2 AS type, r.wrrank, r.wrcount, r.style, r.auth, u.name FROM %swrhrankstages r LEFT JOIN %susers u ON r.auth = u.auth;",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+
+	QueryLog(gH_SQL, SQL_UpdateTopWRHolders_Callback, sQuery, 0, DBPrio_Low);
+}
+
+void UpdateTopWRHolderMenu(int type, int style)
+{
+	delete gH_TopWRHolderMenu[type][style];
+
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), 
+		"SELECT %d AS type, r.wrrank, r.wrcount, r.style, r.auth, u.name FROM %s%s r LEFT JOIN %susers u ON r.auth = u.auth WHERE r.style = %d;",
+		type, gS_MySQLPrefix, type == 0 ? "wrhrankmain": type == 1 ? "wrhrankbonus":"wrhrankstages", gS_MySQLPrefix, style);
+
+	QueryLog(gH_SQL, SQL_UpdateTopWRHolders_Callback, sQuery, 0, DBPrio_Low);
+}
+
+public void SQL_UpdateTopWRHolders_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings, update top record holder) error! Reason: %s", error);
+
+		return;
+	}
+
+	int iLastType = -1;
+	int iLastStyle = -1;
+
+	while(results.FetchRow())
+	{
+		int type = results.FetchInt(0);
+		int ranks = results.FetchInt(1);
+		int counts = results.FetchInt(2);
+		int style = results.FetchInt(3);
+
+		if(Shavit_GetStyleSettingInt(style, "enabled") == -1)
+		{
+			continue;
+		}
+
+		if((iLastType != type) || (iLastStyle != style))
+		{
+			gH_TopWRHolderMenu[type][style] = new Menu(MenuHandler_Top);
+			gH_TopWRHolderMenu[type][style].ExitButton = true;	
+		}
+
+		char sSteamID[32];
+		results.FetchString(4, sSteamID, 32);
+
+		char sName[32+1];
+		results.FetchString(5, sName, sizeof(sName));
+
+		char sDisplay[64];
+		FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s (%d)", ranks, sName, counts);
+
+		gH_TopWRHolderMenu[type][style].AddItem(sSteamID, sDisplay);
+
+		iLastType = type;
+		iLastStyle = style;
+	}
+
+	gB_TopWRHoldersMenuMade = true;
+}
+
+void ResetTopWRHolderMenus()
+{
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < gI_Styles; j++)
+		{
+			delete gH_TopWRHolderMenu[i][j];
+		}
+	}
+
+	gB_TopWRHoldersMenuMade = false;
+}
+
 void UpdateTop100()
 {
 	char sQuery[512];
@@ -1890,7 +2108,7 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 			SELECT \
 			0 as wrrank, \
 			style, auth, COUNT(auth) as wrcount \
-			FROM %swrs WHERE track %c 0 GROUP BY style, auth;";
+			FROM %swrs WHERE track %c 0 GROUP BY style, auth ORDER BY style ASC, wrrank ASC;";
 
 	char sWRHolderRankTrackQueryRANK[] =
 		"%s %s%s AS \
@@ -1898,14 +2116,14 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 				RANK() OVER(PARTITION BY style ORDER BY COUNT(auth) DESC, auth ASC) \
 			as wrrank, \
 			style, auth, COUNT(auth) as wrcount \
-			FROM %swrs WHERE track %c 0 GROUP BY style, auth;";
+			FROM %swrs WHERE track %c 0 GROUP BY style, auth ORDER BY style ASC, wrrank ASC;";
 
 	char sStageWRHolderRankTrackQueryYuck[] =
 			"%s %s%s AS \
 			SELECT \
 			0 as wrrank, \
 			style, auth, COUNT(auth) as wrcount \
-			FROM %sstagewrs WHERE GROUP BY style, auth;";
+			FROM %sstagewrs WHERE GROUP BY style, auth ORDER BY style ASC, wrrank ASC;";
 
 	char sStageWRHolderRankTrackQueryRANK[] =
 		"%s %s%s AS \
@@ -1913,7 +2131,7 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 				RANK() OVER(PARTITION BY style ORDER BY COUNT(auth) DESC, auth ASC) \
 			as wrrank, \
 			style, auth, COUNT(auth) as wrcount \
-			FROM %sstagewrs GROUP BY style, auth;";
+			FROM %sstagewrs GROUP BY style, auth ORDER BY style ASC, wrrank ASC;";
 
 	char sWRHolderRankOtherQueryYuck[] =
 		"%s %s%s AS \
@@ -2023,7 +2241,9 @@ public void Trans_WRHolderRankTablesSuccess(Database db, any data, int numQuerie
 		}
 	}
 
+	RefreshMapSettings("");
 	RefreshWRHolders();
+	UpdateTopWRHolderMenus();
 }
 
 public void SQL_DisableFullGroupBy_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2062,9 +2282,10 @@ void RefreshWRHoldersActually()
 		FormatEx(sQuery, sizeof(sQuery),
 			"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM %swrhrankmain GROUP BY style \
 			UNION SELECT 0 as type, 1 as track, style, COUNT(DISTINCT auth) FROM %swrhrankbonus GROUP BY style \
+			UNION SELECT 0 as type, 2 as track, style, COUNT(DISTINCT auth) FROM %swrhrankstages GROUP BY style \
 			UNION SELECT 1 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrhrankall \
 			UNION SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrhrankcvar;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 	else
 	{
