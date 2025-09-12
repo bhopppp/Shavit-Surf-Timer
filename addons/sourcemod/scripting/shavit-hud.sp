@@ -2385,6 +2385,11 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 void UpdateKeyHint(int client, bool force = false)
 {
+	if ((gI_HUDSettings[client] & HUD_MASTER) == 0)
+	{
+		return;
+	}
+
 	if ((gI_Cycle % 20) != 0 && !force)
 	{
 		return;			
