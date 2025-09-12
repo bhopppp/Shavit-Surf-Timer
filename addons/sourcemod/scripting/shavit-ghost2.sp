@@ -711,7 +711,7 @@ public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, i
 		gA_GhostInfo[track][style][stage].iPostFrames = postframes;
 		gA_GhostInfo[track][style][stage].iFrameCount = frames.Length - preframes - postframes;
 		gA_GhostInfo[track][style][stage].fTime = time;
-		gA_GhostInfo[track][style][stage].hClosestPos = new ClosestPos(frames, 0, 0, gA_GhostInfo[track][style][stage].iFrameCount);		
+		gA_GhostInfo[track][style][stage].hClosestPos = new ClosestPos(frames, 0, gA_GhostInfo[track][style][stage].iPreFrames, gA_GhostInfo[track][style][stage].iFrameCount);	
 	}
 }
 
