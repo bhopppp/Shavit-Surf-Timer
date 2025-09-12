@@ -538,7 +538,7 @@ native int Shavit_GetZoneSpeedLimitFlags(int zoneid);
  * @param track                    	Timer track.
  * @return                          Int value, bit flag of zone speed limit.
  */
-native int Shavit_GetTrackSpeedLimitFlags(int zoneid);
+native int Shavit_GetTrackSpeedLimitFlags(int track);
 
 /**
  * Sets the player's current location as their spawn location for the specified track.
