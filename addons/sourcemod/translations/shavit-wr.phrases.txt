@@ -290,6 +290,10 @@
 	{
 		"en"		"Map finished"
 	}
+	"CheckpointTotalTime"
+	{
+		"en"		"Total time"
+	}
 	"StageFinishTime"
 	{
 		"#format"	"{1:d}"

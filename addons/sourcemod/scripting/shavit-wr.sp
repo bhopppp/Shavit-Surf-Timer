@@ -316,7 +316,7 @@ public void AdminMenu_DeleteStage(Handle topmenu, TopMenuAction action, TopMenuO
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "DeleteSingleStageRecord", param);
+		FormatEx(buffer, maxlength, "%T", "DeleteSingleStageRecord", param);
 	}
 	else if(action == TopMenuAction_SelectOption)
 	{
@@ -328,7 +328,7 @@ public void AdminMenu_DeleteAllStage(Handle topmenu, TopMenuAction action, TopMe
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "DeleteAllStageRecords", param);
+		FormatEx(buffer, maxlength, "%T", "DeleteAllStageRecords", param);
 	}
 	else if(action == TopMenuAction_SelectOption)
 	{
@@ -340,7 +340,7 @@ public void AdminMenu_Delete(Handle topmenu, TopMenuAction action, TopMenuObject
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "DeleteSingleRecord", param);
+		FormatEx(buffer, maxlength, "%T", "DeleteSingleRecord", param);
 	}
 	else if(action == TopMenuAction_SelectOption)
 	{
@@ -352,7 +352,7 @@ public void AdminMenu_DeleteAll(Handle topmenu,  TopMenuAction action, TopMenuOb
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "DeleteAllRecords", param);
+		FormatEx(buffer, maxlength, "%T", "DeleteAllRecords", param);
 	}
 	else if(action == TopMenuAction_SelectOption)
 	{
@@ -4695,7 +4695,7 @@ public void SQL_CheckpointRecordsComparisonMenu_Callback(Database db, DBResultSe
 		if(fMapTime[0] == fTime[0][i])
 		{
 			FormatEx(sMenuItem, sizeof(sMenuItem), "%T | %T: %s (%s%s)",
-				"CheckpointFinish", client, "CheckpointReachTime", client, sTime, fCPTimeDiff > 0.0 ? "+":"", sTimeDiff);
+				"CheckpointFinish", client, "CheckpointTotalTime", client, sTime, fCPTimeDiff > 0.0 ? "+":"", sTimeDiff);
 		}
 		else
 		{
