@@ -52,6 +52,10 @@
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 
+#define MENUTYPE_WRHOLDERS 0
+#define MENUTYPE_WRBHOLDERS 1
+#define MENUTYPE_WRCPHOLDERS 2
+
 #pragma newdecls required
 #pragma semicolon 1
 
@@ -190,7 +194,6 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_wrcpholder", Command_TopWRHolders, "Show the top stage world record holders");
 	RegConsoleCmd("sm_topwrcp", Command_TopWRHolders, "Show the top stage world record holders");
-	RegConsoleCmd("sm_topswr", Command_TopWRHolders, "Show the top stage world record holders");
 
 	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_settier <tier> [map]");
 	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_setmaptier <tier> [map] (sm_settier alias)");
@@ -833,17 +836,17 @@ public Action Command_TopWRHolders(int client, int args)
 	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
-	if(StrContains(sCommand, "cp", false) != -1 || StrContains(sCommand, "s", false) != -1)
+	if(StrContains(sCommand, "cp", false) != -1)
 	{
-		CreateTopWRHolderStyleMenu(client, 2);
+		CreateTopWRHolderStyleMenu(client, MENUTYPE_WRCPHOLDERS);
 	}
 	else if(StrContains(sCommand, "b", false) != -1)
 	{
-		CreateTopWRHolderStyleMenu(client, 1);
+		CreateTopWRHolderStyleMenu(client, MENUTYPE_WRBHOLDERS);
 	}
 	else
 	{
-		CreateTopWRHolderStyleMenu(client, 0);
+		CreateTopWRHolderStyleMenu(client, MENUTYPE_WRHOLDERS);
 	}
 
 	return Plugin_Handled;
@@ -894,7 +897,7 @@ public int MenuHandler_TopWRHolderStyle(Menu menu, MenuAction action, int param1
 		if(gH_TopWRHolderMenu[type][style] != null)
 		{
 			gH_TopWRHolderMenu[type][style].SetTitle("%T\n ", 
-			type == 0 ? "TopMapWRHolders":type == 1 ? "TopBonusWRHolders":"TopStageWRHolders", param1, gI_WRHolders[type][style], gS_StyleStrings[style].sStyleName);
+			type == MENUTYPE_WRHOLDERS ? "TopMapWRHolders":type == MENUTYPE_WRBHOLDERS ? "TopBonusWRHolders":"TopStageWRHolders", param1, gI_WRHolders[type][style], gS_StyleStrings[style].sStyleName);
 
 			gH_TopWRHolderMenu[type][style].Display(param1, MENU_TIME_FOREVER);
 		}
