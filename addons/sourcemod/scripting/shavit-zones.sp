@@ -2766,29 +2766,34 @@ public Action Command_Stages(int client, int args)
 			Shavit_StopTimer(client);
 			Shavit_SetClientLastStage(client, iStage);
 			Shavit_SetOnlyStageMode(client, true);
-			Shavit_RestartTimer(client, Track_Main, (iStage == 1), false);
-			
-			return Plugin_Handled;			
+			Shavit_RestartTimer(client, Track_Main, (iStage == 1), false);	
 		}
 		else	// client use sm_back here
 		{
-			if(iIndex != -1)
+			if(iIndex == -1)
 			{
-				if (!EmptyVector(gA_ZoneCache[iIndex].fDestination))
-				{
-					TeleportEntity(client, gA_ZoneCache[iIndex].fDestination, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-					return Plugin_Handled;	
-				}
-				else
-				{
-					float fCenter[3];
-					fCenter[0] = gV_ZoneCenter[iIndex][0];
-					fCenter[1] = gV_ZoneCenter[iIndex][1];
-					fCenter[2] = gA_ZoneCache[iIndex].fCorner1[2] + gCV_ExtraSpawnHeight.FloatValue + 1.0;
+				return Plugin_Handled;
+			}
 
-					TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-					return Plugin_Handled;	
-				}
+			if(Shavit_IsOnlyStageMode(client))
+			{
+				Shavit_StopTimer(client);
+				Shavit_SetClientLastStage(client, iStage);
+				Shavit_SetOnlyStageMode(client, true);
+				Shavit_RestartTimer(client, Track_Main, (iStage == 1), false);
+			}
+			else if (!EmptyVector(gA_ZoneCache[iIndex].fDestination))
+			{
+				TeleportEntity(client, gA_ZoneCache[iIndex].fDestination, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			}
+			else
+			{
+				float fCenter[3];
+				fCenter[0] = gV_ZoneCenter[iIndex][0];
+				fCenter[1] = gV_ZoneCenter[iIndex][1];
+				fCenter[2] = gA_ZoneCache[iIndex].fCorner1[2] + gCV_ExtraSpawnHeight.FloatValue + 1.0;
+
+				TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			}
 		}
 	}
