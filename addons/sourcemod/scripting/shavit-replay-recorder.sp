@@ -287,12 +287,12 @@ public void OnClientDisconnect(int client)
 
 	if (gB_GrabbingPostFrames[client][1])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1, true);
 	}
 
 	if (gB_GrabbingPostFrames[client][0])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0, true);
 	}
 }
 
@@ -364,12 +364,12 @@ public Action Shavit_OnStart(int client)
 
 	if (gB_GrabbingPostFrames[client][1])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1, true);
 	}
 
 	if (gB_GrabbingPostFrames[client][0])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0, true);
 	}
 
 	if(gB_DelayClearFrame[client])
@@ -431,21 +431,28 @@ public Action Shavit_OnStart(int client)
 	return Plugin_Continue;
 }
 
-public Action Shavit_OnStageStart(int client, int stage)
+public Action Shavit_OnStageStart(int client, int stage, bool restart, bool first)
 {
-	if(!gB_TrimFailureFrames)
-	{
-		return Plugin_Continue;
-	}
-
 	if (Shavit_IsPracticeMode(client))
 	{
 		return Plugin_Continue;
 	}
 
+	if(gB_TrimFailureFrames && restart && !first) // keeps the frame original if player one shots this stage
+	{
+		if(gI_StageReachFrame[client] != gI_PlayerFrames[client] 
+		&& gI_PlayerFrames[client] - gI_PlayerStageStartFrames[client] > gI_FailureThresholdTick) // do not cut the frame if player reentered start while prespeeding
+		{	
+			gI_PlayerFrames[client] = gI_StageReachFrame[client];
+
+			int offset = gI_RealFrameCount[client] - gI_PlayerFrames[client];
+			gA_FrameOffsets[client].Set(stage, offset);
+		}
+	}
+
 	gI_PlayerStageStartFrames[client] = gI_PlayerFrames[client];
 
-	if(gB_TrimAFKFrames && gI_AFKTickCount[client] > gI_AFKThresholdTick)
+	if(gB_TrimAFKFrames && !restart && gI_AFKTickCount[client] > gI_AFKThresholdTick)
 	{
 		gI_PlayerFrames[client] = gI_StageReachFrame[client];
 
@@ -460,12 +467,12 @@ public void Shavit_OnStop(int client)
 {
 	if(gB_GrabbingPostFrames[client][1])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1, true);
 	}
 
 	if (gB_GrabbingPostFrames[client][0])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0, true);
 	}
 
 	ClearFrames(client);
@@ -495,47 +502,16 @@ public void Shavit_OnReachNextStage(int client, int track, int startStage, int e
 	}
 }
 
-public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
-{
-	if(!gB_TrimFailureFrames || type != Zone_Stage)
-	{
-		return;
-	}
-
-	if(Shavit_IsPracticeMode(client) || Shavit_GetTimerStatus(client) != Timer_Running || Shavit_IsOnlyStageMode(client))
-	{
-		return;
-	}
-
-	if(Shavit_GetClientTrack(client) == track && track == Track_Main && Shavit_GetClientLastStage(client) == data)
-	{
-		if(gI_StageReachFrame[client] == gI_PlayerFrames[client])	// keep the frame original if player one shots this stage
-		{
-			return;
-		}
-
-		if(gI_PlayerFrames[client] - gI_PlayerStageStartFrames[client] < gI_FailureThresholdTick)
-		{
-			return;
-		}
-
-		gI_PlayerFrames[client] = gI_StageReachFrame[client];
-
-		int offset = gI_RealFrameCount[client] - gI_PlayerFrames[client];
-		gA_FrameOffsets[client].Set(data, offset);
-	}
-}
-
 public Action Timer_PostFrames(Handle timer, int client)
 {
 	if (gB_GrabbingPostFrames[client][1])
 	{
 		gH_PostFramesTimer[client][1] = null;
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1, true);
 	}
 
 	gH_PostFramesTimer[client][0] = null;
-	FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0);
+	FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0, false);
 
 	return Plugin_Stop;
 }
@@ -546,7 +522,7 @@ public Action Timer_StagePostFrames(Handle timer, int client)
 
 	if (gB_GrabbingPostFrames[client][1])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1, false);
 	}
 
 	return Plugin_Stop;
@@ -572,10 +548,14 @@ void EndClearFrameDelay(int client)
 	ClearFrames(client);
 }
 
-void FinishGrabbingPostFrames(int client, finished_run_info info, int index = 0)
+void FinishGrabbingPostFrames(int client, finished_run_info info, int index, bool force)
 {
 	gB_GrabbingPostFrames[client][index] = false;
-	delete gH_PostFramesTimer[client][index];
+	
+	if(force)
+	{
+		delete gH_PostFramesTimer[client][index];		
+	}
 
 	DoReplaySaverCallbacks(info.iSteamID, client, info.style, info.time, info.jumps, info.strafes, info.sync, info.track, info.oldtime, info.perfs, info.avgvel, info.maxvel, info.timestamp, info.fZoneOffset, info.stage);
 }
@@ -606,7 +586,10 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 {
 	gA_PlayerFrames[client].Resize(gI_PlayerFrames[client]);
 
-	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue);
+	bool bShouldEdit = (stage > 1 && !Shavit_IsOnlyStageMode(client));
+	float fReplayTime = bShouldEdit ? time : float(gI_PlayerFrames[client]) / gF_Tickrate;
+
+	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && fReplayTime > gCV_TimeLimit.FloatValue);
 
 	float length = ExistingWrReplayLength(style, track, stage);
 	bool isBestReplay = (length == 0.0 || time < length);
@@ -646,7 +629,6 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 
 	char sPath[PLATFORM_MAX_PATH];
 	bool saved;
-	bool bShouldEdit = (stage > 1 && !Shavit_IsOnlyStageMode(client));
 
 	ArrayList aSaveFrames = null;
 	ArrayList aFrameOffsets = null;
@@ -741,7 +723,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	// Someone using checkpoints presumably
 	if (gB_GrabbingPostFrames[client][0])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0]);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0, true);
 	}
 
 	gI_PlayerFinishFrame[client] = gI_PlayerFrames[client];
@@ -793,7 +775,7 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 
 	if (gB_GrabbingPostFrames[client][1])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1, true);
 	}
 
 	gI_PlayerFinishFrame[client] = gI_PlayerFrames[client];
@@ -910,7 +892,7 @@ public ArrayList EditReplayFrames(int start, int end, ArrayList frames, bool pre
 	int iFrameCount = end - start;
 	int iTicks;
 	frame_t aFrame;	
-	
+
 	copy.Resize(iFrameCount);
 
 	for(int i = 0; i < iFrameCount; i++)
@@ -1197,12 +1179,12 @@ public int Native_SetReplayData(Handle handler, int numParams)
 
 	if (gB_GrabbingPostFrames[client][1])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1]);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][1], 1, true);
 	}
 
 	if (gB_GrabbingPostFrames[client][0])
 	{
-		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0]);
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client][0], 0, true);
 	}
 
 	gB_RecordingEnabled[client] = true;

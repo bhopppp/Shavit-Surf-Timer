@@ -300,7 +300,7 @@ public void OnPluginStart()
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Ignore, Param_Cell, Param_Cell);
 	gH_Forwards_StartPre = CreateGlobalForward("Shavit_OnStartPre", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_StageStart = CreateGlobalForward("Shavit_OnStageStart", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_StageStart = CreateGlobalForward("Shavit_OnStageStart", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Hook, Param_Cell, Param_Array);
@@ -2155,63 +2155,7 @@ public int Native_StartTimer(Handle handler, int numParams)
 
 public int Native_StartStageTimer(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-	int track = GetNativeCell(2);
-	int stage = GetNativeCell(3);
-
-	if(GetTimerStatus(client) == Timer_Stopped && gA_Timers[client].bOnlyStageMode)
-	{
-		ChangeClientLastStage(client, stage);	// i dont know why but i need this here to make sure the stage number is right
-		StartTimer(client, track);
-	}
-	else if(GetTimerStatus(client) == Timer_Running)
-	{
-		if (gA_Timers[client].bOnlyStageMode)
-		{
-			if(stage <= gA_Timers[client].iLastStage)
-			{
-				StartTimer(client, track);
-			}
-		}
-		else if(gA_Timers[client].iLastStage == stage)
-		{
-			if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client) || !gB_CookiesRetrieved[client])
-			{
-				return 0;
-			}
-
-			float fSpeed[3];
-			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
-			float curVel = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-			float fLimit = (Shavit_GetStyleSettingFloat(gA_Timers[client].bsStyle, "runspeed") + gCV_PrestrafeLimit.FloatValue);
-
-			int iSpeedLimitFlags;
-			int iZoneStage;
-			Shavit_InsideZoneStage(client, iZoneStage, iSpeedLimitFlags);
-			bool bNoVerticalSpeed = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0;
-
-			if (!bNoVerticalSpeed || (fSpeed[2] == 0.0 && curVel <= fLimit) || ((curVel <= ClientMaxPrestrafe(client) && gA_Timers[client].bOnGround &&
-			  	(gI_LastTickcount[client]-gI_FirstTouchedGround[client] > RoundFloat(0.5/GetTickInterval()))))) // beautiful
-			{
-				Call_StartForward(gH_Forwards_StageStart);
-				Call_PushCell(client);
-				Call_PushCell(stage);
-				Call_Finish();
-
-				gA_Timers[client].aStageStartInfo.fStageStartTime = gA_Timers[client].fCurrentTime;
-				gA_Timers[client].aStageStartInfo.iFractionalTicks = gA_Timers[client].iFractionalTicks;
-				gA_Timers[client].aStageStartInfo.iFullTicks = gA_Timers[client].iFullTicks;
-				gA_Timers[client].aStageStartInfo.iJumps = gA_Timers[client].iJumps;
-				gA_Timers[client].aStageStartInfo.iStrafes = gA_Timers[client].iStrafes;
-				gA_Timers[client].aStageStartInfo.iGoodGains = gA_Timers[client].iGoodGains;
-				gA_Timers[client].aStageStartInfo.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-				gA_Timers[client].aStageStartInfo.iZoneIncrement = 0;
-				gA_Timers[client].aStageStartInfo.fMaxVelocity = curVel;	
-				gA_Timers[client].aStageStartInfo.fAvgVelocity = curVel;
-			}
-		}
-	}
-
+	StartStageTimer(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3), false, false);
 	return 0;
 }
 
@@ -2551,16 +2495,6 @@ public int Native_FinishStage(Handle handler, int numParams)
 	}
 	else
 	{
-		gA_Timers[client].aStageStartInfo.fStageStartTime = gA_Timers[client].fCurrentTime;
-		gA_Timers[client].aStageStartInfo.iFractionalTicks = gA_Timers[client].iFractionalTicks;
-		gA_Timers[client].aStageStartInfo.iFullTicks = gA_Timers[client].iFullTicks;
-		gA_Timers[client].aStageStartInfo.iJumps = gA_Timers[client].iJumps;
-		gA_Timers[client].aStageStartInfo.iStrafes = gA_Timers[client].iStrafes;
-		gA_Timers[client].aStageStartInfo.iGoodGains = gA_Timers[client].iGoodGains;
-		gA_Timers[client].aStageStartInfo.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-		gA_Timers[client].aStageStartInfo.iZoneIncrement = 0;
-		gA_Timers[client].aStageStartInfo.fMaxVelocity = fEndVelocity;	
-		gA_Timers[client].aStageStartInfo.fAvgVelocity = fEndVelocity;
 		gA_Timers[client].fStageFinishTimes[stage] = end.fCurrentTime;
 	}
 
@@ -3270,7 +3204,7 @@ void StartTimer(int client, int track)
 
 	int iZoneStage;
 	bool bNoVerticalSpeed;
-	if(gA_Timers[client].bOnlyStageMode)
+	if(gA_Timers[client].bOnlyStageMode && track == Track_Main)
 	{
 		int iSpeedLimitFlags;
 		Shavit_InsideZoneStage(client, iZoneStage, iSpeedLimitFlags);
@@ -3388,6 +3322,83 @@ void StartTimer(int client, int track)
 			gA_Timers[client].bTimerEnabled = false;
 		}
 #endif
+	}
+}
+
+void StartStageTimer(int client, int track, int stage, bool force, bool first)
+{
+	if(GetTimerStatus(client) == Timer_Stopped && gA_Timers[client].bOnlyStageMode)
+	{
+		ChangeClientLastStage(client, stage);	// i dont know why but i need this here to make sure the stage number is right
+		StartTimer(client, track);
+	}
+	else if(GetTimerStatus(client) == Timer_Running)
+	{
+		if (gA_Timers[client].bOnlyStageMode)
+		{
+			if(stage <= gA_Timers[client].iLastStage)
+			{
+				StartTimer(client, track);
+			}
+		}
+		else if(gA_Timers[client].iLastStage == stage)
+		{
+			if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client) || !gB_CookiesRetrieved[client])
+			{
+				return;
+			}
+
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+			float curVel = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+			float fLimit = (Shavit_GetStyleSettingFloat(gA_Timers[client].bsStyle, "runspeed") + gCV_PrestrafeLimit.FloatValue);
+
+			int iSpeedLimitFlags;
+			int iZoneStage;
+			Shavit_InsideZoneStage(client, iZoneStage, iSpeedLimitFlags);
+			bool bNoVerticalSpeed = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0;
+
+			if (force || !bNoVerticalSpeed || (fSpeed[2] == 0.0 && curVel <= fLimit) || ((curVel <= ClientMaxPrestrafe(client) && gA_Timers[client].bOnGround &&
+			  	(gI_LastTickcount[client]-gI_FirstTouchedGround[client] > RoundFloat(0.5/GetTickInterval()))))) // beautiful
+			{
+				bool restart = first || gA_Timers[client].aStageStartInfo.iZoneIncrement > 1;
+
+				Call_StartForward(gH_Forwards_StageStart);
+				Call_PushCell(client);
+				Call_PushCell(stage);
+				Call_PushCell(restart);
+				Call_PushCell(first);
+				Call_Finish();
+
+				if (restart)
+				{
+					PrintToChatAll("Restart!");
+				}
+
+				if(restart)
+				{
+					if(first)
+					{
+						gA_Timers[client].iStageAttempts[stage] = 1;
+					}
+					else if(gA_Timers[client].fCurrentTime - gA_Timers[client].aStageStartInfo.fStageStartTime > 0.8)
+					{
+						gA_Timers[client].iStageAttempts[stage]++;
+					}
+				}
+
+				gA_Timers[client].aStageStartInfo.fStageStartTime = gA_Timers[client].fCurrentTime;
+				gA_Timers[client].aStageStartInfo.iFractionalTicks = gA_Timers[client].iFractionalTicks;
+				gA_Timers[client].aStageStartInfo.iFullTicks = gA_Timers[client].iFullTicks;
+				gA_Timers[client].aStageStartInfo.iJumps = gA_Timers[client].iJumps;
+				gA_Timers[client].aStageStartInfo.iStrafes = gA_Timers[client].iStrafes;
+				gA_Timers[client].aStageStartInfo.iGoodGains = gA_Timers[client].iGoodGains;
+				gA_Timers[client].aStageStartInfo.iTotalMeasures = gA_Timers[client].iTotalMeasures;
+				gA_Timers[client].aStageStartInfo.iZoneIncrement = 0;
+				gA_Timers[client].aStageStartInfo.fMaxVelocity = curVel;	
+				gA_Timers[client].aStageStartInfo.fAvgVelocity = curVel;
+			}
+		}
 	}
 }
 
@@ -3708,6 +3719,17 @@ void SQL_DBConnect()
 	gI_Driver = GetDatabaseDriver(gH_SQL);
 
 	SQL_CreateTables(gH_SQL, gS_MySQLPrefix, gI_Driver);
+}
+
+public void Shavit_OnReachNextStage(int client, int track, int startStage, int endStage)
+{
+	RequestFrame(Frame_StartStageTimer, GetClientSerial(client));
+}
+
+void Frame_StartStageTimer(int serial)
+{
+	int client = GetClientFromSerial(serial);
+	StartStageTimer(client, Track_Main, gA_Timers[client].iLastStage, true, true);
 }
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)

@@ -6619,34 +6619,28 @@ public void StartTouchPost(int entity, int other)
 							Shavit_FinishStage(other, track, iLastStage);
 						}
 
-						Call_StartForward(gH_Forwards_ReachNextStage);
-						Call_PushCell(other);
-						Call_PushCell(track);
-						Call_PushCell(iLastStage);
-						Call_PushCell(stage);
-						Call_Finish();
-
 						if (!Shavit_IsOnlyStageMode(other))
 						{
+							Shavit_SetClientLastStage(other, stage);
+
 							Call_StartForward(gH_Forwards_ReachNextCP);
 							Call_PushCell(other);
 							Call_PushCell(track);
 							Call_PushCell(stage - 1);
 							Call_PushCell(Shavit_GetClientTime(other));
 							Call_Finish();
-
-							Shavit_SetClientLastStage(other, stage);
-							Shavit_SetClientStageAttempt(other, stage, 1);
 						}
+
+						Call_StartForward(gH_Forwards_ReachNextStage);
+						Call_PushCell(other);
+						Call_PushCell(track);
+						Call_PushCell(iLastStage);
+						Call_PushCell(stage);
+						Call_Finish();						
 					}
 					else if(stage == iLastStage)
 					{
 						CustomZoneOutput(other, zone, false);
-
-						if (!Shavit_IsOnlyStageMode(other) && Shavit_GetClientStageTime(other) > 0.8)
-						{
-							Shavit_SetClientStageAttempt(other, stage, -1);							
-						}
 					}
 				}
 				else if(status == Timer_Stopped)
@@ -6669,6 +6663,7 @@ public void StartTouchPost(int entity, int other)
 				if (checkpoint > iLastCP)
 				{
 					CustomZoneOutput(other, zone, false);
+					Shavit_SetClientLastStage(other, checkpoint);
 
 					Call_StartForward(gH_Forwards_ReachNextCP);
 					Call_PushCell(other);
@@ -6676,8 +6671,6 @@ public void StartTouchPost(int entity, int other)
 					Call_PushCell(checkpoint);
 					Call_PushCell(Shavit_GetClientTime(other));
 					Call_Finish();
-
-					Shavit_SetClientLastStage(other, checkpoint);
 				}
 			}
 		}
@@ -6733,6 +6726,11 @@ public void EndTouchPost(int entity, int other)
 	int track = gA_ZoneCache[zone].iTrack;
 
 	if (type < 0 || track < 0) // odd
+	{
+		return;
+	}
+
+	if (!gB_InsideZoneID[other][zone] || (gI_InsideZone[other][track] & (1 << type)) == 0)
 	{
 		return;
 	}

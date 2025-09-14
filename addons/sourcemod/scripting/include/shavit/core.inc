@@ -685,9 +685,11 @@ forward Action Shavit_OnStart(int client, int track);
  *
  * @param client                    Client index.
  * @param stage                     Zone stage.
+ * @param restart					If the call is the first call restarts players stage timer.
+ * @param first						If the call is the first call starts players stage timer of current stage in this run.
  * @return                          Unused.
  */
-forward Action Shavit_OnStageStart(int client, int stage);
+forward Action Shavit_OnStageStart(int client, int stage, bool restart, bool first);
 
 /**
  * Called when a player uses the restart command.
@@ -703,6 +705,7 @@ forward Action Shavit_OnRestartPre(int client, int track);
  *
  * @param client					Client index.
  * @param track						Timer track.
+ * @param tostartzone				Should send player back to track start zone.
  * @noreturn
  */
 forward void Shavit_OnRestart(int client, int track, bool tostartzone);
