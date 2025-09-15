@@ -99,6 +99,13 @@ enum struct frame_cache_t
 	ArrayList aFrameOffsets;
 }
 
+enum struct replaybackup_info_t
+{
+	int date;
+	char sPath[PLATFORM_MAX_PATH];
+	replay_header_t header;
+}
+
 // Can be used to unpack frame_t.mousexy and frame_t.vel
 stock void UnpackSignedShorts(int x, int[] out)
 {
@@ -476,4 +483,66 @@ stock void WriteReplayFrames(ArrayList playerrecording, int iSize, File file_a, 
 			iFramesWritten = 0;
 		}
 	}
+}
+
+stock ArrayList GetReplayBackupList(int style, int track, int stage, const char[] replayfolder,  char[] map)
+{
+	char sBackupPath[PLATFORM_MAX_PATH];
+	FormatEx(sBackupPath, sizeof(sBackupPath), "%s/backup/%d/%s/", replayfolder, style, map);
+
+	if(!DirExists(sBackupPath))
+	{
+		return null;
+	}
+
+	DirectoryListing backupDir = OpenDirectory(sBackupPath);
+	if(backupDir == null)
+	{
+		return null;
+	}
+
+	char sTrack[8];
+	FormatEx(sTrack, 8, "_%d", track);
+
+	char sStage[8];
+	FormatEx(sStage, 8, "_s%d", stage);
+
+	char sTarget[PLATFORM_MAX_PATH];
+	FormatEx(sTarget, PLATFORM_MAX_PATH, "%s%s%s_d", map, (track > 0)? sTrack:"", (stage > 0) ? sStage:"");
+
+	ArrayList aBackupList = new ArrayList(sizeof(replaybackup_info_t));
+
+	FileType type;
+	char sFileName[PLATFORM_MAX_PATH];	// map name
+	char sEntryPath[PLATFORM_MAX_PATH];
+
+	while(ReadDirEntry(backupDir, sFileName, sizeof(sFileName), type))
+	{
+		if(type != FileType_File)
+		{
+			continue;			
+		}
+
+		if(StrContains(sFileName, sTarget) != -1)
+		{
+			replaybackup_info_t info;
+			FormatEx(sEntryPath, PLATFORM_MAX_PATH, "%s/%s", sBackupPath, sFileName);
+
+			ReplaceString(sFileName, sizeof(sFileName), sTarget, "", false);
+			info.date = StringToInt(sFileName);
+
+			File fFile = ReadReplayHeader(sEntryPath, info.header, style, track, stage);
+			delete fFile;
+
+			strcopy(info.sPath, sizeof(replaybackup_info_t::sPath), sEntryPath);
+
+			aBackupList.PushArray(info);
+		}
+	}
+
+	CloseHandle(backupDir);
+
+	aBackupList.Sort(Sort_Descending, Sort_Integer);
+
+	return aBackupList;
 }

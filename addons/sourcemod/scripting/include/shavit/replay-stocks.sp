@@ -75,6 +75,13 @@ stock void Shavit_Replay_CreateDirectories(const char[] sReplayFolder, int style
 		SetFailState("Failed to create replay copy folder (%s). Make sure you have file permissions", sPath);
 	}
 
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/backup", sReplayFolder);
+
+	if (!DirExists(sPath) && !CreateDirectory(sPath, 511))
+	{
+		SetFailState("Failed to create backup replay folder (%s). Make sure you have file permissions", sPath);
+	}
+
 	for(int i = 0; i < styles; i++)
 	{
 		if (!Shavit_ReplayEnabledStyle(i))
@@ -87,6 +94,13 @@ stock void Shavit_Replay_CreateDirectories(const char[] sReplayFolder, int style
 		if (!DirExists(sPath) && !CreateDirectory(sPath, 511))
 		{
 			SetFailState("Failed to create replay style folder (%s). Make sure you have file permissions", sPath);
+		}
+
+		FormatEx(sPath, PLATFORM_MAX_PATH, "%s/backup/%d", sReplayFolder, i);
+
+		if (!DirExists(sPath) && !CreateDirectory(sPath, 511))
+		{
+			SetFailState("Failed to create backup replay style folder (%s). Make sure you have file permissions", sPath);
 		}
 	}
 

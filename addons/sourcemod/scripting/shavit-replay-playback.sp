@@ -172,6 +172,8 @@ int gI_MenuStyle[MAXPLAYERS+1];
 int gI_MenuType[MAXPLAYERS+1];
 bool gB_InReplayMenu[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
+char gS_ClientBackupName[MAXPLAYERS+1][PLATFORM_MAX_PATH];
+ArrayList gA_ClientBackupList[MAXPLAYERS+1];
 
 int gI_TimeDifferenceStyle[MAXPLAYERS+1];
 float gF_TimeDifference[MAXPLAYERS+1];
@@ -186,6 +188,7 @@ bool gB_AdminMenu = false;
 Handle gH_OnReplayStart = null;
 Handle gH_OnReplayEnd = null;
 Handle gH_OnReplaysLoaded = null;
+Handle gH_OnReplayDeleted = null;
 
 // server specific
 float gF_Tickrate = 0.0;
@@ -238,11 +241,13 @@ Convar gCV_DynamicTimeTick = null;
 Convar gCV_EnableDynamicTimeDifference = null;
 Convar gCV_DisableHibernation = null;
 Convar gCV_PlayerNameSymbolLength = null;
+Convar gCV_BackupReplay = null;
+Convar gCV_MaxBackupReplay = null;
+
 ConVar sv_duplicate_playernames_ok = null;
 ConVar bot_join_after_player = null;
 ConVar mp_randomspawn = null;
 
-// ConVar gCV_PlaybackPreRunTime = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -375,6 +380,7 @@ public void OnPluginStart()
 	gH_OnReplayStart = CreateGlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplayEnd = CreateGlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplaysLoaded = CreateGlobalForward("Shavit_OnReplaysLoaded", ET_Event);
+	gH_OnReplayDeleted = CreateGlobalForward("Shavit_OnReplayDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String);
 
 	// game specific
 	gEV_Type = GetEngineVersion();
@@ -455,6 +461,9 @@ public void OnPluginStart()
 	gCV_DynamicTimeSearch = new Convar("shavit_replay_timedifference_search", "60.0", "Time in seconds to search the players current frame for dynamic time differences\n0 - Full Scan\nNote: Higher values will result in worse performance", 0, true, 0.0);
 	gCV_EnableDynamicTimeDifference = new Convar("shavit_replay_timedifference", "1", "Enabled dynamic time/velocity differences for the hud", 0, true, 0.0, true, 1.0);
 	gCV_PlayerNameSymbolLength = new Convar("shavit_replay_playernamesymbollength", "10", "Maximum player name length that should be displayed in bot name", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
+	gCV_BackupReplay = new Convar("shavit_replay_backup_enabled", "1", "Should the plugin automatically backup replay files when a new best replay is saved?", 0, true, 0.0, true, 1.0);
+	gCV_MaxBackupReplay = new Convar("shavit_replay_maximumbackup", "3", "Maximum number of backup replay files to keep for a specific map/stlye/track/stage.\nOldest backups will be replaced by the new one when the limit is reached.\n0 - Unlimited", 0, true, 0.0, true, 25.0);
+
 
 	if (gEV_Type == Engine_CSS)
 	{
@@ -494,6 +503,7 @@ public void OnPluginStart()
 
 	// commands
 	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
+	RegAdminCmd("sm_replaybackup", Command_ReplayBackup, ADMFLAG_RCON, "Open replay backup management menu.");
 
 	RegConsoleCmd("sm_replay", Command_Replay, "Opens the central bot menu. For admins: 'sm_replay stop' to stop the playback.");
 	RegConsoleCmd("sm_specbot", Command_Replay, "Opens the central bot menu. For admins: 'sm_replay stop' to stop the playback.");
@@ -755,6 +765,7 @@ public void OnAdminMenuReady(Handle topmenu)
 	if ((gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands")) != INVALID_TOPMENUOBJECT)
 	{
 		gH_AdminMenu.AddItem("sm_deletereplay", AdminMenu_DeleteReplay, gH_TimerCommands, "sm_deletereplay", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_replaybackup", AdminMenu_ReplayBackup, gH_TimerCommands, "sm_deletereplay", ADMFLAG_RCON);
 	}
 }
 
@@ -762,11 +773,23 @@ public void AdminMenu_DeleteReplay(Handle topmenu, TopMenuAction action, TopMenu
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "DeleteReplayAdminMenu", param);
+		FormatEx(buffer, maxlength, "%T", "DeleteReplayAdminMenu", param);
 	}
 	else if(action == TopMenuAction_SelectOption)
 	{
 		Command_DeleteReplay(param, 0);
+	}
+}
+
+public void AdminMenu_ReplayBackup(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "ReplayBackupAdminMenu", param);
+	}
+	else if(action == TopMenuAction_SelectOption)
+	{
+		Command_ReplayBackup(param, 0);
 	}
 }
 
@@ -1177,20 +1200,8 @@ public int Native_StartReplayFromFrameCache(Handle handler, int numParams)
 	return CreateReplayEntity(track, style, stage, delay, client, bot, type, ignorelimit, cache, 0);
 }
 
-public int Native_StartReplayFromFile(Handle handler, int numParams)
+public int StartReplayFromFile(int style, int track, int stage, float delay, int client, int bot, int type, bool ignorelimit, const char[] path)
 {
-	int style = GetNativeCell(1);
-	int track = GetNativeCell(2);
-	int stage = GetNativeCell(3);
-	float delay = GetNativeCell(4);
-	int client = GetNativeCell(5);
-	int bot = GetNativeCell(6);
-	int type = GetNativeCell(7);
-	bool ignorelimit = view_as<bool>(GetNativeCell(8));
-
-	char path[PLATFORM_MAX_PATH];
-	GetNativeString(9, path, sizeof(path));
-
 	frame_cache_t cache; // null cache
 
 	if (!LoadReplayCache(cache, style, track, stage, path, gS_Map))
@@ -1214,6 +1225,23 @@ public int Native_StartReplayFromFile(Handle handler, int numParams)
 	}
 
 	return bot;
+}
+
+public int Native_StartReplayFromFile(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
+	int stage = GetNativeCell(3);
+	float delay = GetNativeCell(4);
+	int client = GetNativeCell(5);
+	int bot = GetNativeCell(6);
+	int type = GetNativeCell(7);
+	bool ignorelimit = view_as<bool>(GetNativeCell(8));
+
+	char path[PLATFORM_MAX_PATH];
+	GetNativeString(9, path, sizeof(path));
+
+	return StartReplayFromFile(style, track, stage, delay, client, bot, type, ignorelimit, path);
 }
 
 public int Native_ReloadReplay(Handle handler, int numParams)
@@ -1847,6 +1875,55 @@ public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, i
 #endif
 }
 
+public Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, int jumps, int strafes, float sync, int track, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong)
+{
+	if (isbestreplay && !istoolong && gCV_BackupReplay.BoolValue)
+	{
+		char sReplayPath[PLATFORM_MAX_PATH];
+		Shavit_GetReplayFilePath(style, track, stage, gS_Map, gS_ReplayFolder, sReplayPath);
+
+		if(!FileExists(sReplayPath))
+		{
+			return Plugin_Continue;
+		}
+
+		char sBackupPath[PLATFORM_MAX_PATH];
+		FormatEx(sBackupPath, PLATFORM_MAX_PATH, "%s/backup/%d/%s/", gS_ReplayFolder, style, gS_Map);
+
+		char sTrack[8];
+		FormatEx(sTrack, 8, "_%d", track);
+
+		char sStage[8];
+		FormatEx(sStage, 8, "_s%d", stage);
+
+		char sBackupReplayPath[PLATFORM_MAX_PATH];
+		FormatEx(sBackupReplayPath, PLATFORM_MAX_PATH, "%s/%s%s%s_d%d.replay", sBackupPath, gS_Map, (track > 0)? sTrack:"", (stage > 0)? sStage:"", timestamp);
+
+		if(!DirExists(sBackupPath)) 
+		{
+			CreateDirectory(sBackupPath, 511);
+		}
+		else if(gCV_MaxBackupReplay.IntValue > 0)
+		{
+			ArrayList aBackupList = GetReplayBackupList(style, track, stage, gS_ReplayFolder, gS_Map);
+
+			if(aBackupList && aBackupList.Length >= gCV_MaxBackupReplay.IntValue)
+			{
+				replaybackup_info_t backup;
+				aBackupList.GetArray(aBackupList.Length - 1, backup);
+
+				DeleteFile(backup.sPath);
+			}
+
+			delete aBackupList;
+		}
+
+		RenameFile(sBackupReplayPath, sReplayPath);
+	}
+
+	return Plugin_Continue;
+}
+
 int InternalCreateReplayBot()
 {
 	ServerExecute(); // Flush the command buffer...
@@ -2098,6 +2175,14 @@ bool DeleteReplay(int style, int track, int stage, int accountid, const char[] m
 	{
 		UnloadReplay(style, track, stage, false, false);
 	}
+
+	Call_StartForward(gH_OnReplayDeleted);
+	Call_PushCell(style);
+	Call_PushCell(track);
+	Call_PushCell(stage);
+	Call_PushCell(accountid);
+	Call_PushString(mapname);
+	Call_Finish();
 
 	return true;
 }
@@ -2920,6 +3005,18 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 	return Plugin_Changed;
 }
 
+stock void LogWeridStuff2(bot_info_t info, int limit)
+{
+	LogError("|- [PB Problem] Bad replay");
+	LogError("      |- == Basic Info ==");
+	LogError("            |- [ %s ] track: %d ; stage: %d ; style: %d", gS_Map, info.iTrack, info.iStage, info.iStyle);
+	LogError("      |- == Replay Info ==");
+	LogError("            |- iTick: %d ;       Length: %d", info.iTick, info.aCache.aFrames.Length);
+	LogError("            |- Count: %d ;       Limit: %d", info.aCache.iFrameCount, limit);
+	LogError("  ");
+}
+
+
 // OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
@@ -3116,7 +3213,606 @@ void ClearFrameCache(frame_cache_t cache)
 
 public void Shavit_OnWRDeleted(int style, int id, int track, int stage, int accountid, const char[] mapname)
 {
-	DeleteReplay(style, track, stage, accountid, mapname);
+	float fWR = (stage == 0) ? Shavit_GetWorldRecord(style, track) : Shavit_GetStageWorldRecord(style, stage);
+
+	if(gA_FrameCache[style][track][stage].fTime == fWR)
+	{
+		DeleteReplay(style, track, stage, accountid, mapname);		
+	}
+}
+
+public Action Command_ReplayBackup(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	OpenBackupTrackTypeMenu(client);
+
+	return Plugin_Handled;
+}
+
+public void OpenBackupTrackTypeMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_Backup_TrackType);
+	menu.SetTitle("%T\n ", "ReplayBackupMenuTitle", client);
+
+	char sMenu[64];
+	FormatEx(sMenu, sizeof(sMenu), "%T", "Main_Replay", client);
+	menu.AddItem("m", sMenu);
+
+	if(Shavit_GetStageCount(Track_Main) > 1)
+	{
+		FormatEx(sMenu, sizeof(sMenu), "%T", "Stage_Replay", client);
+		menu.AddItem("s", sMenu);
+	}
+
+	if(Shavit_GetMapTracks(true, false) > 0)
+	{
+		FormatEx(sMenu, sizeof(sMenu), "%T", "Bonus_Replay", client);
+		menu.AddItem("b", sMenu);
+	}
+
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_Backup_TrackType(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+
+		Menu submenu = new Menu(MenuHandler_ReplayBackupTrack);
+
+		gI_MenuTrack[param1] = 0;
+		gI_MenuStage[param1] = 0;
+
+		if(StrEqual("m", sInfo, false))
+		{
+			OpenReplayBackupStyleMenu(param1, Track_Main, 0);
+		}
+		else
+		{
+			if(StrEqual("s", sInfo, false))
+			{
+				submenu.SetTitle("%T\n ", "ReplayBackupStageMenuTitle", param1);
+				int iStageCount = Shavit_GetStageCount(Track_Main);
+
+				for (int i = 1; i <= iStageCount; i++)
+				{
+					FormatEx(sInfo, 8, "s_%d", i);
+
+					char sStage[32];
+					FormatEx(sStage, 32, "%T %d", "StageText", param1, i);
+
+					submenu.AddItem(sInfo, sStage);
+				}
+			}
+			else if(StrEqual("b", sInfo, false))
+			{
+				submenu.SetTitle("%T\n ", "ReplayBackupBonusMenuTitle", param1);
+
+				for(int i = 1; i < TRACKS_SIZE; i++)
+				{
+					IntToString(i, sInfo, 8);
+
+					char sTrack[32];
+					GetTrackName(param1, i, sTrack, 32);
+
+					submenu.AddItem(sInfo, sTrack);
+				}
+			}
+
+			submenu.ExitBackButton = true;
+			submenu.Display(param1, MENU_TIME_FOREVER);
+		}
+	}
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		OpenBackupTrackTypeMenu(param1);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_ReplayBackupTrack(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+
+		if(StrContains(sInfo, "s_", false) == 0)
+		{
+			ReplaceString(sInfo, 8, "s_", "");
+			int stage = StringToInt(sInfo);
+
+			if(stage >= 1 && stage < MAX_STAGES)
+			{
+				gI_MenuStage[param1] = stage;
+
+				OpenReplayBackupStyleMenu(param1, 0, stage);
+			}
+		}
+		else
+		{
+			int track = StringToInt(sInfo);
+
+			// avoid an exploit
+			if(track >= 0 && track < TRACKS_SIZE)
+			{
+				gI_MenuTrack[param1] = track;
+
+				OpenReplayBackupStyleMenu(param1, track, 0);
+			}
+		}
+	}
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		OpenBackupTrackTypeMenu(param1);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void OpenReplayBackupStyleMenu(int client, int track, int stage)
+{
+	char sTrack[32];
+	if (stage == 0)
+	{
+		GetTrackName(client, track, sTrack, 32);
+	}
+	else
+	{
+		FormatEx(sTrack, 32, "%T %d", "StageText", client, stage);
+	}
+
+	Menu menu = new Menu(MenuHandler_ReplayBackupStyle);
+	menu.SetTitle("%T (%s)\n ", "ReplayBackupStyleMenuTitle", client, sTrack);
+
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = styles[i];
+
+		char sInfo[8];
+		IntToString(iStyle, sInfo, 8);
+
+		char sDisplay[64];
+		strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
+
+		menu.AddItem(sInfo, sDisplay, Shavit_ReplayEnabledStyle(iStyle) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
+	if(menu.ItemCount == 0)
+	{
+		menu.AddItem("-1", "ERROR");
+	}
+
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_ReplayBackupStyle(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_MenuStyle[param1] = StringToInt(sInfo);
+
+		OpenReplayBackupListMenu(param1, gI_MenuStyle[param1], gI_MenuTrack[param1], gI_MenuStage[param1]);
+	}
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		OpenBackupTrackTypeMenu(param1);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public void OpenReplayBackupListMenu(int client, int style, int track, int stage)
+{
+	delete gA_ClientBackupList[client];
+	gA_ClientBackupList[client] = GetReplayBackupList(style, track, stage, gS_ReplayFolder, gS_Map);
+
+	Menu menu = new Menu(MenuHandler_RestoreBackupList);
+	menu.SetTitle("%T\n ", "BackupListMenuTitle", client, gS_Map);
+
+	char sDisplay[256];
+
+	if(gA_ClientBackupList[client])
+	{
+		char sTrack[32];
+		char sDate[32];
+		char sTime[32];
+		char sInfo[16];
+
+		for (int i = 0; i < gA_ClientBackupList[client].Length; i++)
+		{
+			replaybackup_info_t backup;
+			gA_ClientBackupList[client].GetArray(i, backup);
+
+			if (stage == 0)
+			{
+				GetTrackName(client, track, sTrack, 32);
+			}
+			else
+			{
+				FormatEx(sTrack, 32, "%T %d", "StageText", client, stage);
+			}
+
+			FormatTime(sDate, sizeof(sDate), "%Y/%m/%d %H:%M", backup.date);
+			FormatSeconds(backup.header.fTime, sTime, 32, false, false, true);
+
+			FormatEx(sDisplay, sizeof(sDisplay), "%s %T - %s\n%T: 0x%02X\n%T: %s\n ", sTrack, "ReplayBackup", client, sDate, 
+			"ReplayVersion", client, backup.header.iReplayVersion, "ReplayTime", client, sTime);
+			
+			IntToString(i, sInfo, sizeof(sInfo));
+			menu.AddItem(sInfo, sDisplay);
+		}
+	}
+
+	if(menu.ItemCount == 0)
+	{
+		delete gA_ClientBackupList[client];
+		FormatEx(sDisplay, sizeof(sDisplay), "%T", "NoReplayBackup", client);
+		menu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
+	}
+
+	menu.ExitBackButton = true;
+	// menu.ExitButton = false;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_RestoreBackupList(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
+
+		int index = StringToInt(sInfo);
+
+		OpenReplayBackupManagementMenu(param1, index);
+	}
+	else if(action == MenuAction_Cancel)
+	{
+		if(param2 == MenuCancel_ExitBack)
+		{
+			OpenReplayBackupStyleMenu(param1, gI_MenuTrack[param1], gI_MenuStage[param1]);			
+		}
+
+		delete gA_ClientBackupList[param1];
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void OpenReplayBackupManagementMenu(int client, int index, char[] sReplayName = "")
+{
+	replaybackup_info_t backup;
+	gA_ClientBackupList[client].GetArray(index, backup);
+
+	if(sReplayName[0] != '\0')
+	{
+		BuildReplayBackupManagementMenu(client, index, sReplayName);
+	}
+	else
+	{
+		char sQuery[192];
+		FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, backup.header.iSteamID);
+
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(client);
+		hPack.WriteCell(index);
+
+		QueryLog(gH_SQL, SQL_OpenReplayBackupManagementMenu_Callback, sQuery, hPack, DBPrio_High);			
+	}
+}
+
+public void SQL_OpenReplayBackupManagementMenu_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	data.Reset();
+	int client = data.ReadCell();
+	int index = data.ReadCell();
+	delete data;
+
+	if(results == null)
+	{
+		LogError("Timer error! Get user name (replay) failed. Reason: %s", error);
+
+		return;
+	}
+
+	char sReplayName[MAX_NAME_LENGTH];
+	
+	if(results.FetchRow())
+	{
+		results.FetchString(0, sReplayName, MAX_NAME_LENGTH);
+	}
+
+	strcopy(gS_ClientBackupName[client], MAX_NAME_LENGTH, sReplayName);
+	BuildReplayBackupManagementMenu(client, index, sReplayName);
+}
+
+public void BuildReplayBackupManagementMenu(int client, int index, char[] sReplayName)
+{
+	replaybackup_info_t backup;
+	gA_ClientBackupList[client].GetArray(index, backup);
+	int style = backup.header.iStyle;
+	int track = backup.header.iTrack;
+	int stage = backup.header.iStage;
+
+	Menu subMenu = new Menu(MenuHandler_BackupManagement);
+	
+	char sTrack[32];
+	if (stage == 0)
+	{
+		GetTrackName(client, track, sTrack, 32);
+	}
+	else
+	{
+		FormatEx(sTrack, 32, "%T %d", "StageText", client, stage);
+	}
+
+	char sTime[32];
+	char sCurrentReplayInfo[256];
+	if(gA_FrameCache[style][track][stage].iFrameCount > 0)
+	{
+		FormatSeconds(gA_FrameCache[style][track][stage].fTime, sTime, 32, false, false, true);
+		FormatEx(sCurrentReplayInfo, sizeof(sCurrentReplayInfo), "%T\n———————————————————\n%T: 0x%02X\n%T: %s | %T\n%T: %s", "ReplayCurrent", client,
+		"ReplayVersion", client, gA_FrameCache[style][track][stage].iReplayVersion, "ReplayTime", client, sTime, "ReplayLength", client, gA_FrameCache[style][track][stage].aFrames.Length,
+		"ReplayRunner", client, gA_FrameCache[style][track][stage].sReplayName);
+	}
+	else
+	{
+		FormatEx(sCurrentReplayInfo, sizeof(sCurrentReplayInfo), "%T\n———————————————————\n%T", "ReplayCurrent", client, "ReplaysUnavailable", client);
+	}
+
+	char sDate[32];
+	char sBackupReplayInfo[256];
+	FormatSeconds(backup.header.fTime, sTime, 32, false, false, true);
+	FormatTime(sDate, sizeof(sDate), "%Y/%m/%d %H:%M", backup.date);
+	FormatEx(sBackupReplayInfo, sizeof(sBackupReplayInfo), "%T - %s\n———————————————————\n%T: 0x%02X\n%T: %s | %T\n%T: %s\n ", 
+	"ReplayBackup", client, sDate, "ReplayVersion", client, backup.header.iReplayVersion, "ReplayTime", client, sTime, 
+	"ReplayLength", client, backup.header.iPreFrames + backup.header.iFrameCount + backup.header.iPostFrames, "ReplayRunner", client, sReplayName);
+
+	subMenu.SetTitle("%T\n \n%s\n \n \n%s\n ", "ReplayBackupManagementMenuTitle", client, sTrack, gS_StyleStrings[style].sStyleName, sCurrentReplayInfo, sBackupReplayInfo);
+
+	char sMenuItem[32];
+	char sInfo[16];
+
+	FormatEx(sInfo, sizeof(sInfo), "%d;p", index);
+	FormatEx(sMenuItem, 64, "%T", "MenuPreviewBackup", client);
+	subMenu.AddItem(sInfo, sMenuItem);
+
+	FormatEx(sInfo, sizeof(sInfo), "%d;d", index);
+	FormatEx(sMenuItem, 64, "%T", "MenuDeleteBackup", client);
+	subMenu.AddItem(sInfo, sMenuItem);
+
+	FormatEx(sInfo, sizeof(sInfo), "%d;r", index);
+	FormatEx(sMenuItem, 64, "%T", "MenuRestoreBackup", client);
+	subMenu.AddItem(sInfo, sMenuItem);
+
+	subMenu.ExitBackButton = true;
+	subMenu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_BackupManagement(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
+
+		int index = StringToInt(sInfo);
+
+		if(StrContains(sInfo, "p") != -1)	// preview
+		{
+			replaybackup_info_t backup;
+			gA_ClientBackupList[param1].GetArray(index, backup);
+
+			int bot = StartReplayFromFile(gI_MenuStyle[param1], gI_MenuTrack[param1], gI_MenuStage[param1], -1.0, param1, -1, Replay_Dynamic, false, backup.sPath);
+			
+			if (bot == 0)
+			{
+				Shavit_PrintToChat(param1, "%T", "FailedToCreateReplay", param1);		
+			}
+
+			OpenReplayBackupManagementMenu(param1, index);
+		}
+		else
+		{
+			Menu subMenu = new Menu(MenuHandler_BackupManagement_Comfirm);
+
+			if(StrContains(sInfo, "d") != -1)
+			{
+				subMenu.SetTitle("%T\n ", "DeleteReplayBackupMenuTitle", param1);
+			}
+			else if(StrContains(sInfo, "r") != -1)
+			{
+				subMenu.SetTitle("%T\n ", "RestoreReplayBackupMenuTitle", param1);
+			}
+
+			char sMenuItem[64];
+			char sInfo2[16];
+			IntToString(index, sInfo2, 16);
+			
+			for(int i = 1; i <= GetRandomInt(2, 4); i++)
+			{
+				FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
+				subMenu.AddItem(sInfo2, sMenuItem);
+			}
+
+			FormatEx(sMenuItem, 64, "%T", "MenuResponseYes", param1);
+			subMenu.AddItem(sInfo, sMenuItem);
+
+			for(int i = 1; i <= GetRandomInt(2, 4); i++)
+			{
+				FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
+				subMenu.AddItem(sInfo2, sMenuItem);
+			}
+
+			subMenu.Display(param1, MENU_TIME_FOREVER);
+		}
+	}
+	else if(action == MenuAction_Cancel)
+	{
+		if(param2 == MenuCancel_ExitBack)
+		{
+			OpenReplayBackupListMenu(param1, gI_MenuStyle[param1], gI_MenuTrack[param1], gI_MenuStage[param1]);
+		}
+		else
+		{
+			delete gA_ClientBackupList[param1];			
+		}
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_BackupManagement_Comfirm(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
+
+		int index = StringToInt(sInfo);
+
+		if(index > -1)
+		{
+			replaybackup_info_t backup;
+			gA_ClientBackupList[param1].GetArray(index, backup);
+
+			if(StrContains(sInfo, "d") != -1)
+			{
+				if(DeleteReplayBackup(param1, backup))
+				{
+					Shavit_PrintToChat(param1, "%T", "ReplayBackupDeleted", param1);
+				}
+
+				delete gA_ClientBackupList[param1];
+			}
+			else if(StrContains(sInfo, "r") != -1)
+			{
+				if(RestoreReplayBackup(param1, backup))
+				{
+					Shavit_PrintToChat(param1, "%T", "ReplayBackupRestored", param1);
+				}
+
+				delete gA_ClientBackupList[param1];
+			}
+			else
+			{
+				OpenReplayBackupManagementMenu(param1, index, gS_ClientBackupName[param1]);
+			}
+		}
+	}
+	else if(action == MenuAction_Cancel)
+	{
+		delete gA_ClientBackupList[param1];
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public bool DeleteReplayBackup(int client, replaybackup_info_t backup)
+{
+	if(!FileExists(backup.sPath))
+	{
+		return false;
+	}
+
+	if(!DeleteFile(backup.sPath))
+	{
+		return false;
+	}
+
+	char sTrack[32];
+	if (backup.header.iStage == 0)
+	{
+		GetTrackName(LANG_SERVER, backup.header.iTrack, sTrack, 32);
+	}
+	else
+	{
+		FormatEx(sTrack, 32, "%T %d", "StageText", LANG_SERVER, backup.header.iStage);
+	}
+
+	Shavit_LogMessage("Admin [U:1:%d] (%N) - deleted replay backup. Map: %s | Style: %s | %s | Replay #%d (Runner: %s Time: %.3f)", 
+	GetSteamAccountID(client), client, gS_Map, gS_StyleStrings[backup.header.iStyle].sStyleName, sTrack, backup.date, gS_ClientBackupName[client], backup.header.fTime);
+
+	return true;
+}
+
+public bool RestoreReplayBackup(int client, replaybackup_info_t backup)
+{
+	char sReplayPath[PLATFORM_MAX_PATH];
+	Shavit_GetReplayFilePath(backup.header.iStyle, backup.header.iTrack, backup.header.iStage, gS_Map, gS_ReplayFolder, sReplayPath);
+
+	bool replaced = FileExists(sReplayPath);
+
+	if(!RenameFile(sReplayPath, backup.sPath))
+	{
+		return false;
+	}
+
+	char sTrack[32];
+	if (backup.header.iStage == 0)
+	{
+		GetTrackName(LANG_SERVER, backup.header.iTrack, sTrack, 32);
+	}
+	else
+	{
+		FormatEx(sTrack, 32, "%T %d", "StageText", LANG_SERVER, backup.header.iStage);
+	}
+
+	if(replaced)
+	{
+		Shavit_LogMessage("Admin [U:1:%u] (%N) - restored replay backup. Map: %s | Style: %s | %s | Replay (Runner: %s Time: %.3f) -> Replay (Runner: %s Time: %.3f)", 
+		GetSteamAccountID(client), client, gS_Map, gS_StyleStrings[backup.header.iStyle].sStyleName, sTrack, 
+		gA_FrameCache[backup.header.iStyle][backup.header.iTrack][backup.header.iStage].sReplayName, gA_FrameCache[backup.header.iStyle][backup.header.iTrack][backup.header.iStage].fTime,
+		gS_ClientBackupName[client], backup.header.fTime);
+	}
+	else
+	{
+		Shavit_LogMessage("Admin [U:1:%u] (%N) - restored replay backup. Map: %s | Style: %s | %s | Replay (None) -> Replay (Runner: %s Time: %.3f)", 
+		GetSteamAccountID(client), client, gS_Map, gS_StyleStrings[backup.header.iStyle].sStyleName, sTrack, gS_ClientBackupName[client], backup.header.fTime);
+	}
+
+	UnloadReplay(backup.header.iStyle, backup.header.iTrack, backup.header.iStage, true, true);
+	strcopy(gA_FrameCache[backup.header.iStyle][backup.header.iTrack][backup.header.iStage].sReplayName, MAX_NAME_LENGTH, gS_ClientBackupName[client]);
+
+	return true;
 }
 
 public Action Command_DeleteReplay(int client, int args)

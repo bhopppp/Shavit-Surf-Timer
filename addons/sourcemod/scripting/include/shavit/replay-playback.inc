@@ -72,6 +72,18 @@ forward void Shavit_OnReplayEnd(int ent, int type, bool actually_finished);
 forward void Shavit_OnReplaysLoaded();
 
 /**
+ * Called after a replays files being deleted.
+ * 
+ * @param style						Style index of deleted replay.
+ * @param track						Track index of deleted replay.
+ * @param stage						Stage number of deleted replay.
+ * @param steamid					SteamID of deleted replay's runner.
+ * @param map						Map name of deleted replay.
+ * @noreturn
+ */
+forward void Shavit_OnReplayDeleted(int style, int track, int stage, int steamid, char[] map);
+
+/**
  * Deletes all replays for the specified map.
  * Plugin will refresh if map is currently on.
  *

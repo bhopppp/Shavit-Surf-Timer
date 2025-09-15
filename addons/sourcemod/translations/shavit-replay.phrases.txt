@@ -151,4 +151,95 @@
 	{
 		"en"		"Refresh"
 	}
+	"ReplayBackupMenuTitle"
+	{
+		"en"		"Select a backup:"
+	}
+	"ReplayBackupStageMenuTitle"
+	{
+		"en"		"Select a backup stage:"
+	}
+	"ReplayBackupBonusMenuTitle"
+	{
+		"en"		"Select a backup bonuses:"
+	}
+	"ReplayBackupStyleMenuTitle"
+	{
+		"en"		"Select a backup style:"
+	}
+	"BackupListMenuTitle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Replay Backups for {1}:"
+	}
+	"NoReplayBackup"
+	{
+		"en"		"No replay backup found"
+	}
+	"LoadBackupListError"
+	{
+		"en"		"Error occurred while loading backup list"
+	}
+	"ReplayBackupManagementMenuTitle"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Replay Backup Management:\n( {1} - {2} )"
+	}
+	"MenuPreviewBackup"
+	{
+		"en"		"Preview Backup"
+	}
+	"MenuDeleteBackup"
+	{
+		"en"		"Delete Backup"
+	}
+	"MenuRestoreBackup"
+	{
+		"en"		"Restore Backup"
+	}
+	"DeleteReplayBackupMenuTitle"
+	{
+		"en"		"Confirm deletion of replay backup?"
+	}
+	"RestoreReplayBackupMenuTitle"
+	{
+		"en"		"Confirm restoration of replay backup?"
+	}
+	"ReplayVersion"
+	{
+		"en"		"Version"
+	}
+	"ReplayTime"
+	{
+		"en"		"Time"
+	}
+	"ReplayLength"
+	{
+		"#format"	"{1:d}"
+		"en"		"Length: {1} frames"
+	}
+	"ReplayRunner"
+	{
+		"en"		"Runner"
+	}
+	"ReplayBackup"
+	{
+		"en"		"Backup Replay"
+	}
+	"ReplayCurrent"
+	{
+		"en"		"Current Replay"
+	}
+	"ReplayBackupDeleted"
+	{
+		"en"		"Replay Backup Deleted."
+	}
+	"ReplayBackupRestored"
+	{
+		"en"		"Replay Backup Restored."
+	}
+	"ReplayBackupAdminMenu"
+	{
+		"en"		"Manage replay backup"
+	}
 }
