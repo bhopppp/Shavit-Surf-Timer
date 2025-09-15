@@ -605,6 +605,10 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		{
 			OpenCheckpointsMenu(client);
 		}
+		else if(bSegmented && !Shavit_GetStyleSettingBool(oldstyle, "segments") && !Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
+		{
+			OpenCheckpointsMenu(client);
+		}
 
 		if (!Shavit_GetStyleSettingBool(oldstyle, "segments") && !Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
 		{
