@@ -3370,11 +3370,6 @@ void StartStageTimer(int client, int track, int stage, bool force, bool first)
 				Call_PushCell(first);
 				Call_Finish();
 
-				if (restart)
-				{
-					PrintToChatAll("Restart!");
-				}
-
 				if(restart)
 				{
 					if(first)
