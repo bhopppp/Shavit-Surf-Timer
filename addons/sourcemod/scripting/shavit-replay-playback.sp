@@ -462,7 +462,7 @@ public void OnPluginStart()
 	gCV_EnableDynamicTimeDifference = new Convar("shavit_replay_timedifference", "1", "Enabled dynamic time/velocity differences for the hud", 0, true, 0.0, true, 1.0);
 	gCV_PlayerNameSymbolLength = new Convar("shavit_replay_playernamesymbollength", "10", "Maximum player name length that should be displayed in bot name", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
 	gCV_BackupReplay = new Convar("shavit_replay_backup_enabled", "1", "Should the plugin automatically backup replay files when a new best replay is saved?", 0, true, 0.0, true, 1.0);
-	gCV_MaxBackupReplay = new Convar("shavit_replay_maximumbackup", "3", "Maximum number of backup replay files to keep for a specific map/stlye/track/stage.\nOldest backups will be replaced by the new one when the limit is reached.\n0 - Unlimited", 0, true, 0.0, true, 25.0);
+	gCV_MaxBackupReplay = new Convar("shavit_replay_maximumbackup", "3", "Maximum number of backup replay files to keep for a specific map/style/track/stage.\nOldest backups will be replaced by the new one when the limit is reached.\n0 - Unlimited", 0, true, 0.0, true, 25.0);
 
 
 	if (gEV_Type == Engine_CSS)
