@@ -347,7 +347,7 @@ public void OnClientCookiesCached(int client)
 	if (!GetClientCookieBool(client, gH_GhostIgnorezCookie, gB_GhostIgnorez[client]))
 	{
 		gB_GhostIgnorez[client] = false;
-		SetClientCookieInt(client, gH_GhostIgnorezCookie, false);
+		SetClientCookieBool(client, gH_GhostIgnorezCookie, false);
 	}
 
 	gF_GhostBoxSize[client] = 10.0;
