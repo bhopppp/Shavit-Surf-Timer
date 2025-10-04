@@ -5098,23 +5098,6 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 	}
 }
 
-
-public Action Shavit_OnFinishStagePre(int client, timer_snapshot_t snapshot)
-{
-	if (!snapshot.bStageTimeValid)
-	{
-		if(Shavit_IsOnlyStageMode(client))
-		{
-			Shavit_StopTimer(client, false);
-		}
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-
 public void SQL_OnFinishStage_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)

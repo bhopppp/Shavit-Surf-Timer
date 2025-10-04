@@ -2492,7 +2492,7 @@ public Action Shavit_OnStartPre(int client)
 		return Plugin_Stop;
 	}
 
-	if (Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	if (GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
 	}

@@ -2289,6 +2289,35 @@ public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 	return Plugin_Continue;
 }
 
+public Action Shavit_OnFinishStagePre(int client, timer_snapshot_t snapshot)
+{
+	float minimum_time = GetStyleSettingFloat(snapshot.bsStyle, "minimum_time_stage");
+
+	if (snapshot.fCurrentTime < minimum_time)
+	{
+		Shavit_PrintToChat(client, "%T", "TimeUnderMinimumTime", client, minimum_time, snapshot.fCurrentTime, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
+			
+		if(Shavit_IsOnlyStageMode(client))
+		{
+			Shavit_StopTimer(client, false);
+		}
+		
+		return Plugin_Stop;
+	}
+
+	if (!snapshot.bStageTimeValid)
+	{
+		if(Shavit_IsOnlyStageMode(client))
+		{
+			Shavit_StopTimer(client, false);
+		}
+
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
 void CalculateRunTime(timer_snapshot_t s, bool stage, bool include_end_offset)
 {
 	float ticks = float(s.iFullTicks) + (s.iFractionalTicks / 10000.0);

@@ -151,7 +151,6 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 
 	SetStyleSettingInt  (gI_CurrentParserIndex, "autobhop", 1);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "easybhop", 1);
-	SetStyleSettingInt  (gI_CurrentParserIndex, "prespeed", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "prespeed_ez_vel", 0.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity_limit", 0.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "bunnyhopping", 1);
@@ -203,6 +202,8 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time", 3.5);
 	// bhop_uc_minecraft_beta2 on css auto has a 0.62s time
 	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_bonus", 0.5);
+	// 
+	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_stage", 0.5);
 
 	SetStyleSettingInt(gI_CurrentParserIndex, "ordering", gI_CurrentParserIndex);
 
@@ -271,19 +272,21 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	}
 #endif
 
-	if (GetStyleSettingInt(gI_CurrentParserIndex, "prespeed") > 0 || GetStyleSettingInt(gI_CurrentParserIndex, "prespeed_type") > 0)
+	bool bValue;
+
+	if (!gSM_StyleKeysSet.GetValue("minimum_time", bValue))
 	{
-		bool value;
+		SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time", 0.01);
+	}
 
-		if (!gSM_StyleKeysSet.GetValue("minimum_time", value))
-		{
-			SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time", 0.01);
-		}
+	if (!gSM_StyleKeysSet.GetValue("minimum_time_bonus", bValue))
+	{
+		SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_bonus", 0.01);
+	}
 
-		if (!gSM_StyleKeysSet.GetValue("minimum_time_bonus", value))
-		{
-			SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_bonus", 0.01);
-		}
+	if (!gSM_StyleKeysSet.GetValue("minimum_time_stage", bValue))
+	{
+		SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_stage", 0.01);
 	}
 
 	char sStyleCommand[SS_VAL_SZ];
