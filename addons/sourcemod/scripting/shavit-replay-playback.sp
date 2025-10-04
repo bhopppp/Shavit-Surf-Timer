@@ -3477,7 +3477,7 @@ public void OpenReplayBackupListMenu(int client, int style, int track, int stage
 	}
 
 	menu.ExitBackButton = true;
-	// menu.ExitButton = false;
+	menu.Pagination = 4;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 

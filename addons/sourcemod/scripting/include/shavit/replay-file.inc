@@ -498,6 +498,7 @@ stock ArrayList GetReplayBackupList(int style, int track, int stage, const char[
 	DirectoryListing backupDir = OpenDirectory(sBackupPath);
 	if(backupDir == null)
 	{
+		CloseHandle(backupDir);
 		return null;
 	}
 
