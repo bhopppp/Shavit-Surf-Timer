@@ -28,16 +28,6 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"Your timer has to be {1}resumed{2} to use this command."
 	}
-	"CommandDisabled"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"This command is {1}disabled{2}."
-	}
-	"FeatureDisabled"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"This feature is {1}disabled{2}."
-	}
 	"HideEnabled"
 	{
 		"#format"	"{1:s},{2:s}"

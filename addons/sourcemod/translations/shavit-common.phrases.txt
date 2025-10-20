@@ -47,6 +47,16 @@
 	{
 		"en"		"Run this command from inside the game."
 	}
+	"CommandDisabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"This command is {1}disabled{2}."
+	}
+	"FeatureDisabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"This feature is {1}disabled{2}."
+	}
 	"ArgumentsMissing"
 	{
 		"#format"	"{1:s}"

@@ -161,6 +161,7 @@ Convar gCV_Interval = null;
 Convar gCV_TeleportToStart = null;
 Convar gCV_TeleportToEnd = null;
 Convar gCV_AllowDrawAllZones = null;
+Convar gCV_AllowSetStartPosition = null;
 Convar gCV_UseCustomSprite = null;
 Convar gCV_MinHeight = null;
 Convar gCV_Offset = null;
@@ -404,7 +405,8 @@ public void OnPluginStart()
 	gCV_ResetTargetnameBonus = new Convar("shavit_zones_resettargetname_bonus", "", "What targetname to use when resetting the player (on bonus tracks).\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
 	gCV_ResetClassnameMain = new Convar("shavit_zones_resetclassname_main", "", "What classname to use when resetting the player.\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
 	gCV_ResetClassnameBonus = new Convar("shavit_zones_resetclassname_bonus", "", "What classname to use when resetting the player (on bonus tracks).\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
-	
+	gCV_AllowSetStartPosition = new Convar("shavit_zones_allowsetstartpostion", "1", "Allow players to use !setstart to set custom spawn positions for tracks/stages.\n0 -Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+
 	char defaultFlags[16];
 	IntToString(DEFAULT_SPEEDLIMITFLAG, defaultFlags, sizeof(defaultFlags));
 	gCV_DefaultZonePrespeedLimit = new Convar("shavit_zone_defaultzoneprespeedlimit", defaultFlags, "Default Zone prespeed limit settings as a bitflag\nLimit horizental speed				1\nBlock bunnyhop					2\nBlock pre-jump					4\nReduce speed when exceeding limit			8\nStart timer when vertical speed existed			16", 0, true, 0.0);
@@ -2106,6 +2108,13 @@ public Action Command_SetStart(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if(!gCV_AllowSetStartPosition.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+		return Plugin_Handled;
+	}
+
 	if(Shavit_IsPracticeMode(client))
 	{
 		Shavit_PrintToChat(client, "%T", "SetStartCommandPractice", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
@@ -2118,7 +2127,7 @@ public Action Command_SetStart(int client, int args)
 		Shavit_PrintToChat(client, "%T", "SetStartCommandTimerPaused", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
-	}	
+	}
 
 	int track = Shavit_GetClientTrack(client);
 	int stage = Shavit_IsOnlyStageMode(client) && track == Track_Main ? Shavit_GetClientLastStage(client) : 1;
@@ -6136,7 +6145,7 @@ public void Shavit_OnRestart(int client, int track, bool tostartzone)
 	if(gCV_TeleportToStart.BoolValue)
 	{
 		int stage = Shavit_IsOnlyStageMode(client) && !tostartzone && track == Track_Main ? Shavit_GetClientLastStage(client) : 1;
-		bool bCustomStart = gB_HasSetStart[client][track][stage] && !gB_StartAnglesOnly[client][track][stage];
+		bool bCustomStart = gCV_AllowSetStartPosition.BoolValue && gB_HasSetStart[client][track][stage] && !gB_StartAnglesOnly[client][track][stage];
 		bool use_CustomStart_over_CustomSpawn = (iIndex != -1) && bCustomStart;
 
 		float fCenter[3];
@@ -6168,17 +6177,17 @@ public void Shavit_OnRestart(int client, int track, bool tostartzone)
 				fCenter[2] += 1.0;
 			}
 
-			if(gB_HasSetStart[client][track][stage] || gCV_ForceTargetnameReset.IntValue > 0)
+			if((gCV_AllowSetStartPosition.BoolValue && gB_HasSetStart[client][track][stage]) || gCV_ForceTargetnameReset.IntValue > 0)
 			{
 				ResetClientTargetNameAndClassName(client, track);		
 			}
 
-			if (gB_ReplayRecorder && gB_HasSetStart[client][track][stage])
+			if (gB_ReplayRecorder && gCV_AllowSetStartPosition.BoolValue && gB_HasSetStart[client][track][stage])
 			{
 				Shavit_HijackAngles(client, gF_StartAng[client][track][stage][0], gF_StartAng[client][track][stage][1], -1, true);
 			}
 
-			TeleportEntity(client, fCenter, gB_HasSetStart[client][track][stage] ? gF_StartAng[client][track][stage] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, fCenter, gCV_AllowSetStartPosition.BoolValue && gB_HasSetStart[client][track][stage] ? gF_StartAng[client][track][stage] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			return;
 		}
 
@@ -6206,19 +6215,19 @@ public void Shavit_OnRestart(int client, int track, bool tostartzone)
 
 			fCenter[2] += 1.0;
 
-			TeleportEntity(client, fCenter, gB_HasSetStart[client][track][1] ? gF_StartAng[client][track][1] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, fCenter, gCV_AllowSetStartPosition.BoolValue && gB_HasSetStart[client][track][1] ? gF_StartAng[client][track][1] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 
-			if (gB_ReplayRecorder && gB_HasSetStart[client][track][1])
+			if (gB_ReplayRecorder && gCV_AllowSetStartPosition.BoolValue && gB_HasSetStart[client][track][1])
 			{
 				Shavit_HijackAngles(client, gF_StartAng[client][track][stage][0], gF_StartAng[client][track][stage][1], -1, true);
 			}
 			
-			if(gB_HasSetStart[client][track][1] || gCV_ForceTargetnameReset.IntValue > 0)
+			if((gCV_AllowSetStartPosition.BoolValue && gB_HasSetStart[client][track][1]) || gCV_ForceTargetnameReset.IntValue > 0)
 			{
 				ResetClientTargetNameAndClassName(client, track);		
 			}
 
-			if (!gB_HasSetStart[client][track][1] || gB_StartAnglesOnly[client][track][1])
+			if (gCV_AllowSetStartPosition.BoolValue || !gB_HasSetStart[client][track][1] || gB_StartAnglesOnly[client][track][1])
 			{
 				// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
 				Shavit_StartTimer(client, track);
