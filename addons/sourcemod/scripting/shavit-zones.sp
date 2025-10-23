@@ -323,6 +323,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ss", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_sp", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_startpoint", Command_SetStart, "Set current position as spawn location in start zone.");
+	RegConsoleCmd("sm_startpos", Command_SetStart, "Set current position as spawn location in start zone.");
 
 	RegConsoleCmd("sm_deletestart", Command_DeleteSetStart, "Deletes the custom set start position.");
 	RegConsoleCmd("sm_deletesetstart", Command_DeleteSetStart, "Deletes the custom set start position.");
