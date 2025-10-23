@@ -999,13 +999,16 @@ public Action Command_SetTier(int client, int args)
 
 	int tier = StringToInt(sArg);
 
-	if(args == 0 || tier < 1 || tier > 10)
+	int maxtier = GetMaxTier();
+
+
+	if(args == 0 || tier < 1 || tier > maxtier)
 	{
-		ReplyToCommand(client, "%T", "ArgumentsMissing", client, "sm_settier <tier> (1-10) [map]");
+		ReplyToCommand(client, "%T", "ArgumentsMissing", client, "sm_settier <tier> (1-%d) [map]", maxtier);
 
 		return Plugin_Handled;
 	}
-
+	
 	char map[PLATFORM_MAX_PATH];
 
 	if (args < 2)
@@ -2550,4 +2553,11 @@ stock float max(float a, float b)
 stock float min(float a, float b)
 {
 	return a < b ? a:b;
+}
+
+int GetMaxTier()
+{
+	float val = 10.0;
+	gCV_DefaultTier.GetBounds(ConVarBound_Upper, val);
+	return RoundToFloor(val);
 }
