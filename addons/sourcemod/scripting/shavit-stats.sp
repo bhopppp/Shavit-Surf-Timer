@@ -82,6 +82,8 @@ chatstrings_t gS_ChatStrings;
 Convar gCV_UseMapchooser = null;
 Convar gCV_SavePlaytime = null;
 
+ConVar gCV_DefaultTier = null;
+
 public Plugin myinfo =
 {
 	name = "[shavit-surf] Player Stats",
@@ -163,6 +165,12 @@ public void OnMapEnd()
 public void OnPluginEnd()
 {
 	FlushDisconnectPlaytime();
+}
+
+
+public void OnAllPluginsLoaded()
+{
+	gCV_DefaultTier = FindConVar("shavit_rankings_default_tier");
 }
 
 void FlushDisconnectPlaytime()
@@ -1295,7 +1303,14 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 		gI_Track[param1] = StringToInt(sExploded[0]);
 		gI_MapType[param1] = StringToInt(sExploded[1]);
 
-		ShowMaps(param1);
+		if(gB_Rankings && gI_Track[param1] == 0 && (gI_MapType[param1] == MAPSDONE || gI_MapType[param1] == MAPSLEFT))
+		{
+			DisplayTiersMapMenu(param1);
+		}
+		else
+		{
+			ShowMaps(param1);			
+		}
 	}
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -1309,7 +1324,50 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 	return 0;
 }
 
-void ShowMaps(int client)
+void DisplayTiersMapMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_TiersMapMenu);
+	menu.SetTitle("%T\n ", "TiersMapMenu", client);
+
+	char sMenuItem[64];
+	FormatEx(sMenuItem, 64, "%T\n ", "TiersMapOverAll", client);
+	menu.AddItem("-1", sMenuItem);
+
+	for (int i = 1; i <= GetMaxTier(); i ++)
+	{
+		char sInfo[8];
+		IntToString(i, sInfo, 8);
+
+		FormatEx(sMenuItem, 64, "%T", "Tier", client, i);
+		menu.AddItem(sInfo, sMenuItem);
+	}
+
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_TiersMapMenu(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[32];
+		menu.GetItem(param2, sInfo, 32);
+
+		ShowMaps(param1, StringToInt(sInfo));
+	}
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		ShowTypeMenu(param1);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void ShowMaps(int client, int tier = -1)
 {
 	if(!gB_CanOpenMenu[client])
 	{
@@ -1323,11 +1381,22 @@ void ShowMaps(int client)
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sQuery, 512,
-		"SELECT a.map, %s, a.time, a.jumps, a.id, COUNT(b.map) + 1 as 'rank', a.points FROM %s%s a LEFT JOIN %s%s b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND %s WHERE a.auth = %d AND a.style = %d %s GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.map;",
-			bStage ? "a.stage":"a.track", gS_MySQLPrefix, bStage ? "stagetimes":"playertimes", gS_MySQLPrefix, bStage ? "stagetimes":"playertimes",
-			bStage ? "a.stage = b.stage":"a.track = b.track", gI_TargetSteamID[client], gI_Style[client],
-			bStage ? "" : bBonus ? "AND a.track > 0":"AND a.track = 0");
+		if(tier > 0)
+		{
+			FormatEx(sQuery, 512,
+			"SELECT a.map, %s, a.time, a.jumps, a.id, COUNT(b.map) + 1 as 'rank', a.points, t.tier FROM %s%s a LEFT JOIN %s%s b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND %s LEFT JOIN %smaptiers t ON a.map = t.map WHERE a.auth = %d AND a.style = %d AND t.tier = %d %s GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.map;",
+				bStage ? "a.stage":"a.track", gS_MySQLPrefix, bStage ? "stagetimes":"playertimes", gS_MySQLPrefix, bStage ? "stagetimes":"playertimes",
+				bStage ? "a.stage = b.stage":"a.track = b.track", gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], tier,
+				bStage ? "" : bBonus ? "AND a.track > 0":"AND a.track = 0");
+		}
+		else
+		{
+			FormatEx(sQuery, 512,
+			"SELECT a.map, %s, a.time, a.jumps, a.id, COUNT(b.map) + 1 as 'rank', a.points FROM %s%s a LEFT JOIN %s%s b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND %s WHERE a.auth = %d AND a.style = %d %s GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.map;",
+				bStage ? "a.stage":"a.track", gS_MySQLPrefix, bStage ? "stagetimes":"playertimes", gS_MySQLPrefix, bStage ? "stagetimes":"playertimes",
+				bStage ? "a.stage = b.stage":"a.track = b.track", gI_TargetSteamID[client], gI_Style[client],
+				bStage ? "" : bBonus ? "AND a.track > 0":"AND a.track = 0");
+		}
 	}
 	else if(gI_MapType[client] == MAPSRECORD)
 	{
@@ -1338,9 +1407,15 @@ void ShowMaps(int client)
 	{
 		if(gB_Rankings)
 		{
+			char sTierQuery[64];
+			if(tier > 0)
+			{
+				FormatEx(sTierQuery, 64, "AND t.tier = %d", tier);
+			}
+
 			FormatEx(sQuery, 512,
-				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track %s 0 AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = %d AND style = %d AND track %s 0) ORDER BY m.map;",
-				gS_MySQLPrefix, gS_MySQLPrefix, bBonus ? ">":"=", gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], bBonus ? ">":"=");
+				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track %s 0 AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = %d AND style = %d AND track %s 0) %s ORDER BY m.map;",
+				gS_MySQLPrefix, gS_MySQLPrefix, bBonus ? ">":"=", gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], bBonus ? ">":"=", sTierQuery);
 		}
 		else
 		{
@@ -1352,19 +1427,27 @@ void ShowMaps(int client)
 
 	gB_CanOpenMenu[client] = false;
 
-	QueryLog(gH_SQL, ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
+	DataPack data = new DataPack();
+	data.WriteCell(GetClientSerial(client));
+	data.WriteCell(tier);
+
+	QueryLog(gH_SQL, ShowMapsCallback, sQuery, data, DBPrio_High);
 }
 
-public void ShowMapsCallback(Database db, DBResultSet results, const char[] error, any data)
+public void ShowMapsCallback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
+	data.Reset();
+
+	int client = GetClientFromSerial(data.ReadCell());
+	int tierFilter = data.ReadCell();
+	delete data;
+
 	if(results == null)
 	{
 		LogError("Timer (ShowMaps SELECT) SQL query failed. Reason: %s", error);
 
 		return;
 	}
-
-	int client = GetClientFromSerial(data);
 
 	if(client == 0)
 	{
@@ -1442,7 +1525,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 					iTier = 1;
 				}
 
-				FormatEx(sDisplay, sizeof(sDisplay), "%s (Tier %d)", sMap, iTier);
+				FormatEx(sDisplay, sizeof(sDisplay), "Tier %d | %s" , iTier, sMap);
 			}
 			else
 			{
@@ -1467,15 +1550,29 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		menu.SetTitle("%T", "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, sTrack, gS_TargetName[client], rows);
+		if(tierFilter > 0)
+		{
+			menu.SetTitle("%T\n ", "TierMapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, tierFilter, sTrack, gS_TargetName[client], rows);
+		}
+		else
+		{
+			menu.SetTitle("%T\n ", "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, sTrack, gS_TargetName[client], rows);
+		}
 	}
 	else if(gI_MapType[client] == MAPSRECORD)
 	{
-		menu.SetTitle("%T", "RecordsFor", client, gS_StyleStrings[gI_Style[client]].sShortName, sTrack, gS_TargetName[client], rows);
+		menu.SetTitle("%T\n ", "RecordsFor", client, gS_StyleStrings[gI_Style[client]].sShortName, sTrack, gS_TargetName[client], rows);
 	}
 	else
 	{
-		menu.SetTitle("%T", "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows);
+		if(tierFilter > 0)
+		{
+			menu.SetTitle("%T\n ", "TierMapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, tierFilter, sTrack, gS_TargetName[client], rows);
+		}
+		else
+		{
+			menu.SetTitle("%T\n ", "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, sTrack, gS_TargetName[client], rows);
+		}
 	}
 
 	if(menu.ItemCount == 0)
@@ -1521,7 +1618,14 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 	}
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowTypeMenu(param1);
+		if (gI_Track[param1] == 0 && (gI_MapType[param1] == MAPSDONE || gI_MapType[param1] == MAPSLEFT))
+		{
+			DisplayTiersMapMenu(param1);
+		}
+		else
+		{
+			ShowTypeMenu(param1);			
+		}
 	}
 	else if(action == MenuAction_End)
 	{
@@ -1659,4 +1763,11 @@ public int Native_OpenStatsMenu(Handle handler, int numParams)
 	gI_TargetSteamID[client] = GetNativeCell(2);
 	OpenStatsMenu(client, gI_TargetSteamID[client]);
 	return 1;
+}
+
+int GetMaxTier()
+{
+	float val = 10.0;
+	gCV_DefaultTier.GetBounds(ConVarBound_Upper, val);
+	return RoundToFloor(val);
 }
