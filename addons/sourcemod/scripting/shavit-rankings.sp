@@ -1001,7 +1001,6 @@ public Action Command_SetTier(int client, int args)
 
 	int maxtier = GetMaxTier();
 
-
 	if(args == 0 || tier < 1 || tier > maxtier)
 	{
 		ReplyToCommand(client, "%T", "ArgumentsMissing", client, "sm_settier <tier> (1-%d) [map]", maxtier);
@@ -1157,6 +1156,7 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 	if(results == null)
 	{
 		LogError("Timer (rankings, set map tier) error! Reason: %s", error);
+		delete data;
 
 		return;
 	}
@@ -1172,6 +1172,7 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 	data.Reset();
 	serial = data.ReadCell();
 	data.ReadString(map, sizeof(map));
+	delete data;
 
 	if (StrEqual(map, gS_Map))
 	{
@@ -1183,8 +1184,6 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 		FormatEx(sQuery, sizeof(sQuery), "SELECT map, MAX(data) AS stage FROM mapzones WHERE (type = 2 OR type = 0) AND map='%s';", map);
 		QueryLog(gH_SQL, SQL_RecalculateSpecificMap_Callback, sQuery, serial);
 	}
-
-	delete data;
 }
 
 public Action Command_RecalcMap(int client, int args)
