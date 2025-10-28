@@ -6228,7 +6228,7 @@ public void Shavit_OnRestart(int client, int track, bool tostartzone)
 				ResetClientTargetNameAndClassName(client, track);		
 			}
 
-			if (gCV_AllowSetStartPosition.BoolValue || !gB_HasSetStart[client][track][1] || gB_StartAnglesOnly[client][track][1])
+			if (!gCV_AllowSetStartPosition.BoolValue || !gB_HasSetStart[client][track][1] || gB_StartAnglesOnly[client][track][1])
 			{
 				// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
 				Shavit_StartTimer(client, track);
