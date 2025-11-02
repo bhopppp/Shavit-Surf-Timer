@@ -204,6 +204,16 @@ native ArrayList Shavit_GetReplayData(int client, bool cheapCloneHandle=false);
 native void Shavit_HijackAngles(int client, float pitch, float yaw, int ticks = -1, bool keeponstart = false);
 
 /**
+ * Cut replay frames of current stages.
+ * Use case is cut meaningless frames when player restart stage in a stage start zone.
+ *
+ * @param client                    Client index.
+ *
+ * @noreturn
+ */
+native void Shavit_TrimFailureFrames(int client);
+
+/**
  * Edit replay frame by specific parameters
  * Use to save stage replay.
  * 

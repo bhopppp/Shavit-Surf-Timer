@@ -132,6 +132,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetPlayerPreFrames", Native_SetPlayerPreFrames);
 	CreateNative("Shavit_SetStageStartFrames", Native_SetStageStartFrames);
 	CreateNative("Shavit_SetStageReachFrames", Native_SetStageReachFrames);
+	CreateNative("Shavit_TrimFailureFrames", Native_TrimFailureFrames);
 	CreateNative("Shavit_EditReplayFrames", Native_EditReplayFrames);
 
 	if (!FileExists("cfg/sourcemod/plugin.shavit-replay-recorder.cfg") && FileExists("cfg/sourcemod/plugin.shavit-replay.cfg"))
@@ -1230,6 +1231,24 @@ public int Native_HijackAngles(Handle handler, int numParams)
 
 	gB_HijackFramesKeepOnStart[client] = (numParams < 5) ? false : view_as<bool>(GetNativeCell(5));
 	return ticks;
+}
+
+public int Native_TrimFailureFrames(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int stage = Shavit_GetClientLastStage(client);
+
+	if(gB_TrimFailureFrames) // keeps the frame original if player one shots this stage
+	{
+		gI_PlayerFrames[client] = gI_StageReachFrame[client];
+
+		int offset = gI_RealFrameCount[client] - gI_PlayerFrames[client];
+		gA_FrameOffsets[client].Set(stage, offset);
+	}
+
+	gI_PlayerStageStartFrames[client] = gI_PlayerFrames[client];
+
+	return 0;
 }
 
 public int Native_EditReplayFrames(Handle handler, int numParams)

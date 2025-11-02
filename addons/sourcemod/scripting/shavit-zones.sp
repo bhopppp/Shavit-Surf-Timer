@@ -316,7 +316,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_stage", Command_Stages, "Opens the stage menu. Usage: sm_stage [stage #]");
 	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
 
-	RegConsoleCmd("sm_back", Command_Stages, "Teleport to your last stage.");
+	RegConsoleCmd("sm_restartstage", Command_Stages, "Teleport to your last stage.");
+	RegConsoleCmd("sm_rs", Command_Stages, "Teleport to your last stage.");
+	RegConsoleCmd("sm_back", Command_Stages, "Teleport to your last stage start zone.");
 
 	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
@@ -2729,7 +2731,7 @@ public Action Command_Stages(int client, int args)
 	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
-	if(StrContains(sCommand, "sm_back", false) == 0)
+	if(StrContains(sCommand, "sm_b", false) == 0 || StrContains(sCommand, "sm_r", false) == 0)
 	{
 		TimerStatus status = Shavit_GetTimerStatus(client);
 		if(status != Timer_Running)
@@ -2741,7 +2743,7 @@ public Action Command_Stages(int client, int args)
 		int iZoneStage;
 		bool bInsideStageZone = Shavit_GetClientTrack(client) == Track_Main ? Shavit_InsideZoneStage(client, iZoneStage):false;
 
-		if (bInsideStageZone && iLastStage == iZoneStage)
+		if (iLastStage > 1 && Shavit_GetClientStageAttempt(client, iLastStage) < 2 && (bInsideStageZone && iLastStage == iZoneStage))
 		{
 			Shavit_PrintToChat(client, "%T", "StageCommandInsideStageZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 			return Plugin_Handled;
@@ -2791,6 +2793,8 @@ public Action Command_Stages(int client, int args)
 				Shavit_SetClientLastStage(client, iStage);
 				Shavit_SetOnlyStageMode(client, true);
 				Shavit_RestartTimer(client, Track_Main, (iStage == 1), false);
+
+				return Plugin_Handled;
 			}
 			else if (!EmptyVector(gA_ZoneCache[iIndex].fDestination))
 			{
@@ -2805,6 +2809,8 @@ public Action Command_Stages(int client, int args)
 
 				TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			}
+
+			Shavit_TrimFailureFrames(client);
 		}
 	}
 	else
