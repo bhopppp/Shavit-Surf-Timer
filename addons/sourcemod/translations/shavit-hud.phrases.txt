@@ -323,4 +323,15 @@
 		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
 		"en"		"{1}{2} {3}HUD setting {4}disabled{5}."
 	}
+	// ----------- Messages ---------- //
+	"HudTimerStarted"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Timer started."
+	}
+	"HudPracticeTimerStarted"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Practice Timer started."
+	}
 }
