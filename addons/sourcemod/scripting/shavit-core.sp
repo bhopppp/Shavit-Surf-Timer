@@ -67,6 +67,7 @@ int gI_Driver = Driver_unknown;
 Handle gH_Forwards_Start = null;
 Handle gH_Forwards_StartPre = null;
 Handle gH_Forwards_StageStart = null;
+Handle gH_Forawrds_Started = null;
 Handle gH_Forwards_Stop = null;
 Handle gH_Forwards_StopPre = null;
 Handle gH_Forwards_FinishPre = null;
@@ -305,6 +306,7 @@ public void OnPluginStart()
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Ignore, Param_Cell, Param_Cell);
 	gH_Forwards_StartPre = CreateGlobalForward("Shavit_OnStartPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StageStart = CreateGlobalForward("Shavit_OnStageStart", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forawrds_Started = CreateGlobalForward("Shavit_OnStarted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Hook, Param_Cell, Param_Array);
@@ -3938,7 +3940,7 @@ public void PostThinkPost(int client)
 				CalculateTickIntervalOffset(client, Zone_Start, bMainTimerStageStart);			
 			}
 
-			CheckClientStartVelocity(client, (gA_Timers[client].bOnlyStageMode && bNormalStart && gA_Timers[client].iTimerTrack == Track_Main) || bMainTimerStageStart);
+			CallOnTimerStarted(client, bMainTimerStageStart);
 
 			if(gCV_DebugOffsets.BoolValue)
 			{
@@ -3954,12 +3956,26 @@ public void PostThinkPost(int client)
 	}
 }
 
-public void CheckClientStartVelocity(int client, bool stagestart)
+public void CallOnTimerStarted(int client, bool bMainStageTimer)
 {
+	int track = gA_Timers[client].iTimerTrack;	
 	int stage = gA_Timers[client].iLastStage; 
-	int track = gA_Timers[client].iTimerTrack;
 	int style = gA_Timers[client].bsStyle;
 
+	Call_StartForward(gH_Forawrds_Started);
+	Call_PushCell(client);
+	Call_PushCell(track);
+	Call_PushCell(stage);
+	Call_PushCell(style);
+	Call_PushCell(bMainStageTimer);
+	Call_Finish();
+
+	bool bStageTimer = bMainStageTimer || (gA_Timers[client].bOnlyStageMode && gA_Timers[client].iTimerTrack == Track_Main);
+	CheckClientStartVelocity(client, track, stage, style, bStageTimer);
+}
+
+public void CheckClientStartVelocity(int client, int track, int stage, int style, bool bStageTimer)
+{
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 	float speed = GetVectorLength(fSpeed);
@@ -3967,7 +3983,7 @@ public void CheckClientStartVelocity(int client, bool stagestart)
 	float fMaxPrespeed = Shavit_GetStyleSettingFloat(style, "runspeed") + gCV_PrestrafeLimit.FloatValue;
 	int iSpeedLimitFlags;
 
-	if(stagestart && stage > 0)
+	if(bStageTimer && stage > 0)
 	{
 		gA_Timers[client].aStageStartInfo.fStartVelocity = speed;
 

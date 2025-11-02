@@ -2799,6 +2799,30 @@ public void Shavit_OnStageChanged(int client, int oldstage, int newstage)
 	}
 }
 
+public void Shavit_OnStarted(int client, int track, int stage, int style, bool bMainStageTimer)
+{
+	if(bMainStageTimer)
+	{
+		return;
+	}
+
+	if((gI_HUD2Settings[client] & HUD2_TIME) != 0 || (gI_HUDSettings[client] & HUD_MASTER) == 0 || (gI_HUDSettings[client] & HUD_CENTER) == 0)
+	{
+		char sTrack[32];
+
+		if(stage > 0 && Shavit_IsOnlyStageMode(client))
+		{
+			FormatEx(sTrack, 32, "%T %d", "StageText", client, stage);
+		}
+		else
+		{
+			GetTrackName(client, track, sTrack, 32);
+		}
+		
+		Shavit_PrintToChat(client, "%T", Shavit_IsPracticeMode(client) ? "HudPracticeTimerStarted":"HudTimerStarted", client, sTrack);
+	}
+}
+
 public int Native_ForceHUDUpdate(Handle handler, int numParams)
 {
 	int clients[MAXPLAYERS+1];

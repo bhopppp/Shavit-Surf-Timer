@@ -680,6 +680,19 @@ forward Action Shavit_OnStartPre(int client, int track);
 forward Action Shavit_OnStart(int client, int track);
 
 /**
+ * Called on the first tick after a player's timer started.
+ *
+ * @param client                    Client index.
+ * @param track                     Timer track.
+ * @param stage						The player's last stage.
+ * @param style						The player's style.
+ * @param bMainStageTimer			Is main stage timer started.
+ * 
+ * @return                          Unused.
+ */
+forward void Shavit_OnStarted(int client, int track, int stage, int style, bool bMainStageTimer)
+
+/**
  * Called when a player's timer starts.
  * (WARNING: Will be called every tick when the player stands at the stage start zone!)
  *
