@@ -180,6 +180,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
 
 	RegConsoleCmd("sm_mapinfo", Command_MapInfo, "Shows map info to client.");
+	RegConsoleCmd("sm_mi", Command_MapInfo, "Shows map info to client.");
 
 	RegConsoleCmd("sm_rank", Command_Rank, "Show your or someone else's rank. Usage: sm_rank [name]");
 	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players.");
@@ -763,7 +764,7 @@ public void PrintMapInfo(int client, const char[] map)
 		gS_ChatStrings.sVariable2, map, gS_ChatStrings.sText, sType,
 		gS_ChatStrings.sVariable, sTier, gS_ChatStrings.sText,
 		gS_ChatStrings.sVariable, sStageInfo, gS_ChatStrings.sText,
-		gS_ChatStrings.sVariable, sTrackInfo, gS_ChatStrings.sText);		
+		gS_ChatStrings.sVariable, sTrackInfo);		
 }
 
 public int MenuHandler_MapInfoMatches(Menu menu, MenuAction action, int param1, int param2)
