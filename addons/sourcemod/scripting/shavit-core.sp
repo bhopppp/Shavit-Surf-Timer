@@ -93,10 +93,12 @@ Handle gH_Forwards_OnProcessMovement = null;
 Handle gH_Forwards_OnProcessMovementPost = null;
 Handle gH_Forwards_OnTimerMenuCreate = null;
 Handle gH_Forwards_OnTimerMenuSelected = null;
+Handle gH_Forawrds_OnToggleTriggersPre = null;
 
 // player timer variables
 timer_snapshot_t gA_Timers[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
+bool gB_DisableTriggers[MAXPLAYERS+1];
 int gI_FirstTouchedGround[MAXPLAYERS+1];
 int gI_LastTickcount[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
@@ -286,6 +288,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_IsClientRepeat", Native_IsClientRepeat);
 	CreateNative("Shavit_SetClientRepeat", Native_SetClientRepeat);
 	CreateNative("Shavit_GetMessageSetting", Native_GetMessageSetting);
+	CreateNative("Shavit_SetTriggerDisable", Native_SetTriggerDisable);
+	CreateNative("Shavit_IsTriggerDisabled", Native_IsTriggerDisabled);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -327,6 +331,7 @@ public void OnPluginStart()
 	gH_Forwards_OnProcessMovementPost = CreateGlobalForward("Shavit_OnProcessMovementPost", ET_Event, Param_Cell);
 	gH_Forwards_OnTimerMenuCreate = CreateGlobalForward("Shavit_OnTimerMenuMade", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnTimerMenuSelected = CreateGlobalForward("Shavit_OnTimerMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
+	gH_Forawrds_OnToggleTriggersPre = CreateGlobalForward("Shavit_OnToggleTriggersPre", ET_Event, Param_Cell, Param_Cell);
 
 	Bhopstats_CreateForwards();
 	Shavit_Style_Settings_Forwards();
@@ -421,6 +426,11 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tsplus", Command_TimescalePlus, "Adds the value to your current timescale.");
 	RegConsoleCmd("sm_timescaleminus", Command_TimescaleMinus, "Subtracts the value from your current timescale.");
 	RegConsoleCmd("sm_tsminus", Command_TimescaleMinus, "Subtracts the value from your current timescale.");
+
+	// toggle triggers
+	RegAdminCmd("sm_toggletriggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
+	RegAdminCmd("sm_triggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
+	RegAdminCmd("sm_disabletriggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
 
 	// Message settings
 	RegConsoleCmd("sm_message", Command_Message, "Open message setting menu.");
@@ -1128,6 +1138,18 @@ public Action Command_ToggleRepeat(int client, int args)
 	}
 
 	ChangeClientRepeat(client, !gB_PlayerRepeat[client]);
+
+	return Plugin_Handled;
+}
+
+public Action Command_ToggleTriggers(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	Shavit_SetTriggerDisable(client, !gB_DisableTriggers[client], false);
 
 	return Plugin_Handled;
 }
@@ -2794,6 +2816,39 @@ public int Native_GetChatStringsStruct(Handle plugin, int numParams)
 	return SetNativeArray(1, gS_ChatStrings, sizeof(gS_ChatStrings));
 }
 
+public int Native_SetTriggerDisable(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	bool status = view_as<bool>(GetNativeCell(2));
+	bool bBypass = (numParams < 3 || view_as<bool>(GetNativeCell(3)));
+
+	if(!bBypass)
+	{
+		bool bResult = true;
+		
+		Call_StartForward(gH_Forawrds_OnToggleTriggersPre);
+		Call_PushCell(client);
+		Call_PushCell(status);
+		Call_Finish(bResult);
+
+		if(!bResult)
+		{
+			return 0;
+		}
+	}
+
+	StopTimer(client);
+	gB_DisableTriggers[client] = status;
+	Shavit_PrintToChat(client, "%T", gB_DisableTriggers[client] ? "TriggerDisabled" : "TriggerEnabled", client, gB_DisableTriggers[client] ? gS_ChatStrings.sWarning:gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+	return 0;
+}
+
+public int Native_IsTriggerDisabled(Handle handler, int numParams)
+{
+	return gB_DisableTriggers[GetNativeCell(1)];
+}
+
 public int Native_SetPracticeMode(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
@@ -2913,6 +2968,11 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	if (GetStyleSettingFloat(snapshot.bsStyle, "tas_timescale") < 0.0)
 	{
 		Shavit_SetClientTimescale(client, oldts);
+	}
+
+	if (gB_DisableTriggers[client])
+	{
+		StopTimer(client);
 	}
 
 	return 1;
@@ -3169,6 +3229,11 @@ public any Native_ShouldProcessFrame(Handle plugin, int numParams)
 
 public Action Shavit_OnStartPre(int client, int track)
 {
+	if(gB_DisableTriggers[client])
+	{
+		return Plugin_Stop;
+	}
+
 	if (GetTimerStatus(client) == Timer_Paused)
 	{
 		return Plugin_Stop;
@@ -3548,6 +3613,7 @@ public void OnClientPutInServer(int client)
 	gH_TeleportDhook.HookEntity(Hook_Post, client, DHooks_OnTeleport);
 
 	gB_Auto[client] = true;
+	gB_DisableTriggers[client] = false;
 	gA_Timers[client].fStrafeWarning = 0.0;
 	gA_Timers[client].bPracticeMode = false;
 	gA_Timers[client].bOnlyStageMode = false;
@@ -4029,6 +4095,13 @@ public void OnEntityCreated(int entity, const char[] classname)
 	{
 		gH_AcceptInput.HookEntity(Hook_Post, entity, DHook_AcceptInput_player_speedmod_Post);
 	}
+
+	if(StrEqual(classname, "trigger_multiple") || StrEqual(classname, "trigger_once") || StrEqual(classname, "trigger_push") || StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_gravity"))
+	{
+		SDKHook(entity, SDKHook_StartTouch, HookTrigger);
+		SDKHook(entity, SDKHook_EndTouch, HookTrigger);
+		SDKHook(entity, SDKHook_Touch, HookTrigger);
+	}
 }
 
 // bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
@@ -4262,6 +4335,19 @@ bool TREnumTrigger(int entity, int client)
 		return false;
 	}
 	return true;
+}
+
+public Action HookTrigger(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		if(gB_DisableTriggers[other])
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 void BuildSnapshot(int client, timer_snapshot_t snapshot)

@@ -991,6 +991,15 @@ forward void Shavit_OnTimerMenuMade(int client, Menu menu);
 forward Action Shavit_OnTimerMenuSelect(int client, int position, char[] info, int maxlength)
 
 /**
+ * Called before a player's timer is stopped. (stop =/= finish a map)
+ *
+ * @param client					Client index.
+ * @param status					Status of trigger going to set.
+ * @return							False to prevent status of trigger from being set.
+ */
+forward bool Shavit_OnToggleTriggersPre(int client, bool status)
+
+/**
  * Returns bhoptimer's database handle.
  * Call within Shavit_OnDatabaseLoaded. Safety is not guaranteed anywhere else!
  *
@@ -1786,6 +1795,24 @@ native void Shavit_SetClientRepeat(int client, bool repeat);
  * @return                          Message settings.
  */
 native int Shavit_GetMessageSetting(int client);
+
+/**
+ * Sets trigger disable status for a player.
+ *
+ * @param client                    Client index.
+ * @param status					Status of trigger disable to set.
+ * @param bypass					Bypass call to Shavit_OnToggleTriggersPre?
+ * @return                          Message settings.
+ */
+native void Shavit_SetTriggerDisable(int client, bool status, bool bypass = true)
+
+/**
+ * Gets trigger disable status of a player.
+ *
+ * @param client                    Client index.
+ * @return                          Message settings.
+ */
+native bool Shavit_IsTriggerDisabled(int client)
 
 
 public SharedPlugin __pl_shavit_core =

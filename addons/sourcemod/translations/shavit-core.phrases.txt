@@ -193,6 +193,16 @@
 	{
 		"en"		"You cannot repeat timer on a linear map."
 	}
+	"TriggerDisabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Triggers are now {1}Disabled{2}."
+	}
+	"TriggerEnabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Triggers are now {1}Enabled{2}."
+	}
 	// ---------- Pauses ---------- //
 	"MessagePause"
 	{

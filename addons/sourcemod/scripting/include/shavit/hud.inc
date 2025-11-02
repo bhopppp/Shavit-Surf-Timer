@@ -104,6 +104,7 @@ enum struct huddata_t
 	float fWR;
 	bool bReplay;
 	bool bPractice;
+	bool bTriggerDisabled
 	bool bInsideStageZone;
 	TimerStatus iTimerStatus;
 	ZoneHUD iZoneHUD;

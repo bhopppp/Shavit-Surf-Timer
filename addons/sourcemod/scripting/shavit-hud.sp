@@ -1406,9 +1406,19 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	}
 	else
 	{
-		if(data.bPractice || data.iTimerStatus == Timer_Paused)
+		if(data.bTriggerDisabled)
 		{
-			FormatEx(sLine, 128, "%T", (data.iTimerStatus == Timer_Paused)? "HudPaused":"HudPracticeMode", client);
+			FormatEx(sLine, 128, "%T", "HudTriggerDisabled", client);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
+		}
+		else if(data.iTimerStatus == Timer_Paused)
+		{
+			FormatEx(sLine, 128, "%T", "HudPaused", client);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
+		}
+		else if(data.bPractice)
+		{
+			FormatEx(sLine, 128, "%T", "HudPracticeMode", client);
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 		}
 
@@ -1920,6 +1930,7 @@ void UpdateMainHUD(int client)
 	huddata.iTimerStatus = (bReplay)? Timer_Running:Shavit_GetTimerStatus(target);
 	huddata.bReplay = bReplay;
 	huddata.bPractice = (bReplay)? false:Shavit_IsPracticeMode(target);
+	huddata.bTriggerDisabled = (bReplay)? false:Shavit_IsTriggerDisabled(target);
 	huddata.iHUDSettings = gI_HUDSettings[client];
 	huddata.iHUD2Settings = gI_HUD2Settings[client];
 	huddata.iPreviousSpeed = gI_PreviousSpeed[client];

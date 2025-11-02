@@ -119,6 +119,10 @@
 	{
 		"en"		"[Practice Mode]"
 	}
+	"HudTriggerDisabled"
+	{
+		"en"		"[Trigger Disabled]"
+	}
 	"HudNoSpeedLimit"
 	{
 		"en"		"(No Speed Limit)"
