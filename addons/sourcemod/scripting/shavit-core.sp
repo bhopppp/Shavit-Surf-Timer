@@ -4332,9 +4332,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if (bInStart && gCV_PrestrafeZone.IntValue > 0)
 	{
-		if(GetEntityFlags(client) & FL_BASEVELOCITY) // they are on booster, dont limit them
+		if(GetEntityFlags(client) & FL_BASEVELOCITY) // they are on booster, dont limit their speed
 		{
 			gA_Timers[client].bStageTimeValid = true;
+			bBlockBhop   = ((iTrackStartLimitFlags & ZSLF_BlockBhop) > 0);
+			bBlockJump   = ((iTrackStartLimitFlags & ZSLF_BlockJump) > 0);
+			bNoVerticalSpeed = ((iTrackStartLimitFlags & ZSLF_NoVerticalSpeed) > 0);
 		}
 		else if(bInsideTrackStartZone)
 		{
