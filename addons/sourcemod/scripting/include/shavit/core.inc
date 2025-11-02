@@ -1224,7 +1224,7 @@ native void Shavit_SetClientStageAttempts(int client, int[] attempts);
  * @param stage						Stage number.
  * @return							The attempts of specific stage.                          
  */
-native float Shavit_GetClientStageAttempt(int client, int stage);
+native int Shavit_GetClientStageAttempt(int client, int stage);
 
 /**
  * Returns the zone index for the entity if available.
