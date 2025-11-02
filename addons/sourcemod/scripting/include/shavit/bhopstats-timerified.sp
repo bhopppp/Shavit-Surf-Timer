@@ -218,7 +218,7 @@ stock bool IsSurfing(int client)
 
 	float fEnd[3];
 	fEnd = fPosition;
-	fEnd[2] -= 64.0;
+	fEnd[2] -= 0.5;
 
 	float fMins[3];
 	GetEntPropVector(client, Prop_Send, "m_vecMins", fMins);
@@ -239,7 +239,7 @@ stock bool IsSurfing(int client)
 		// https://github.com/alliedmodders/hl2sdk/blob/92dcf04225a278b75170cc84917f04e98f5d08ec/game/server/physics_main.cpp#L1059
 		// https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/game/server/physics_main.cpp#L1065
 
-		return (-0.7 <= fNormal[2] <= 0.7);
+		return -0.7 <= fNormal[2] <= 0.7;
 	}
 
 	delete hTR;
