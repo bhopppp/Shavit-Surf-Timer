@@ -1,6 +1,155 @@
 CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
+# Shavit SurfTimer - Change log - 2025-?-? -
+* Update [`v1.0.5...v1.0.6`]
+
+## `shavit-paint` -> `shavit-mark`
+* New feature for player to ping a position with marker by using command `sm_ping`.
+* Add Eraser for player to erase decals
+* 
+
+## New features
+
+### replay-recorder: Trim meaningless replay frames (https://github.com/bhopppp/Shavit-Surf-Timer/commit/3505e0f1a8d77b88c4cfbd55020c63a0aae5fa68)
+* Trim failure attempts frames
+* Trim AFK frames if stage timer not running
+* Convar `shavit_replay_trimframes` to for toggling this feature
+
+### replay-playback: Replay backup (https://github.com/bhopppp/Shavit-Surf-Timer/commit/f87f2620726bf0134f95f82220d3165109b9946c)
+* Automatically backup old replay when a new one is going to save while this feature enabled.
+* if replay already reach the limitation, oldest replay will be deleted.
+
+* Command `sm_replaybackup` to manage backups of current map (*this option also can be found in timer admin menu)
+* `shavit_replay_backup_enabled` to toggle this feature
+* `shavit_replay_maximumbackup` to set the maximum number of backup for a specific map/style/track or stage
+
+* New forward: Shavit_OnReplayDeleted, if anyone wants to restore the latest backup automatically restore when a replay deleted, that can be implemented there
+
+
+### zones: Custom zone filter & targetname / classname output
+* New Feature: Customize shavit zone filter and output
+Now all zones can filter players by their Targetname and Classname, which allow them being overlapped and work properly for different track / stage.
+New zone type - Zone Output: outputs a targetname / classname when player enter or leave this zone
+Zone: Start / Stage / Checkpoint / Teleport has available outputs feature
+
+Put `Force Render` `Draw As Box` zone option inside `Zone Advanced Option` menu
+New zone advanced option - `Ignore filter activator` to fix some trigger cannot be triggered (*surf_nuclear end)
+ExitBack Button replaced by `Cancel` button in Zone edit menu
+
+
+### mapchooser: 
+* Display detailed map info in map vote
+* New convar: `smc_mapvote_maxmaps` to control how many options diplay in map vote panel
+
+
+
+
+### 
+* Add command sm_s10 -> sm_s{max stage} [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/138aee235b508f7e4b6a870afe489a58c9b9facf)
+* Add new convar `shavit_hud_noweapon_onspawn` [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/6241fe4951591ae571fcd694c42d66ea5e20fc07)
+* Add stage selection menu for !wrcp when map is specified [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/48cdbd4d7b16760602323e2107dc9b8984e5ed52)
+* Add new hud option: Records Display Mode [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/481efe6e884653cb3536245f62c4d3d3dfeed0e4)
+* Optimize ghost route performance & Prevent teleporting frames being drawn [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/96af645effa3053e7ea8db38b4bd8c559dcd2ed6)
+* Catch up player's speed when guide line slower than player [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/d48fd3b3660d2346fd988be7926b67cbfeae987b)
+* Add command support bonus number greater than 9 [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e565e1d76d5c4eb411b40c1da5e513bfd988de78)
+* New command `sm_triggers` to toggle map triggers[commit #1](https://github.com/bhopppp/Shavit-Surf-Timer/commit/8b9a11f72964f24c5dd511535c0ade1fc819f36e) [commit #2](https://github.com/bhopppp/Shavit-Surf-Timer/commit/0596718c1cd4e1d21f2dc38829c6f95d18398e1e)
+* Save !wr menu record page for back button [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/09d9dbc5d565f61a7b49aa0e1ee3cbb9deef12ba)
+* Only display style of ghost has valid replay data [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/4c6a33068a07626eaa0e12e0f1b477d93d925f10)
+* Add back buttons to delete menus [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e08a49434bd6d366e9a0788c7ff84f787dbc0cb4)
+* Better Personal Best menu [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/ef80b1e0ad9c6432d512470fbd70db658e9587ba)
+* Make menu peristence work properly [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/8fc4a4399cba17c58cecfe55df8348e23cbce5fb)
+* Add TELimit bytepatch & translation for ghost [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/d216f692da4e79d31c33c1a63657343c056966ea)
+* Make speed limitation of Zone Custom Speedlimit overwrite style speed limit setting [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/4c95ee40d0c0cd14fdd81af943f536d9ef371047)
+* Segment replay recording error due to not setting stage reach frame [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/538fec48c2ea58765bf6670e495656b203de30b8)
+* Add translation for !mapinfo command & print message to all on map tier update [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/2be346b8076a08a45b7a861b2508430499da01d1)
+* Add top record holders menu [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/d0d15ee2899ecc4d4b4102920d473121b389e4de)
+* Add alias command sm_teleport [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/caa4c0327dd7916c839bab2d7bd13fc538a1eb25)
+* Add alias command sm_startpos [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/c2a8ab323cd78a74eafe017ddb81e0dc160f10e5)
+* Add tier selection menu to map stats menu [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/f00e7eb461bb59022ed420c3fdfd581d5903cb9f)
+* New convar: shavit_zones_allowsetstartpostion [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/2585ffea4bde9327f02bbcb7e81d4b6e595b981d)
+* New style setting: minimum_time_stage [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/78aad31d390abdff18d669eb7013fd93c60b3693)
+* Allow player teleport back to stage while inside stage zone if not their first attempts [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/4fc8121596fefc91623df01e7edc84c1a798ccf7)
+* Print timer started message to player who disabled timer hud [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/4b8c661d66c4745883afe38bb273681587e2fadd)
+* Make surf detect more sensitive [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/05c1569f921111cda4a4ee4ebe0e58a18f20fa0e)
+* Add alias command: !mi [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/72910c65d478a74c2317963a833d4f7495c2f4b6)
+* [commit]()
+* [commit]()
+* [commit]()
+
+
+## Bug fixes
+* Uncorrectly display map in cp record menu [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e0b213881759d2bff6abde6420ce6e9b8da807f5)
+* Reset data when map tier changes[commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/6eb97e8da8a384d11d0bcfb16731a9ff545cf23c)
+* Missing table prefix in query [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/67c7d2b743932124fb70e0ea5d2a1aa10f1b2502)
+* Set stage time invalid even if all zone speed limits are off [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/bdb7b0fca5b2c6ff04954fa2fd13a85bf40700a2)
+* Retrieve wrong stage records with 1 arg [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/f231d6c86c26e6558d99ae3f9b617eab37b1135d)
+* End delayed clear frame after finish grabbing post frame [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/9de77279df6ee5a44adc085b0ed8ca0ccc96ad8b)
+* Returning to the wrong sub menu when exiting the checkpoint records menu. [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/91910e696c0520cf22c28c717506c7be153f6edc)
+* Speed gradient color goes crazy when someone being spectated [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/7efa0f2669d644dd8d24a4093b5e1adc36f1f392)
+* Time formatting bug [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/b705f68e117c70b3ba8e791a7994d1486a354e41)
+* Put player into practice mode when teleport to end [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/3bebd9fdafc554f339af51ef0b75c30845fa3cd8)
+* Stage timer started while zone stage not updated [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/12377197b1ab244a87631a1eeb5c86c5d87fc60b)
+* Call `ResetClientTargetNameAndClassName` on zone touch [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/aafdd18da935f4d806dd95110966c92f49bcb372)
+* Incidentally getting style setting by client index [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/c83206c461389dafd2963eb0d8d2cea0e4525552)
+* Print stage start speed info when using a checkpoint generated from replay bot [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/f99115a5a2bf8e4a99fbf7b8c1c92396ae33f347)
+* Resets all personal replay data on map start if not reloading map [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/026651577abdfb0ef60806a17228db3057584ff0)
+* SQL error when fetching player profile without mapchooser [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/ad6c7220ff64001e6e205c881eecf3272693beae)
+* Do not update right side hud if hud master option is off [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/babee2799455af70ea5139c0a35a404aed9146c5)
+* Wrong closestpos setup when new replay saved and loaded [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/dc5d2acad7890951a31b62521db5b60173d5b6ba)
+* Wrong parameter name of native Shavit_GetTrackSpeedLimitFlags [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/0aab868f8bdacf6374e7bffc476520055ac54e7c)
+* Display translation for client index instead of serverlang [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/5b05e29cbc6d5a5d92edca82fb9de3876d39b076)
+* Disable practice mode when use !back in a stage run [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/1dca52c099db9cb213ed1cb00010ed97abb97afb)
+* Wrong function type when cookie initialize [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/c867dc6838794dc64c4dc81915b98d5f8b9c4b92)
+* Block pre jump & block bhop not taking effect while player in a booster [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/8cfe6a573f4eaa92962422d80ad230d5e0114a8e)
+* Wrong return type of native [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/92082121e166ef2f789c5ed32d93c611201bad77)
+* [commit]()
+* [commit]()
+* [commit]()
+* [commit]()
+* [commit]()
+* [commit]()
+
+## Merge stuffs from shavit bhoptimer & pull reqest
+
+### @GimoDDak
+* Fix spelling [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/1cbddecd79ca1ca01739b293d5a062998bfc75e6)
+* Fix typo of file name [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/23e42f541a3429b40871819c6b130701e551b714)
+* Add mapchooser translations [commit#1](https://github.com/bhopppp/Shavit-Surf-Timer/commit/66822224fe54a81a200493ed3a7b3cb9d07f20bc) [commit#2](https://github.com/bhopppp/Shavit-Surf-Timer/commit/b1883659a96b6b5a0cfb031c04cd98b4eea4f593) [commit#3](https://github.com/bhopppp/Shavit-Surf-Timer/commit/1bc3a53b67bdb79eb523fe6d7d7c9c639a37c174) [commit#4](https://github.com/bhopppp/Shavit-Surf-Timer/commit/7072455c3a0906315fb5b2a3a406f0171f06b762) [commit#5](https://github.com/bhopppp/Shavit-Surf-Timer/commit/7676a58eb38b1028cc027a1e678e1f4f38e81249)
+* Add missing ping files [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/1220cf900e5469b0fce2b40bbff1b14664316038)
+
+### @Cynosphere
+* Don't call UpdateStyleSettings on fake clients [commit]https://github.com/bhopppp/Shavit-Surf-Timer/commit/59071feb626f59890fc5d0dc3a723b224284b256
+* Fix not being able to overlap bonus+main endzones [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/0ec5aaddc85af750678786d603277e8a22faf8b0)
+
+### @akanora
+* Add an option to see the line behind walls [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/8c4fb44df54ed47fa024b6fd8ab2cb637d7198d8)
+
+### bhoptimer
+* make !beamer more reliable and stuck in walls less (if at all!) [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e0b213881759d2bff6abde6420ce6e9b8da807f5)
+* Some autobhop zone fixes [](https://github.com/shavitush/bhoptimer/commit/8ecc2a78290942325fcc5a8742a2c0261450a4ce)
+* Check for sv_autobunnyhopping even if not csgo 🕵 [commit](https://github.com/shavitush/bhoptimer/commit/94ebb97c79f0ff71dd7115ac6626d86e162df1a7)
+* Add handling for func_rot_button zones [commit](https://github.com/shavitush/bhoptimer/commit/04ad339fe81deb97fbb3880290d24e4891f526e0) [commit#2](https://github.com/shavitush/bhoptimer/commit/f54775044ccae66ad7a14948bc1a4eb11b0b676c)
+* fix shavit-zones cvar change callback errors (found by caliph) [commit](https://github.com/shavitush/bhoptimer/commit/0151ace718c8256b5f16ef39e6fcfd0a03d41765)
+* fix: prevent unnecessary jump when using !r or switching to TAS [commit](https://github.com/shavitush/bhoptimer/commit/7e1c3f0dc31b79a093da1995d40888a890da9cef)
+* shavit-core.sp - typo (^: [commit](https://github.com/shavitush/bhoptimer/pull/1238)
+* fix shavit-zones cvar change callback errors (found by caliph) [commit](https://github.com/shavitush/bhoptimer/commit/0151ace718c8256b5f16ef39e6fcfd0a03d41765)
+* shavit-chat - fix chat messages near (or at) max length overflowing into a broken message [commit](https://github.com/shavitush/bhoptimer/commit/49105001d3fbcec5060689f3b28a4816ff3e2340)
+* fix error due to IsPlayerAlive() being called on disconnected client [commit](https://github.com/shavitush/bhoptimer/commit/14b967496211dc598c09af470fd02759da9fab9d)
+* Make it easier to change the max tier [commit](https://github.com/shavitush/bhoptimer/commit/7cbb25054126f7bf331fb2f70ceb77525774decf)
+* fix error in case where style == -1 [commit](https://github.com/shavitush/bhoptimer/pull/1254)
+
+
+
+
+
+
+
+
+
+
+
+
 # Shavit SurfTimer - Change log - 2025-1-18 -
 * Update [`v1.0.4 Bugfix...v1.0.5`]
 
