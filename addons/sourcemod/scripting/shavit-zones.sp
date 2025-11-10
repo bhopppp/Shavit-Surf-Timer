@@ -6109,6 +6109,21 @@ public void Shavit_OnDatabaseLoaded()
 	}
 }
 
+public void Shavit_OnToggleTriggers(int client, bool status)
+{
+	if (status)
+	{
+		gI_ZoneStage[client][0] = 0;
+		gI_ZoneStage[client][1] = -1;
+
+		int empty_tracks[TRACKS_SIZE];
+		bool empty_InsideZoneID[MAX_ZONES];
+
+		gI_InsideZone[client] = empty_tracks;
+		gB_InsideZoneID[client] = empty_InsideZoneID;
+	}
+}
+
 void ResetClientTargetNameAndClassName(int client, int track)
 {
 	char targetname[64];
@@ -6519,6 +6534,11 @@ public void StartTouchPost(int entity, int other)
 		return;
 	}
 
+	if(Shavit_IsTriggerDisabled(other))
+	{
+		return;
+	}
+
 	int zone = gI_EntityZone[entity];
 
 	if (zone == -1)
@@ -6738,6 +6758,11 @@ public void EndTouchPost(int entity, int other)
 	if (other < 1 || other > MaxClients || IsFakeClient(other))
 		return;
 
+	if(Shavit_IsTriggerDisabled(other))
+	{
+		return;
+	}
+
 	int zone = gI_EntityZone[entity];
 
 	if (zone == -1)
@@ -6820,6 +6845,11 @@ public void TouchPost(int entity, int other)
 {
 	if (other < 1 || other > MaxClients || IsFakeClient(other))
 		return;
+
+	if(Shavit_IsTriggerDisabled(other))
+	{
+		return;
+	}
 
 	int zone = gI_EntityZone[entity];
 

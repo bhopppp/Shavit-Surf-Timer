@@ -1004,13 +1004,22 @@ forward void Shavit_OnTimerMenuMade(int client, Menu menu);
 forward Action Shavit_OnTimerMenuSelect(int client, int position, char[] info, int maxlength)
 
 /**
- * Called before a player's timer is stopped. (stop =/= finish a map)
+ * Called before a player toggle triggers.
  *
  * @param client					Client index.
  * @param status					Status of trigger going to set.
  * @return							False to prevent status of trigger from being set.
  */
 forward bool Shavit_OnToggleTriggersPre(int client, bool status)
+
+/**
+ * Called after a player toggled triggers.
+ *
+ * @param client					Client index.
+ * @param status					Status of trigger already set.
+ * @noreturn
+ */
+forward void Shavit_OnToggleTriggers(int client, bool status)
 
 /**
  * Returns bhoptimer's database handle.

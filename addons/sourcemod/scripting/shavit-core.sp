@@ -95,6 +95,7 @@ Handle gH_Forwards_OnProcessMovementPost = null;
 Handle gH_Forwards_OnTimerMenuCreate = null;
 Handle gH_Forwards_OnTimerMenuSelected = null;
 Handle gH_Forawrds_OnToggleTriggersPre = null;
+Handle gH_Forawrds_OnToggleTriggers = null;
 
 // player timer variables
 timer_snapshot_t gA_Timers[MAXPLAYERS+1];
@@ -335,6 +336,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerMenuCreate = CreateGlobalForward("Shavit_OnTimerMenuMade", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnTimerMenuSelected = CreateGlobalForward("Shavit_OnTimerMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
 	gH_Forawrds_OnToggleTriggersPre = CreateGlobalForward("Shavit_OnToggleTriggersPre", ET_Event, Param_Cell, Param_Cell);
+	gH_Forawrds_OnToggleTriggers = CreateGlobalForward("Shavit_OnToggleTriggers", ET_Event, Param_Cell, Param_Cell);
 
 	Bhopstats_CreateForwards();
 	Shavit_Style_Settings_Forwards();
@@ -431,9 +433,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tsminus", Command_TimescaleMinus, "Subtracts the value from your current timescale.");
 
 	// toggle triggers
-	RegAdminCmd("sm_toggletriggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
-	RegAdminCmd("sm_triggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
-	RegAdminCmd("sm_disabletriggers", Command_ToggleTriggers, ADMFLAG_RCON, "Disable triggers for a client");
+	RegConsoleCmd("sm_toggletriggers", Command_ToggleTriggers, "Disable triggers for a client");
+	RegConsoleCmd("sm_triggers", Command_ToggleTriggers, "Disable triggers for a client");
+	RegConsoleCmd("sm_disabletriggers", Command_ToggleTriggers, "Disable triggers for a client");
 
 	// Message settings
 	RegConsoleCmd("sm_message", Command_Message, "Open message setting menu.");
@@ -2826,6 +2828,11 @@ public int Native_SetTriggerDisable(Handle handler, int numParams)
 	bool status = view_as<bool>(GetNativeCell(2));
 	bool bBypass = (numParams < 3 || view_as<bool>(GetNativeCell(3)));
 
+	if(status == gB_DisableTriggers[client])
+	{
+		return 0;
+	}
+
 	if(!bBypass)
 	{
 		bool bResult = true;
@@ -2844,6 +2851,11 @@ public int Native_SetTriggerDisable(Handle handler, int numParams)
 	StopTimer(client);
 	gB_DisableTriggers[client] = status;
 	Shavit_PrintToChat(client, "%T", gB_DisableTriggers[client] ? "TriggerDisabled" : "TriggerEnabled", client, gB_DisableTriggers[client] ? gS_ChatStrings.sWarning:gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+	Call_StartForward(gH_Forawrds_OnToggleTriggers);
+	Call_PushCell(client);
+	Call_PushCell(status);
+	Call_Finish();
 
 	return 0;
 }
