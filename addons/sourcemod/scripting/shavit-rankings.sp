@@ -764,7 +764,7 @@ public void PrintMapInfo(int client, const char[] map)
 		gS_ChatStrings.sVariable2, map, gS_ChatStrings.sText, sType,
 		gS_ChatStrings.sVariable, sTier, gS_ChatStrings.sText,
 		gS_ChatStrings.sVariable, sStageInfo, gS_ChatStrings.sText,
-		gS_ChatStrings.sVariable, sTrackInfo);		
+		gS_ChatStrings.sVariable, sTrackInfo, gS_ChatStrings.sText);		
 }
 
 public int MenuHandler_MapInfoMatches(Menu menu, MenuAction action, int param1, int param2)
