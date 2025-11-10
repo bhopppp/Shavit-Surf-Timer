@@ -151,6 +151,7 @@ TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 // cvars
 Convar gCV_Restart = null;
 Convar gCV_Pause = null;
+Convar gCV_PauseMovement = null;
 Convar gCV_DisablePracticeModeOnStart = null;
 Convar gCV_VelocityTeleport = null;
 Convar gCV_DefaultStyle = null;
@@ -459,6 +460,7 @@ public void OnPluginStart()
 
 	gCV_Restart = new Convar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = new Convar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
+	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?", 0, true, 0.0, true, 1.0);
 	gCV_DisablePracticeModeOnStart = new Convar("shavit_core_disable_practicemode_onstart", "0", "Disable practice mode when client enter start zone?", 0, true, 0.0, true, 1.0);
 	gCV_VelocityTeleport = new Convar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle = new Convar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
@@ -4396,6 +4398,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	int flags = GetEntityFlags(client);
 
 	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
+
+	if (gA_Timers[client].bClientPaused && IsPlayerAlive(client) && !gCV_PauseMovement.BoolValue)
+	{
+		buttons = 0;
+		vel = view_as<float>({0.0, 0.0, 0.0});
+
+		SetEntityFlags(client, (flags | FL_ATCONTROLS));
+
+		return Plugin_Changed;
+	}
 
 	if (gI_HijackFrames[client])
 	{

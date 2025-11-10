@@ -114,6 +114,7 @@ Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
 Convar gCV_SpecScoreboardOrder = null;
 Convar gCV_BadSetLocalAnglesFix = null;
+ConVar gCV_PauseMovement = null;
 
 // external cvars
 ConVar sv_cheats = null;
@@ -323,6 +324,11 @@ public void OnPluginStart()
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Chat = LibraryExists("shavit-chat");
 	gB_Zones = LibraryExists("shavit-zones");
+}
+
+public void OnAllPluginsLoaded()
+{
+	gCV_PauseMovement = FindConVar("shavit_core_pause_movement");
 }
 
 void LoadDHooks()
@@ -1799,7 +1805,16 @@ bool Teleport(int client, int targetserial)
 	float vecPosition[3];
 	GetClientAbsOrigin(iTarget, vecPosition);
 
-	Shavit_StopTimer(client);
+	if(Shavit_GetTimerStatus(client) == Timer_Running || !gCV_PauseMovement.BoolValue)
+	{
+		if(ShouldDisplayStopWarning(client))
+	 	{
+	 		gI_LastStopInfo[client] = targetserial;
+	 		OpenStopWarningMenu(client, DoTeleport);
+	 		return true;
+	 	}
+		Shavit_StopTimer(client);
+	}
 
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 
@@ -1908,6 +1923,12 @@ void DoStyleChange(int client)
 void DoStopTimer(int client)
 {
 	Shavit_StopTimer(client);
+}
+
+void DoTeleport(int client)
+{
+	Shavit_StopTimer(client);
+	Teleport(client, gI_LastStopInfo[client]);
 }
 
 void DoToggleTriggers(int client)
@@ -2036,7 +2057,7 @@ public Action Command_Noclip(int client, int args)
 		bool bInStart = gB_Zones && Shavit_InsideZone(client, Zone_Start, iTrack) || 
 								(Shavit_IsOnlyStageMode(client) && bInsideStageZone && iZoneStage == Shavit_GetClientLastStage(client));
 		
-		if (Shavit_IsPaused(client))
+		if (Shavit_IsPaused(client) && gCV_PauseMovement.BoolValue)
 		{
 			SetEntityMoveType(client, MOVETYPE_NOCLIP);
 			return Plugin_Handled;
@@ -2054,6 +2075,21 @@ public Action Command_Noclip(int client, int args)
 				Shavit_SetPracticeMode(client, true, true);
 				Shavit_StopTimer(client);
 				SetEntityMoveType(client, MOVETYPE_NOCLIP);
+				return Plugin_Handled;
+			}
+
+			if(!gCV_PauseMovement.BoolValue)
+			{
+				if(!ShouldDisplayStopWarning(client))
+				{
+					Shavit_StopTimer(client);
+					SetEntityMoveType(client, MOVETYPE_NOCLIP);
+				}
+				else
+				{
+					OpenStopWarningMenu(client, DoNoclip);
+				}
+
 				return Plugin_Handled;
 			}
 
@@ -2127,7 +2163,7 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 		bool bInStart = gB_Zones && Shavit_InsideZone(client, Zone_Start, iTrack) || 
 								(Shavit_IsOnlyStageMode(client) && bInsideStageZone && iZoneStage == Shavit_GetClientLastStage(client));
 		
-		if (Shavit_IsPaused(client))
+		if (Shavit_IsPaused(client) && gCV_PauseMovement.BoolValue)
 		{
 			SetEntityMoveType(client, MOVETYPE_NOCLIP);
 			return Plugin_Handled;
@@ -2145,6 +2181,21 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 				Shavit_SetPracticeMode(client, true, true);
 				Shavit_StopTimer(client);
 				SetEntityMoveType(client, MOVETYPE_NOCLIP);
+				return Plugin_Handled;
+			}
+
+			if (!gCV_PauseMovement.BoolValue)
+			{
+				if(!ShouldDisplayStopWarning(client))
+				{
+					Shavit_StopTimer(client);
+					SetEntityMoveType(client, MOVETYPE_NOCLIP);
+				}
+				else
+				{
+					OpenStopWarningMenu(client, DoNoclip);
+				}
+
 				return Plugin_Handled;
 			}
 
@@ -2222,7 +2273,7 @@ public Action CommandListener_Real_Noclip(int client, const char[] command, int 
 		bool bInStart = gB_Zones && Shavit_InsideZone(client, Zone_Start, iTrack) || 
 								(Shavit_IsOnlyStageMode(client) && bInsideStageZone && iZoneStage == Shavit_GetClientLastStage(client));
 
-		if (Shavit_IsPaused(client))
+		if (Shavit_IsPaused(client) && gCV_PauseMovement.BoolValue)
 		{
 			SetEntityMoveType(client, MOVETYPE_NOCLIP);
 			return Plugin_Handled;
@@ -2240,6 +2291,21 @@ public Action CommandListener_Real_Noclip(int client, const char[] command, int 
 				Shavit_SetPracticeMode(client, true, true);
 				Shavit_StopTimer(client);
 				SetEntityMoveType(client, MOVETYPE_NOCLIP);
+				return Plugin_Handled;
+			}
+
+			if(!gCV_PauseMovement.BoolValue)
+			{
+				if(!ShouldDisplayStopWarning(client))
+				{
+					Shavit_StopTimer(client);
+					SetEntityMoveType(client, MOVETYPE_NOCLIP);
+				}
+				else
+				{
+					OpenStopWarningMenu(client, DoNoclip);
+				}
+
 				return Plugin_Handled;
 			}
 
@@ -2276,7 +2342,7 @@ public Action CommandListener_Real_Noclip(int client, const char[] command, int 
 			Shavit_SetPracticeMode(client, true, true);
 			Shavit_StopTimer(client);
 			SetEntityMoveType(client, MOVETYPE_NOCLIP);
-		}		
+		}
 
 		gI_LastNoclipTick[client] = GetGameTickCount();
 	}

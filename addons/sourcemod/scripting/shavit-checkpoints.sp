@@ -71,6 +71,8 @@ Convar gCV_RestoreStates = null;
 Convar gCV_PersistData = null;
 Convar gCV_MaxCP = null;
 Convar gCV_MaxCP_Segmented = null;
+Convar gCV_AllowWhilePaused = null;
+ConVar gCV_PauseMovement = null;
 
 Handle gH_CheckpointsCookie = null;
 
@@ -213,6 +215,7 @@ public void OnPluginStart()
 	gCV_MaxCP = new Convar("shavit_checkpoints_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = new Convar("shavit_checkpoints_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_checkpoints_maxcp.\nNote: Very high values will result in HUGE memory usage! Segmented checkpoints contain frame data!", 0, true, 1.0, true, 50.0);
 	gCV_PersistData = new Convar("shavit_checkpoints_persistdata", "600", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled", 0, true, -1.0);
+	gCV_AllowWhilePaused = new Convar("shavit_checkpoints_enabled_pause", "0", "Allow players to save and teleport to checkpoint while paused.", 0, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -293,6 +296,11 @@ void LoadDHooks()
 	gH_CommitSuicide.AddParam(HookParamType_Bool);
 
 	delete hGameData;
+}
+
+public void OnAllPluginsLoaded()
+{
+	gCV_PauseMovement = FindConVar("shavit_core_pause_movement");
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -1096,13 +1104,13 @@ void OpenCPMenu(int client)
 
 		FormatEx(sInfo, sizeof(sInfo), "%T\n", "MiscCheckpointMenu", client);
 
-		if (!bKzcheckpoints && !Shavit_IsPaused(client))
+		if (bKzcheckpoints || (Shavit_IsPaused(client) && gCV_PauseMovement.BoolValue && gCV_AllowWhilePaused.BoolValue))
 		{
-			FormatEx(sInfo, sizeof(sInfo), "%s%T\n ", sInfo, "MiscCheckpointWarning", client);
+			StrCat(sInfo, sizeof(sInfo), " ");
 		}
 		else
 		{
-			StrCat(sInfo, sizeof(sInfo), " ");
+			FormatEx(sInfo, sizeof(sInfo), "%s%T\n ", sInfo, "MiscCheckpointWarning", client);
 		}
 
 		menu.SetTitle(sInfo);
@@ -1512,11 +1520,14 @@ bool SaveCheckpoint(int client, bool duplicate = false)
 		return false;
 	}
 
-	if((Shavit_IsPaused(client) || Shavit_IsPaused(target)) && Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints"))
+	if((Shavit_IsPaused(client) || Shavit_IsPaused(target)))
 	{
-		Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+		if(!gCV_PauseMovement.BoolValue || !gCV_AllowWhilePaused.BoolValue || Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints"))
+		{
+			Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);	
 
-		return false;
+			return false;				
+		}
 	}
 
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
@@ -1833,11 +1844,14 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 		return;
 	}
 
-	if(Shavit_IsPaused(client) && Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints"))
+	if(Shavit_IsPaused(client))
 	{
-		Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+		if(!gCV_PauseMovement.BoolValue || !gCV_AllowWhilePaused.BoolValue || Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints"))
+		{
+			Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);	
 
-		return;
+			return;					
+		}
 	}
 
 	target = target ? target : client;
