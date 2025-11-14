@@ -1,0 +1,189 @@
+"Phrases"
+{
+	"MenuTitleSavestates"
+	{
+		"en"		"Savestates Menu"
+	}
+    "SaveReminder"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "You have a saved game on this map! Load it with {1}!savestate{2}."
+    }
+    "MaxSavesReached"
+    {
+        "#format"    "{1:s},{2:d},{3:s}"
+        "en"         "You have reached the maximum number of saves ({1}{2}{3})! Delete some saves and try again."
+    }
+    "OnlyMainTrack"
+    {
+        "#format"    "{1:s},{2:s},{3:s},{4:s}"
+        "en"         "You can only save your timer for {3}Main Track{4}."
+    }
+    "TimerSaved"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "Timer saved! Load your save on this map later with {1}!savestate{2}."
+    }
+	"SaveTimerNotRunning"
+	{
+		"#format"	 "{1:s},{2:s}"
+		"en"         "Your timer has to be {1}started{2} to use this feature."
+	}
+	"SaveTimerMoving"
+	{
+		"#format"	 "{1:s},{2:s}"
+		"en"         "Your timer has to be {1}paused{2}, or met pause conditions to use this feature! (alive, not moving, uncrouched, etc.)"
+	}
+    "SaveTimerPractice"
+    {
+        "#format"	 "{1:s},{2:s}"
+        "en"         "Your {1}cannot{2} save your timer when practice mode is enabled."
+    }
+    "SaveTimerShortDuration"
+    {
+        "#format"   "{1:s},{2:.1f},{3:s}"
+        "en"        "Your timer has to running longer than {1}{2}{3} seconds to save."
+    }
+    "SaveTimerTooSoon"
+    {
+        "#format"   "{1:s},{2:.1f},{3:s}"
+        "en"        "You just load this save few seconds ago, please wait {1}{2}{3} seconds and try again."
+    }
+    "TimerLoaded"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "Saved game {1}loaded{2} successfully and deleted!"
+    }
+    "SaveReplayError"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "{1}Fail{2} to save your game due to replay saving error, tell an admin to check the logs!"
+    }
+    "SaveFileError"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "{1}Fail{2} to save your game. File error, tell an admin!"
+    }
+    "LoadFileError"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "Could {1}NOT {2}load your game. Save file missing or corrupt!"
+    }
+    "LoadReplayError"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "Could {1}NOT {2}load your game. Replay file unable to be loaded, try again or tell an admin!"
+    }
+    "LoadTimerAlive"
+    {
+        "#format"    "{1:s},{2:s}"
+        "en"         "You must be {1}alive {2}to load a saved game"
+    }
+    "InvalidStyle"
+    {
+        "en"         "Invalid style, please try again"
+    }
+    "NoSavesFound"
+    {
+        "en"         "No saves found"
+    }
+    "SaveDeleted"
+    {
+        "#format"    "{1:s},{2:s},{3:s},{4:s},{5:s},{6:s}"
+        "en"         "Deleted save for {1}{2}{3} in {4}{5}{6}."
+    }
+    "MenuTitleSaveManagementLinear"
+    {
+        "#format"	 "{1:s},{2:s},{3:s}"
+        "en"         "Selected save information:\nMap: {1}\nStyle: {2}\nTime: {3}\n "
+    }
+    "MenuTitleSaveManagementStaged"
+    {
+        "#format"	 "{1:s},{2:s},{3:s},{4:d},{5:d}"
+        "en"         "Selected save information:\nMap: {1}\nStyle: {2}\nTime: {3}\nStage: {4}/{5}\n "
+    }
+    "MenuTitleOverwriteLinear"
+    {
+        "#format"    "{1:s},{2:s},{3:s}"
+        "en"         "You already have a saved game on {1}\nStyle: {2}\nTime: {3}\n \nOverwrite?\n "
+    }
+	"MenuTitleOverwriteStaged"
+    {
+        "#format"    "{1:s},{2:s},{3:s},{4:d},{5:d}"
+        "en"         "You already have a saved game on {1}\nStyle: {2}\nTime: {3}\nStage: {4}/{5}\n \nOverwrite?\n "
+    }
+    "MenuTitleLoadSaves"
+    {
+        "en"         "Choose a save to load"
+    }
+    "MenuTitleSavedGames"
+    {
+        "#format"    "{1:d},{2:d}"
+        "en"         "All Saved Games - ({1} / {2})"
+    }
+    "SaveCurrentTimer"
+    {
+        "en"         "Save Current Timer"
+    }
+    "LoadTimerSave"
+    {
+        "en"         "Load Timer Save"
+    }
+    "ViewAllSaves"
+    {
+        "en"         "View All Saves"
+    }
+    "LoadSave"
+    {
+        "en"         "Load"
+    }
+    "DeleteSave"
+    {
+         
+        "en"         "Delete"
+    }
+    "MenuItemYes"
+    {
+         
+        "en"         "Yes"
+    }
+    "MenuItemNo"
+    {
+         
+        "en"         "No"
+    }
+	"SaveDisplayStaged"
+	{
+		"#format"	 "{1:s},{2:s},{3:s},{4:d},{5:d}"
+		"en"		 "{1} | Style: {2}\n    Time: {3}\n    Stage: {4}/{5}"
+	}
+	"SaveDisplayLinear"
+	{
+		"#format"	 "{1:s},{2:s},{3:s}"
+		"en"		 "{1} | Style: {2}\n    Time: {3}"
+	}
+	"MenuTitleMapSaveSingle"
+	{
+		"#format"	 "{1:d},{2:s}"
+		"en"		 "Found {1} Save for {2}"
+	}
+	"MenuTitleMapSaveMultiple"
+	{
+		"#format"	 "{1:d},{2:s}"
+		"en"		 "Found {1} Saves for {2}"
+	}
+	"MapSaveDisplaySingle"
+	{
+		"#format"	 "{1:s},{2:d}"
+		"en"		 "{1} ({2} save)"
+	}
+	"MapSaveDisplayMutiple"
+	{
+		"#format"	 "{1:s},{2:d}"
+		"en"		 "{1} ({2} saves)"
+	}
+    "LoadTimerWarning"
+    {
+        "en"        "Are you sure you want to load this save?\nYour current timer will be discarded!"
+    }
+}
