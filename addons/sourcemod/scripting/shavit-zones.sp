@@ -2743,7 +2743,7 @@ public Action Command_Stages(int client, int args)
 		int iZoneStage;
 		bool bInsideStageZone = Shavit_GetClientTrack(client) == Track_Main ? Shavit_InsideZoneStage(client, iZoneStage):false;
 
-		if (iLastStage > 1 && Shavit_GetClientStageAttempt(client, iLastStage) < 2 && (bInsideStageZone && iLastStage == iZoneStage))
+		if (!Shavit_IsOnlyStageMode(client) &&iLastStage > 1 && Shavit_GetClientStageAttempt(client, iLastStage) < 2 && (bInsideStageZone && iLastStage == iZoneStage))
 		{
 			Shavit_PrintToChat(client, "%T", "StageCommandInsideStageZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 			return Plugin_Handled;
