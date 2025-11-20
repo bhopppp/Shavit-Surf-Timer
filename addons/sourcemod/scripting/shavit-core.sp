@@ -1568,6 +1568,16 @@ void DeleteRestOfUser(int iSteamID, DataPack hPack)
 
 	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 	AddQueryLog(trans, sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %sstagetimes WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	AddQueryLog(trans, sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %scptimes WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	AddQueryLog(trans, sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %scpwrs WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	AddQueryLog(trans, sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %sstyleplaytime WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	AddQueryLog(trans, sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %sstartpositions WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	AddQueryLog(trans, sQuery);
 	FormatEx(sQuery, 256, "DELETE FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 	AddQueryLog(trans, sQuery);
 
@@ -1582,8 +1592,9 @@ void DeleteUserData(int client, const int iSteamID)
 	char sQuery[512];
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT id, style, track, map FROM %swrs WHERE auth = %d;",
-		gS_MySQLPrefix, iSteamID);
+		"SELECT id, style, track, 0 AS stage, map FROM %swrs WHERE auth = %d "...
+		"UNION ALL SELECT id, style, track, stage, map FROM %sstagewrs WHERE auth = %d;",
+		gS_MySQLPrefix, iSteamID, gS_MySQLPrefix, iSteamID);
 
 	QueryLog(gH_SQL, SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
 }
@@ -1608,9 +1619,17 @@ public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet resu
 		int id = results.FetchInt(0);
 		int style = results.FetchInt(1);
 		int track = results.FetchInt(2);
-		results.FetchString(3, map, sizeof(map));
+		int stage = results.FetchInt(3);
+		results.FetchString(4, map, sizeof(map));
 
-		Shavit_DeleteWR(style, track, map, iSteamID, id, false, false);
+		if(stage == 0)
+		{
+			Shavit_DeleteWR(style, track, map, iSteamID, id, false, false);			
+		}
+		else
+		{
+			Shavit_DeleteStageWR(style, track, stage, map, iSteamID, id, false, false);
+		}
 	}
 
 	DeleteRestOfUser(iSteamID, hPack);
