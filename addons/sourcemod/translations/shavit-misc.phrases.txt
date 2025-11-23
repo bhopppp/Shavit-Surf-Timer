@@ -95,6 +95,11 @@
 		"#format"	"{1:s},{2:d},{3:s}"
 		"en"		"Checkpoint ({1}{2}{3}) saved."
 	}
+	"MiscCheckpointsDeleted"
+	{
+		"#format"	"{1:s},{2:d},{3:s}"
+		"en"		"Checkpoint ({1}{2}{3}) deleted."
+	}
 	"MiscCheckpointsTeleported"
 	{
 		"#format"	"{1:s},{2:d},{3:s}"
@@ -102,8 +107,8 @@
 	}
 	"MiscCheckpointsEmpty"
 	{
-		"#format"	"{1:d},{2:s},{3:s}"
-		"en"		"Checkpoint {1} is {2}empty{3}."
+		"#format"	"{1:s},{2:d},{3:s}"
+		"en"		"Checkpoint ({1}{2}{3}) is empty."
 	}
 	"MiscCheckpointsOverflow"
 	{

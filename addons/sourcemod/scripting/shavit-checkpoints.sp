@@ -1049,8 +1049,35 @@ public Action Command_DeleteCheckpoint(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (DeleteCheckpoint(client, gI_CurrentCheckpoint[client]))
+	if(gA_Checkpoints[client].Length == 0)
 	{
+		return Plugin_Handled;
+	}
+
+	int iCheckpointIndex;
+
+	if (args < 1)
+	{
+		iCheckpointIndex = gI_CurrentCheckpoint[client];
+	}
+	else
+	{
+		char sCommand[16];
+		GetCmdArg(1, sCommand, 16);
+
+		iCheckpointIndex = StringToInt(sCommand);
+	}
+
+	if (iCheckpointIndex > gA_Checkpoints[client].Length || iCheckpointIndex < 1)
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, gS_ChatStrings.sVariable, iCheckpointIndex, gS_ChatStrings.sText);
+		return Plugin_Handled;
+	}
+
+	if (DeleteCheckpoint(client, iCheckpointIndex))
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsDeleted", client, gS_ChatStrings.sVariable, iCheckpointIndex, gS_ChatStrings.sText);
+
 		if (gI_CurrentCheckpoint[client] > gA_Checkpoints[client].Length)
 		{
 			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
@@ -1839,7 +1866,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage, int target=0)
 {
-	if(index < 1 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
+	if(index < 1 || index > gCV_MaxCP.IntValue || gA_Checkpoints[client].Length == 0 || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
 	{
 		return;
 	}
@@ -1858,7 +1885,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 
 	if (index > gA_Checkpoints[target].Length)
 	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, index, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, gS_ChatStrings.sVariable, index, gS_ChatStrings.sText);
 		return;
 	}
 
