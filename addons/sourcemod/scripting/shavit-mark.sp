@@ -162,7 +162,7 @@ public void OnPluginStart()
 	gH_PlayerPingSound = new Cookie("paint_playerpingsound", "paint_playerpingsound", CookieAccess_Protected);
 	gH_PlayerPingColor = new Cookie("paint_playerpingcolor", "paint_playerpingcolor", CookieAccess_Protected);
 
-	gCV_AccessFlag = new Convar("shavit_mark_displaytoall_accessflag", "", "Flag to require privileges for send decals or ping markers to all players", 0, false, 0.0, false, 0.0);
+	gCV_AccessFlag = new Convar("shavit_mark_displaytoall_accessflag", "", "Admin flag to require privileges for send decals or ping markers to all players", 0, false, 0.0, false, 0.0);
 	gCV_PingDuration = new Convar("shavit_mark_pingduration", "4.0", "The duration time (in seconds) of ping marks\n 0.0 - Until next ping marks created", 0, true, 0.0, true, 20.0);
 	gCV_PingInterval = new Convar("shavit_mark_pinginterval", "0.5", "The minimum time interval (in seconds) between two ping marks", 0, true, 0.1, true, 5.0);
 	Convar.AutoExecConfig();
@@ -214,7 +214,7 @@ public void OnClientCookiesCached(int client)
 {
 	if(!GetClientCookieInt(client, gH_PlayerPaintColor, gI_PlayerPaintColor[client]))
 	{
-		SetClientCookieInt(client, gH_PlayerPaintColor, 0);
+		SetClientCookieInt(client, gH_PlayerPaintColor, 4);
 	}
 
 	if(!GetClientCookieInt(client, gH_PlayerPaintSize, gI_PlayerPaintSize[client]))
