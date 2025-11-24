@@ -1,7 +1,7 @@
-CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
+CHANGELOG.md file for bhoptimer & shavit-surf-timer -- https://github.com/shavitush/bhoptimer https://github.com/bhopppp/Shavit-Surf-Timer
 Note: Dates are UTC+0.
 
-# Shavit SurfTimer - Change log - 2025-?-? -
+# Shavit SurfTimer - Change log - 2025-11-24 -
 * Update [`v1.0.5...v1.0.6`]
 
 ## `shavit-paint` -> `shavit-mark`
@@ -77,7 +77,6 @@ Now all zones can filter players by their Targetname and Classname, which allow 
 * Refining wipe player feature [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/653d621c6a9f0905176a18086b1b2c9a32e5f33e)
 * Print message when deleted a saveloc with command [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e44e02f93cf7938d641363c215083baf58bcdaa0)
 * Stop practice mode alert spanning while inside a start zone [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/411349efb535e623b074c92db7a78b190fe19d18)
-* Print message when deleted a saveloc with command [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e44e02f93cf7938d641363c215083baf58bcdaa0)
 
 ## Bug fixes
 * Uncorrectly display map in cp record menu [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e0b213881759d2bff6abde6420ce6e9b8da807f5)

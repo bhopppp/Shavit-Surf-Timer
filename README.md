@@ -1,7 +1,8 @@
 # Shavit Surf timer (CS:S ONLY) 
 
-#### 　[ Version 1.0.5 ](https://github.com/bhopppp/Shavit-Surf-Timer/releases/tag/v1.0.5)
-#### 　[( click to download )](https://github.com/bhopppp/Shavit-Surf-Timer/releases/download/v1.0.5/Shavit-SurfTimer-v1.0.5.zip)
+#### 　[ Version 1.0.6 ](https://github.com/bhopppp/Shavit-Surf-Timer/releases/tag/v1.0.6)
+#### 　[( click to download )](https://github.com/bhopppp/Shavit-Surf-Timer/releases/download/v1.0.6/Shavit-SurfTimer-v1.0.6.zip)
+
 ## About this surf timer
 - This timer is based on [Shavit BhopTimer](https://github.com/shavitush/bhoptimer).
 
@@ -11,6 +12,7 @@
 - MySQL 8.0, MariaDB 10.2, SQLite 3.25 or higher version required.
 - Extension `sm_closestpos` for shavit-ghost2 plugin. [Github](https://github.com/rtldg/sm_closestpos)
 - Extension `sm-ripext` for shavit-wrsh plugin. [Github](https://github.com/ErikMinekus/sm-ripext)
+- Extension `eventqueuefix` to make surf EndTouch event clean properly. [Github](https://github.com/srcwr/eventqueuefixfix)
 
 
 ## Whats different from shavit bhop timer?
@@ -20,41 +22,19 @@
 - Save stage record, and calculate every data separately
 - Use stage zone as a start zone, which allow player finish each stage separately
 　
-　
 ### - Checkpoint zone for linear maps
 - Save checkpoint times
 - Enable to check checkpoint time for each record
 
+### - Advance zone prespeed limit control system
+- Sperately control speed limit style to each start zone
 
-### - Advance prespeed limit control system
-- Sperately control speed limit style to every stage zone / track
-- Adpat mostly situation in surf maps (boost start / surf_mash-up s18 etc.) 
+### - Zone filter system for better map zoning
+- Zones are capble to handle map with complex gameplay 
 
-
-### - New shavit-personalreplay plugin
-- Save 5 replays in cache for players and allow them to watch.
-- Persistent replay data for player disconnected in 10 minutes
-
-
-### - New shavit-wrsh plugin
-- Rank your time in surfheaven: `!shrank` or `!shstagerank`
-- Command `!shwr` `!shwrcp` to see top records in surfheaven
-
-
-### - New shavit-ghost2 plugin 
-- Display record's route on map which have customize options (include route width / color / mode / style / jumpbox)
-- Enable ghost by using `!ghost` 
-- Three different style to display route:  `Race` `Guide` `Route`
-
-
-### - Separate message optional
-- Control most of chat message in a menu. use `sm_message` to open it. 
-
-
-### - Better zone creation style
-- Create zone in 3 point (xyz) instead using default zone height
-- Using the `Lock Axis` option makes it easier to create zones for non-rectangular platforms.
-
+### - No fail staged map replay & backup system
+- Trim failure attempts frames & AFK frames
+- Automatically backup old replay when a new one is going to save
 
  
 ### - More feature for better surf experience
@@ -65,7 +45,12 @@
 - Customize noclip speed: Use `!noclipspeed` to change noclip speed
 - Allow to set max velocity for each map
 - Datail Comparison between personal best and world record by using command `!cpr`
-
+- shavit-wrsh plugin to see top records in surfheaven
+- shavit-ghost2 plugin to display route with customize options
+- Create zone in 3 point (xyz)
+- Control most of chat message in a menu. use `sm_message` to open it. 
+- shavit-personalreplay plugin to save 5 replays in cache for players
+- plugin `shavit-savestate` Allow player to save / load thier timer for each style pre map
 
 ## Appreciate that if someone can send me some suggestion or feedback
 
