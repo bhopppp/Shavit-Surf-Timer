@@ -122,7 +122,7 @@ public Plugin myinfo =
 	name = "[shavit-surf] Checkpoints",
 	author = "shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2, *Surf integration version modified by KikI",
 	description = "Checkpoints for shavit surf timer. (This plugin is base on shavit's bhop timer)",
-	version = SHAVIT_VERSION,
+	version = SHAVIT_SURF_VERSION,
 	url = "https://github.com/shavitush/bhoptimer  https://github.com/bhopppp/Shavit-Surf-Timer"
 }
 

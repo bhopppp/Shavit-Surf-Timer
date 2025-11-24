@@ -171,9 +171,9 @@ enum
 public Plugin myinfo =
 {
 	name = "[shavit] MapChooser",
-	author = "various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus, MicrowavedBunny",
-	description = "Automated Map Voting and nominating with Shavit's bhoptimer integration",
-	version = SHAVIT_VERSION,
+	author = "various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus, MicrowavedBunny, *Surf integration version modified by KikI",
+	description = "Automated Map Voting and nominating with shavit surf timer integration",
+	version = SHAVIT_SURF_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 }
 

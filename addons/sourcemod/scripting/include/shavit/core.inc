@@ -25,7 +25,7 @@
 #define _shavit_core_included
 
 #define SHAVIT_VERSION "3.4.2"
-#define SHAVIT_SURF_VERSION "1.0.5"
+#define SHAVIT_SURF_VERSION "1.0.6"
 #define STYLE_LIMIT 128 // 256 is too much for style.
 #define MAX_STAGES 64
 

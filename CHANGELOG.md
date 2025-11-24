@@ -5,37 +5,39 @@ Note: Dates are UTC+0.
 * Update [`v1.0.5...v1.0.6`]
 
 ## `shavit-paint` -> `shavit-mark`
-* New feature for player to ping a position with marker by using command `sm_ping`.
-* Add Eraser for player to erase decals
-* 
+* New command `sm_ping` for player to ping a position with marker.
+* Eraser for player to erase decals.
+* Partner system allows player see thier paint/ping for each other
+* Auto / Semi-Auto fire mode for painting
+
+## New plugin `shavit-savestate`
+* Allow player to save / load thier timer for each style pre map
 
 ## New features
 
-### replay-recorder: Trim meaningless replay frames (https://github.com/bhopppp/Shavit-Surf-Timer/commit/3505e0f1a8d77b88c4cfbd55020c63a0aae5fa68)
+### Replay Recorder: Trim meaningless replay frames
 * Trim failure attempts frames
 * Trim AFK frames if stage timer not running
 * Convar `shavit_replay_trimframes` to for toggling this feature
 
-### replay-playback: Replay backup (https://github.com/bhopppp/Shavit-Surf-Timer/commit/f87f2620726bf0134f95f82220d3165109b9946c)
+### Replay Playback: Replay backup
 * Automatically backup old replay when a new one is going to save while this feature enabled.
 * if replay already reach the limitation, oldest replay will be deleted.
-
 * Command `sm_replaybackup` to manage backups of current map (*this option also can be found in timer admin menu)
 * `shavit_replay_backup_enabled` to toggle this feature
 * `shavit_replay_maximumbackup` to set the maximum number of backup for a specific map/style/track or stage
-
 * New forward: Shavit_OnReplayDeleted, if anyone wants to restore the latest backup automatically restore when a replay deleted, that can be implemented there
 
 
 ### zones: Custom zone filter & targetname / classname output
 * New Feature: Customize shavit zone filter and output
 Now all zones can filter players by their Targetname and Classname, which allow them being overlapped and work properly for different track / stage.
-New zone type - Zone Output: outputs a targetname / classname when player enter or leave this zone
-Zone: Start / Stage / Checkpoint / Teleport has available outputs feature
+* New zone type - Zone Output: outputs a targetname / classname when player enter or leave this zone
+* Zone: Start / Stage / Checkpoint / Teleport has available outputs feature
 
-Put `Force Render` `Draw As Box` zone option inside `Zone Advanced Option` menu
-New zone advanced option - `Ignore filter activator` to fix some trigger cannot be triggered (*surf_nuclear end)
-ExitBack Button replaced by `Cancel` button in Zone edit menu
+* Put `Force Render` `Draw As Box` zone option inside `Zone Advanced Option` menu
+* New zone advanced option - `Ignore filter activator` to fix some trigger cannot be triggered (*surf_nuclear end)
+* ExitBack Button replaced by `Cancel` button in Zone edit menu
 
 
 ### mapchooser: 
@@ -43,9 +45,7 @@ ExitBack Button replaced by `Cancel` button in Zone edit menu
 * New convar: `smc_mapvote_maxmaps` to control how many options diplay in map vote panel
 
 
-
-
-### 
+## Changes
 * Add command sm_s10 -> sm_s{max stage} [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/138aee235b508f7e4b6a870afe489a58c9b9facf)
 * Add new convar `shavit_hud_noweapon_onspawn` [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/6241fe4951591ae571fcd694c42d66ea5e20fc07)
 * Add stage selection menu for !wrcp when map is specified [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/48cdbd4d7b16760602323e2107dc9b8984e5ed52)
@@ -71,12 +71,13 @@ ExitBack Button replaced by `Cancel` button in Zone edit menu
 * New style setting: minimum_time_stage [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/78aad31d390abdff18d669eb7013fd93c60b3693)
 * Allow player teleport back to stage while inside stage zone if not their first attempts [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/4fc8121596fefc91623df01e7edc84c1a798ccf7)
 * Print timer started message to player who disabled timer hud [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/4b8c661d66c4745883afe38bb273681587e2fadd)
+* Bring back convar shavit_core_pause_movement [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/d37669a45e89b9dad01e9a51122d9e0a3bcd08b4)
 * Make surf detect more sensitive [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/05c1569f921111cda4a4ee4ebe0e58a18f20fa0e)
 * Add alias command: !mi [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/72910c65d478a74c2317963a833d4f7495c2f4b6)
-* [commit]()
-* [commit]()
-* [commit]()
-
+* Refining wipe player feature [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/653d621c6a9f0905176a18086b1b2c9a32e5f33e)
+* Print message when deleted a saveloc with command [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e44e02f93cf7938d641363c215083baf58bcdaa0)
+* Stop practice mode alert spanning while inside a start zone [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/411349efb535e623b074c92db7a78b190fe19d18)
+* Print message when deleted a saveloc with command [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e44e02f93cf7938d641363c215083baf58bcdaa0)
 
 ## Bug fixes
 * Uncorrectly display map in cp record menu [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/e0b213881759d2bff6abde6420ce6e9b8da807f5)
@@ -103,14 +104,10 @@ ExitBack Button replaced by `Cancel` button in Zone edit menu
 * Wrong function type when cookie initialize [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/c867dc6838794dc64c4dc81915b98d5f8b9c4b92)
 * Block pre jump & block bhop not taking effect while player in a booster [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/8cfe6a573f4eaa92962422d80ad230d5e0114a8e)
 * Wrong return type of native [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/92082121e166ef2f789c5ed32d93c611201bad77)
-* [commit]()
-* [commit]()
-* [commit]()
-* [commit]()
-* [commit]()
-* [commit]()
+* Not allow !back in stage start zone while doing a stage run [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/0b87c98920ac4dd2094553784a8258bc2d1aa0a4)
 
-## Merge stuffs from shavit bhoptimer & pull reqest
+
+## Merged stuffs from shavit bhoptimer & pull reqest
 
 ### @GimoDDak
 * Fix spelling [commit](https://github.com/bhopppp/Shavit-Surf-Timer/commit/1cbddecd79ca1ca01739b293d5a062998bfc75e6)

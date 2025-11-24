@@ -119,10 +119,10 @@ char gS_ControlCharacters[][] = {"\x01", "\x02", "\x03", "\x04", "\x05", "\x06",
 
 public Plugin myinfo =
 {
-	name = "[shavit] Chat Processor",
-	author = "shavit, Nairda, GAMMA CASE, Kid Fearless, rtldg, BoomShotKapow",
-	description = "Custom chat privileges (custom name/message colors), chat processor, and rankings integration.",
-	version = SHAVIT_VERSION,
+	name = "[shavit-surf] Chat Processor",
+	author = "shavit, Nairda, GAMMA CASE, Kid Fearless, rtldg, BoomShotKapow, *Surf integration version modified by KikI",
+	description = "Custom chat privileges (custom name/message colors), chat processor, and rankings integration. (This plugin is base on shavit's bhop timer)",
+	version = SHAVIT_SURF_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 }
 
