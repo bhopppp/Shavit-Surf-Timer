@@ -6778,6 +6778,9 @@ public void EndTouchPost(int entity, int other)
 
 	if (!gB_InsideZoneID[other][zone] || (gI_InsideZone[other][track] & (1 << type)) == 0)
 	{
+		gB_InsideZoneID[other][zone] = false;
+		RecalcInsideZone(other);
+
 		return;
 	}
 
