@@ -5717,7 +5717,7 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 		cache.iEntity = gA_ZoneCache[i].iEntity;
 		if (MyArrayEquals(gA_ZoneCache[i], cache, sizeof(zone_cache_t)))
 		{
-			gA_ZoneCache[i].iDatabaseID = results.InsertId;
+			gA_ZoneCache[i].iDatabaseID = results.InsertId > 0 ? results.InsertId:cache.iDatabaseID;
 			break;
 		}
 	}
