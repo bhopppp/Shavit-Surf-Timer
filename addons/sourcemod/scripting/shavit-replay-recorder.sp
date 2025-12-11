@@ -1238,6 +1238,11 @@ public int Native_TrimFailureFrames(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int stage = Shavit_GetClientLastStage(client);
 
+	if (Shavit_IsPracticeMode(client))
+	{
+		return 0;
+	}
+
 	if(gB_TrimFailureFrames) // keeps the frame original if player one shots this stage
 	{
 		gI_PlayerFrames[client] = gI_StageReachFrame[client];
