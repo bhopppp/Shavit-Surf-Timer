@@ -5062,8 +5062,9 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 					}
 					else
 					{
-						FormatEx(sMessage, 255, "%T", "UnrankedTime", client,
-							gS_ChatStrings.sVariable, sStage, gS_ChatStrings.sText,
+						FormatEx(sMessage, 255, "%T", "PlayerUnrankedTime", client,
+							gS_ChatStrings.sVariable2, sName, 
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStage, gS_ChatStrings.sText,
 							gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText,
 							gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 					}
@@ -5453,8 +5454,9 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 					}
 					else
 					{
-						FormatEx(sMessage, 255, "%T", "UnrankedTime", client,
-							gS_ChatStrings.sVariable, sTrack,
+						FormatEx(sMessage, 255, "%T", "PlayerUnrankedTime", client, 
+							gS_ChatStrings.sVariable2, sName,
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
 							gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
 							gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 					}
