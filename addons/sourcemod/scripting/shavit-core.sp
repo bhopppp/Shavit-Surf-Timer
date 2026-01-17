@@ -2856,7 +2856,7 @@ public int Native_SetTriggerDisable(Handle handler, int numParams)
 	{
 		bool bResult = true;
 		
-		Call_StartForward(gH_Forawrds_OnToggleTriggersPre);
+		Call_StartForward(gH_Forwards_OnToggleTriggersPre);
 		Call_PushCell(client);
 		Call_PushCell(status);
 		Call_Finish(bResult);
@@ -2871,7 +2871,7 @@ public int Native_SetTriggerDisable(Handle handler, int numParams)
 	gB_DisableTriggers[client] = status;
 	Shavit_PrintToChat(client, "%T", gB_DisableTriggers[client] ? "TriggerDisabled" : "TriggerEnabled", client, gB_DisableTriggers[client] ? gS_ChatStrings.sWarning:gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
-	Call_StartForward(gH_Forawrds_OnToggleTriggers);
+	Call_StartForward(gH_Forwards_OnToggleTriggers);
 	Call_PushCell(client);
 	Call_PushCell(status);
 	Call_Finish();
