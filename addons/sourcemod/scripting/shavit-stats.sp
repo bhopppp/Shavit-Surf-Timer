@@ -25,6 +25,7 @@
 #include <dhooks>
 
 #include <shavit/core>
+#include <shavit/zones>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/mapchooser>
@@ -50,6 +51,7 @@ bool gB_Rankings = false;
 // database handle
 Database gH_SQL = null;
 char gS_MySQLPrefix[32];
+char gS_Map[PLATFORM_MAX_PATH];
 
 // cache
 bool gB_CanOpenMenu[MAXPLAYERS+1];
@@ -60,14 +62,28 @@ int gI_Track[MAXPLAYERS+1];
 int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 
-// playtime things
+// style playtime things
 Transaction gH_DisconnectPlaytimeQueries = null;
 float gF_PlaytimeStart[MAXPLAYERS+1];
 float gF_PlaytimeStyleStart[MAXPLAYERS+1];
 int gI_CurrentStyle[MAXPLAYERS+1];
+int gI_LastTrack[MAXPLAYERS+1];
 float gF_PlaytimeStyleSum[MAXPLAYERS+1][STYLE_LIMIT];
 bool gB_HavePlaytimeOnStyle[MAXPLAYERS+1][STYLE_LIMIT];
-bool gB_QueriedPlaytime[MAXPLAYERS+1];
+bool gB_QueriedStylePlaytime[MAXPLAYERS+1];
+
+// map playtime stuffs
+int gI_PlayerTrackAttempts[MAXPLAYERS+1][TRACKS_SIZE][STYLE_LIMIT];
+float gF_PlayerTrackPlaytimeStart[MAXPLAYERS+1];
+float gF_PlayerTrackPlaytimeSum[MAXPLAYERS+1][TRACKS_SIZE][STYLE_LIMIT];
+
+int gI_PlayerStageAttempts[MAXPLAYERS+1][STYLE_LIMIT][MAX_STAGES];
+float gF_PlayerStagePlaytimeStart[MAXPLAYERS+1];
+float gF_PlayerStagePlaytimeSum[MAXPLAYERS+1][STYLE_LIMIT][MAX_STAGES];
+
+bool gB_QueriedTrackPlaytime[MAXPLAYERS+1];
+bool gB_HavePlaytimeOnTrack[MAXPLAYERS+1][TRACKS_SIZE][STYLE_LIMIT];
+bool gB_HavePlaytimeOnStage[MAXPLAYERS+1][STYLE_LIMIT][MAX_STAGES];
 
 bool gB_Late = false;
 EngineVersion gEV_Type = Engine_Unknown;
@@ -157,6 +173,11 @@ public void OnPluginStart()
 	CreateTimer(3.0, Timer_SaveDisconnectPlaytime, 0, TIMER_REPEAT);
 }
 
+public void OnMapStart()
+{
+	GetLowercaseMapName(gS_Map);
+}
+
 public void OnMapEnd()
 {
 	FlushDisconnectPlaytime();
@@ -166,7 +187,6 @@ public void OnPluginEnd()
 {
 	FlushDisconnectPlaytime();
 }
-
 
 public void OnAllPluginsLoaded()
 {
@@ -229,10 +249,34 @@ public void OnClientConnected(int client)
 	gF_PlaytimeStyleStart[client] = 0.0;
 	float fempty[STYLE_LIMIT];
 	bool bempty[STYLE_LIMIT];
+	int iempty[STYLE_LIMIT];
 	gF_PlaytimeStyleSum[client] = fempty;
 	gB_HavePlaytimeOnStyle[client] = bempty;
-	gB_QueriedPlaytime[client] = false;
-}
+	gB_QueriedStylePlaytime[client] = false;
+	gB_QueriedTrackPlaytime[client] = false;
+
+	gF_PlayerTrackPlaytimeStart[client] = 0.0;
+	gF_PlayerStagePlaytimeStart[client] = 0.0;
+
+	for (int i = 0; i < TRACKS_SIZE; i++)
+	{
+		gI_PlayerTrackAttempts[client][i] = iempty;
+		gB_HavePlaytimeOnTrack[client][i] = bempty;
+		gF_PlayerTrackPlaytimeSum[client][i] = fempty;
+	}
+
+	float fempty2[MAX_STAGES];
+	bool bempty2[MAX_STAGES];
+	int iempty2[MAX_STAGES];
+
+	for (int j = 0; j < STYLE_LIMIT; j++)
+	{
+		gI_PlayerStageAttempts[client][j] = iempty2;
+		gB_HavePlaytimeOnStage[client][j] = bempty2;		
+		gF_PlayerStagePlaytimeSum[client][j] = fempty2; 
+	}
+
+}	
 
 public void OnClientPutInServer(int client)
 {
@@ -241,6 +285,8 @@ public void OnClientPutInServer(int client)
 	float now = GetEngineTime();
 	gF_PlaytimeStart[client] = now;
 	gF_PlaytimeStyleStart[client] = now;
+	gF_PlayerTrackPlaytimeStart[client] = now;
+	gF_PlayerStagePlaytimeStart[client] = now;
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
@@ -263,11 +309,33 @@ public void Player_Team(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
-	if (gF_PlaytimeStyleStart[client] != 0.0 && (event.GetInt("team") <= 1 || !IsPlayerAlive(client)))
+	if ((event.GetInt("team") <= 1 || !IsPlayerAlive(client)))
 	{
 		float now = GetEngineTime();
-		gF_PlaytimeStyleSum[client][gI_CurrentStyle[client]] += (now - gF_PlaytimeStyleStart[client]);
-		gF_PlaytimeStyleStart[client] = 0.0;
+
+		if(gF_PlaytimeStyleStart[client] != 0.0 && gB_QueriedStylePlaytime[client])
+		{
+			gF_PlaytimeStyleSum[client][gI_CurrentStyle[client]] += (now - gF_PlaytimeStyleStart[client]);
+			gF_PlaytimeStyleStart[client] = 0.0;
+		}
+
+		if(gB_QueriedTrackPlaytime[client])
+		{
+			int track = Shavit_GetClientTrack(client);	
+
+			if(gF_PlayerTrackPlaytimeStart[client] != 0.0)
+			{
+				gF_PlayerTrackPlaytimeSum[client][track][gI_CurrentStyle[client]] += (now - gF_PlayerTrackPlaytimeStart[client]);
+				gF_PlayerTrackPlaytimeStart[client] = 0.0;
+			}
+
+			if (track == Track_Main && Shavit_GetStageCount(Track_Main) > 1 && gF_PlayerStagePlaytimeStart[client] != 0.0)
+			{
+				int stage = Shavit_GetClientLastStage(client);
+				gF_PlayerStagePlaytimeSum[client][gI_CurrentStyle[client]][stage] += (now - gF_PlayerStagePlaytimeStart[client]);
+				gF_PlayerStagePlaytimeStart[client] = 0.0;
+			}
+		}
 	}
 }
 
@@ -280,28 +348,56 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
-	if (gF_PlaytimeStyleStart[client] == 0.0)
+	float now = GetEngineTime();
+
+	if (gF_PlaytimeStyleStart[client] != 0.0 && gB_QueriedStylePlaytime[client])
 	{
-		return;
+		gF_PlaytimeStyleSum[client][gI_CurrentStyle[client]] += (now - gF_PlaytimeStyleStart[client]);
+		gF_PlaytimeStyleStart[client] = 0.0;
 	}
 
-	float now = GetEngineTime();
-	gF_PlaytimeStyleSum[client][gI_CurrentStyle[client]] += (now - gF_PlaytimeStyleStart[client]);
-	gF_PlaytimeStyleStart[client] = 0.0;
+	if(gB_QueriedTrackPlaytime[client])
+	{
+		int track = Shavit_GetClientTrack(client);	
+
+		if(gF_PlayerTrackPlaytimeStart[client] != 0.0)
+		{
+			gF_PlayerTrackPlaytimeSum[client][track][gI_CurrentStyle[client]] += (now - gF_PlayerTrackPlaytimeStart[client]);
+			gF_PlayerTrackPlaytimeStart[client] = 0.0;
+		}
+
+		if (track == Track_Main && Shavit_GetStageCount(Track_Main) > 1 && gF_PlayerStagePlaytimeStart[client] != 0.0)
+		{
+			gF_PlayerStagePlaytimeSum[client][gI_CurrentStyle[client]][Shavit_GetClientLastStage(client)] += (now - gF_PlayerStagePlaytimeStart[client]);
+			gF_PlayerStagePlaytimeStart[client] = 0.0;
+		}
+	}
 }
 
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if (IsFakeClient(client))
+	if (IsFakeClient(client) && !IsPlayerAlive(client))
 	{
 		return;
 	}
 
-	if (gF_PlaytimeStyleStart[client] == 0.0 && IsPlayerAlive(client))
+	float now = GetEngineTime();
+
+	if (gF_PlaytimeStyleStart[client] == 0.0)
 	{
-		gF_PlaytimeStyleStart[client] = GetEngineTime();
+		gF_PlaytimeStyleStart[client] = now;
+	}
+
+	if (gF_PlayerTrackPlaytimeStart[client] == 0.0)
+	{
+		gF_PlayerTrackPlaytimeStart[client] = now;
+	}
+
+	if (Shavit_GetClientTrack(client) == Track_Main && Shavit_GetStageCount(Track_Main) > 1 && gF_PlayerStagePlaytimeStart[client] == 0.0)
+	{
+		gF_PlayerStagePlaytimeStart[client] = now;
 	}
 }
 
@@ -324,6 +420,11 @@ void QueryPlaytime(int client)
 		"SELECT style, playtime FROM %sstyleplaytime WHERE auth = %d;",
 		gS_MySQLPrefix, iSteamID);
 	QueryLog(gH_SQL, SQL_QueryStylePlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
+
+	FormatEx(sQuery, sizeof(sQuery),
+		"SELECT style, track, stage, playtime, attempts FROM %smapplaytime WHERE auth = %d AND map = '%s';",
+		gS_MySQLPrefix, iSteamID, gS_Map);
+	QueryLog(gH_SQL, SQL_QueryMapPlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
 }
 
 public void SQL_QueryStylePlaytime_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -348,7 +449,47 @@ public void SQL_QueryStylePlaytime_Callback(Database db, DBResultSet results, co
 		gB_HavePlaytimeOnStyle[client][style] = true;
 	}
 
-	gB_QueriedPlaytime[client] = true;
+	gB_QueriedStylePlaytime[client] = true;
+	gF_PlaytimeStyleStart[client] = IsClientInGame(client) ? IsPlayerAlive(client) ? GetEngineTime() : 0.0 : 0.0;
+}
+
+public void SQL_QueryMapPlaytime_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer (track playtime) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if (client < 1)
+	{
+		return;
+	}
+
+	while (results.FetchRow())
+	{
+		int style = results.FetchInt(0);
+		int track = results.FetchInt(1);
+		int stage = results.FetchInt(2);
+		//float playtime = results.FetchFloat(3);
+		if (stage == 0)
+		{
+			gI_PlayerTrackAttempts[client][track][style] = results.FetchInt(4);
+			gB_HavePlaytimeOnTrack[client][track][style] = true;			
+		}
+		else
+		{
+			gI_PlayerStageAttempts[client][style][stage] = results.FetchInt(4);
+			gB_HavePlaytimeOnStage[client][style][stage] = true;
+		}
+	}
+
+	gB_QueriedTrackPlaytime[client] = true;
+	float starts = IsClientInGame(client) ? IsPlayerAlive(client) ? GetEngineTime() : 0.0 : 0.0;
+	gF_PlayerTrackPlaytimeStart[client] = starts;
+	gF_PlayerStagePlaytimeStart[client] = starts;
 }
 
 public void OnClientDisconnect(int client)
@@ -359,6 +500,82 @@ public void OnClientDisconnect(int client)
 	}
 
 	SavePlaytime(client, GetEngineTime(), gH_DisconnectPlaytimeQueries);
+}
+
+public void Shavit_OnStarted(int client, int track, int stage, int style, bool bMainStageTimer)
+{
+	if (Shavit_IsPracticeMode(client))
+	{
+		return;
+	}
+
+	if (!bMainStageTimer && !Shavit_IsOnlyStageMode(client))
+	{
+		gI_PlayerTrackAttempts[client][track][style] += 1;
+
+		if (track == Track_Main)
+		{
+			gI_PlayerStageAttempts[client][style][1] += 1;
+		}
+
+	}
+	else if (stage > 0)
+	{
+		gI_PlayerStageAttempts[client][style][stage] += 1;
+	}
+}
+
+public void Shavit_OnTrackChanged(int client, int oldtrack, int newtrack)
+{
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	gI_LastTrack[client] = oldtrack;
+
+	if (!IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (!gB_QueriedTrackPlaytime[client])
+	{
+		return;
+	}
+
+	int style = gI_CurrentStyle[client];
+	float now = GetEngineTime();
+	Transaction trans = null;	
+
+	if (gF_PlayerTrackPlaytimeStart[client] == 0.0)
+	{
+		gF_PlayerTrackPlaytimeStart[client] = now;
+	}
+	else
+	{
+		SaveTrackPlaytime(client, now, trans, oldtrack, style, GetSteamAccountID(client), true);		
+	}
+
+	if (Shavit_GetStageCount(Track_Main) < 2)
+	{
+		return;
+	}
+
+	if (oldtrack >= Track_Bonus)
+	{	
+		return;
+	}
+
+
+	if (gF_PlayerStagePlaytimeStart[client] == 0.0)
+	{
+		gF_PlayerStagePlaytimeStart[client] = now;
+	}
+	else
+	{
+		SaveStagePlaytime(client, now, trans, Shavit_GetClientLastStage(client), style, GetSteamAccountID(client), true);		
+	}
 }
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
@@ -375,21 +592,187 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		return;
 	}
 
-	float now = GetEngineTime();
-
-	if (gF_PlaytimeStyleStart[client] == 0.0)
-	{
-		gF_PlaytimeStyleStart[client] = now;
-		return;
-	}
-
 	if (oldstyle == newstyle)
 	{
 		return;
 	}
 
-	gF_PlaytimeStyleSum[client][oldstyle] += (now - gF_PlaytimeStyleStart[client]);
-	gF_PlaytimeStyleStart[client] = now;
+	float now = GetEngineTime();
+
+	if (gF_PlaytimeStyleStart[client] == 0.0)
+	{
+		gF_PlaytimeStyleStart[client] = now;
+	}
+	else
+	{
+		gF_PlaytimeStyleSum[client][oldstyle] += (now - gF_PlaytimeStyleStart[client]);
+		gF_PlaytimeStyleStart[client] = now;		
+	}
+
+	if (gB_QueriedTrackPlaytime[client])
+	{
+		Transaction trans = null;
+
+		if (gF_PlayerTrackPlaytimeStart[client] == 0.0)
+		{
+			gF_PlayerTrackPlaytimeStart[client] = now;
+		}
+		else
+		{
+			SaveTrackPlaytime(client, now, trans, track, oldstyle, GetSteamAccountID(client), true);
+		}
+
+		if (gI_LastTrack[client] >= Track_Bonus || Shavit_GetStageCount(Track_Main) < 2)
+		{
+			return;
+		}
+
+		if (gF_PlayerStagePlaytimeStart[client] == 0.0)
+		{
+			gF_PlayerStagePlaytimeStart[client] = now;
+		}
+		else
+		{
+			SaveStagePlaytime(client, now, trans, Shavit_GetClientLastStage(client), oldstyle, GetSteamAccountID(client), true);
+		}
+	}
+}
+
+public void Shavit_OnStageChanged(int client, int oldstage, int newstage)
+{
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	if (!IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (Shavit_GetClientTrack(client) >= Track_Bonus || Shavit_GetStageCount(Track_Main) < 2)
+	{
+		return;
+	}
+
+	if (oldstage == newstage)
+	{
+		return;
+	}
+
+	float now = GetEngineTime();
+
+	if (gB_QueriedTrackPlaytime[client])
+	{
+		Transaction trans = null;
+
+		if (gF_PlayerStagePlaytimeStart[client] == 0.0)
+		{
+			gF_PlayerStagePlaytimeStart[client] = now;
+		}
+		else
+		{
+			SaveStagePlaytime(client, now, trans, oldstage, gI_CurrentStyle[client], GetSteamAccountID(client), true);		
+		}
+	}
+}
+
+public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
+{
+	float now = GetEngineTime();
+
+	if (overwrite == 1)
+	{
+		int attempts = gI_PlayerTrackAttempts[client][track][style];
+		float diff = gF_PlayerTrackPlaytimeSum[client][track][style];
+
+		if (gF_PlayerTrackPlaytimeStart[client] != 0.0)
+		{
+			diff += now - gF_PlayerTrackPlaytimeStart[client];
+			gF_PlayerTrackPlaytimeStart[client] = IsClientInGame(client) ? IsPlayerAlive(client) ? now : 0.0 : 0.0;
+		}
+
+		gF_PlayerTrackPlaytimeSum[client][track][style] = 0.0;
+
+		int iSteamID = GetSteamAccountID(client);
+
+		char sQuery[512];
+		if (gB_HavePlaytimeOnTrack[client][track][style])
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE `%smapplaytime` SET playtime = playtime + %f, attempts = %d, first_completion_timetaken = playtime, first_completion_attempts = %d, first_completion_date = %d, last_played = %d WHERE auth = %d AND map = '%s' AND style = %d AND track = %d AND stage = 0;",
+				gS_MySQLPrefix, diff, attempts, attempts, timestamp, timestamp, iSteamID, gS_Map, style, track);
+		}
+		else
+		{
+			gB_HavePlaytimeOnTrack[client][track][style] = true;
+			FormatEx(sQuery, sizeof(sQuery),
+				"INSERT INTO `%smapplaytime` (`auth`, `map`, `style`, `track`, `stage`, `playtime`, `attempts`, `first_completion_timetaken`, `first_completion_attempts`, `first_completion_date`, `last_played`) VALUES (%d, '%s', %d, %d, 0, %f, %d, %f, %d, %d, %d);",
+				gS_MySQLPrefix, iSteamID, gS_Map, style, track, diff, attempts, diff, attempts, timestamp, timestamp);
+		}
+
+		QueryLog(gH_SQL, SQL_UpdateTrackPlaytime_Callback, sQuery, 0, DBPrio_Normal);
+	}
+	else if(overwrite == 2)
+	{
+		Transaction trans = null;
+		SaveTrackPlaytime(client, now, trans, track, style, GetSteamAccountID(client), true);
+		return;
+	}
+}
+
+public void Shavit_OnFinishStage_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int stage, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
+{
+	float now = GetEngineTime();
+
+	if (overwrite == 1)
+	{
+		int attempts = gI_PlayerStageAttempts[client][style][stage];
+		float diff = gF_PlayerStagePlaytimeSum[client][style][stage];
+
+		if (gF_PlayerStagePlaytimeStart[client] != 0.0)
+		{
+			diff += now - gF_PlayerStagePlaytimeStart[client];
+			gF_PlayerStagePlaytimeStart[client] = IsClientInGame(client) ? IsPlayerAlive(client) ? now : 0.0 : 0.0;
+		}
+
+		gF_PlayerStagePlaytimeSum[client][style][stage] = 0.0;
+
+		int iSteamID = GetSteamAccountID(client);
+
+		char sQuery[512];
+		if (gB_HavePlaytimeOnStage[client][style][stage])
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE `%smapplaytime` SET playtime = playtime + %f, attempts = %d, first_completion_timetaken = playtime, first_completion_attempts = %d, first_completion_date = %d, last_played = %d WHERE auth = %d AND map = '%s' AND style = %d AND track = %d AND stage = %d;",
+				gS_MySQLPrefix, diff, attempts, attempts, timestamp, timestamp, iSteamID, gS_Map, style, Track_Main, stage);
+		}
+		else
+		{
+			gB_HavePlaytimeOnStage[client][style][stage] = true;
+			FormatEx(sQuery, sizeof(sQuery),
+				"INSERT INTO `%smapplaytime` (`auth`, `map`, `style`, `track`, `stage`, `playtime`, `attempts`, `first_completion_timetaken`, `first_completion_attempts`, `first_completion_date`, `last_played`) VALUES (%d, '%s', %d, %d, %d, %f, %d, %f, %d, %d, %d);",
+				gS_MySQLPrefix, iSteamID, gS_Map, style, Track_Main, stage, diff, attempts, diff, attempts, timestamp, timestamp);
+		}
+
+		QueryLog(gH_SQL, SQL_UpdateTrackPlaytime_Callback, sQuery, 0, DBPrio_Normal);
+	}
+	else if(overwrite == 2)
+	{
+		Transaction trans = null;
+		SaveStagePlaytime(client, now, trans, stage, style, GetSteamAccountID(client), true);
+		return;
+	}
+}
+
+public void SQL_UpdateTrackPlaytime_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(results == null)
+	{
+		LogError("Timer (update track playtime) SQL query failed. Reason: %s", error);
+
+		return;
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -416,7 +799,7 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-void SavePlaytime222(int client, float now, Transaction&trans, int style, int iSteamID)
+void SaveStylePlaytime(int client, float now, Transaction& trans, int style, int iSteamID)
 {
 	char sQuery[512];
 
@@ -479,6 +862,109 @@ void SavePlaytime222(int client, float now, Transaction&trans, int style, int iS
 	AddQueryLog(trans, sQuery);
 }
 
+void SaveTrackPlaytime(int client, float now, Transaction& trans, int track, int style, int iSteamID, bool bDirect = false)
+{
+	int attempts = gI_PlayerTrackAttempts[client][track][style];
+	float diff = gF_PlayerTrackPlaytimeSum[client][track][style];
+
+	if (gF_PlayerTrackPlaytimeStart[client] != 0.0)
+	{
+		diff += (now - gF_PlayerTrackPlaytimeStart[client]);
+		gF_PlayerTrackPlaytimeStart[client] = IsClientInGame(client) ? IsPlayerAlive(client) ? now : 0.0 : 0.0;
+	}
+
+	gF_PlayerTrackPlaytimeSum[client][track][style] = 0.0;
+
+	if (diff <= 0.8) // maybe players are quick using checkpoints
+	{
+		return;
+	}
+	
+	int timestamp = GetTime();
+
+	char sQuery[512];
+	if (gB_HavePlaytimeOnTrack[client][track][style])
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"UPDATE `%smapplaytime` SET playtime = playtime + %f, attempts = %d, last_played = %d WHERE auth = %d AND map = '%s' AND style = %d AND track = %d AND stage = %d;",
+			gS_MySQLPrefix, diff, attempts, timestamp, iSteamID, gS_Map, style, track, 0);
+	}
+	else
+	{
+		gB_HavePlaytimeOnTrack[client][track][style] = true;
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO `%smapplaytime` (`auth`, `map`, `style`, `track`, stage, `playtime`, `attempts`, `last_played`) VALUES (%d, '%s', %d, %d, %d, %f, %d, %d);",
+			gS_MySQLPrefix, iSteamID, gS_Map, style, track, 0, diff, attempts, timestamp);
+	}
+
+	if (bDirect)
+	{
+		QueryLog(gH_SQL, SQL_UpdateTrackPlaytime_Callback, sQuery, 0, DBPrio_Normal);
+		return;
+	}
+
+	if (trans == null)
+	{
+		trans = new Transaction();
+	}
+
+	AddQueryLog(trans, sQuery);
+}
+
+void SaveStagePlaytime(int client, float now, Transaction& trans, int stage, int style, int iSteamID, bool bDirect = false)
+{
+	if (stage == 0)
+	{
+		return;
+	}
+
+	int attempts = gI_PlayerStageAttempts[client][style][stage];
+	float diff = gF_PlayerStagePlaytimeSum[client][style][stage];
+
+	if (gF_PlayerStagePlaytimeStart[client] != 0.0)
+	{
+		diff += (now - gF_PlayerStagePlaytimeStart[client]);
+		gF_PlayerStagePlaytimeStart[client] = IsClientInGame(client) ? IsPlayerAlive(client) ? Shavit_GetClientTrack(client) == Track_Main ? now : 0.0 : 0.0 : 0.0;
+	}
+
+	gF_PlayerStagePlaytimeSum[client][style][stage] = 0.0;
+
+	if (diff <= 0.8) // maybe players are quick using checkpoints
+	{
+		return;
+	}
+	
+	int timestamp = GetTime();
+
+	char sQuery[512];
+	if (gB_HavePlaytimeOnStage[client][style][stage])
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"UPDATE `%smapplaytime` SET playtime = playtime + %f, attempts = %d, last_played = %d WHERE auth = %d AND map = '%s' AND style = %d AND track = %d AND stage = %d;",
+			gS_MySQLPrefix, diff, attempts, timestamp, iSteamID, gS_Map, style, Track_Main, stage);
+	}
+	else
+	{
+		gB_HavePlaytimeOnStage[client][style][stage] = true;
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO `%smapplaytime` (`auth`, `map`, `style`, `track`, `stage`, `playtime`, `attempts`, `last_played`) VALUES (%d, '%s', %d, %d, %d, %f, %d, %d);",
+			gS_MySQLPrefix, iSteamID, gS_Map, style, Track_Main, stage, diff, attempts, timestamp);
+	}
+
+	if (bDirect)
+	{
+		QueryLog(gH_SQL, SQL_UpdateTrackPlaytime_Callback, sQuery, 0, DBPrio_Normal);
+		return;
+	}
+
+	if (trans == null)
+	{
+		trans = new Transaction();
+	}
+
+	AddQueryLog(trans, sQuery);
+}
+
 public void Trans_SavePlaytime_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
 }
@@ -498,14 +984,24 @@ void SavePlaytime(int client, float now, Transaction& trans)
 		return;
 	}
 
-	if (!gB_QueriedPlaytime[client])
+	if (gB_QueriedStylePlaytime[client])
 	{
-		return;
+		for (int i = -1 /* yes */; i < gI_Styles; i++)
+		{
+			SaveStylePlaytime(client, now, trans, i, iSteamID);
+		}		
 	}
 
-	for (int i = -1 /* yes */; i < gI_Styles; i++)
+	if (gB_QueriedTrackPlaytime[client])
 	{
-		SavePlaytime222(client, now, trans, i, iSteamID);
+		int track = Shavit_GetClientTrack(client);
+
+		SaveTrackPlaytime(client, now, trans, track, gI_CurrentStyle[client], iSteamID);
+
+		if (track == Track_Main && Shavit_GetStageCount(Track_Main) > 1)
+		{
+			SaveStagePlaytime(client, now, trans, Shavit_GetClientLastStage(client), gI_CurrentStyle[client], iSteamID);
+		}
 	}
 }
 
@@ -526,7 +1022,7 @@ public Action Timer_SavePlaytime(Handle timer, any data)
 			continue;
 		}
 
-		if (gB_QueriedPlaytime[i])
+		if (gB_QueriedStylePlaytime[i])
 		{
 			SavePlaytime(i, now, trans);
 		}

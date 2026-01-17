@@ -249,19 +249,19 @@
 	{
 		"en"		"No records found."
 	}
-	"WRMenuTitle"
+	"WRSelectStyleMenuTitle"
 	{
 		"en"		"Choose a style:\n "
 	}
-	"PBMenuTitle"
-	{
-		"en"		"Choose a style:\n "
-	}
-	"WRMenuStageTitle"
+	"WRSelectStageMenuTitle"
 	{
 		"en"		"Choose a stage:\n "
 	}
-	"WRMenuBonusTitle"
+	"WRSelectTrackMenuTitle"
+	{
+		"en"		"Choose a track:\n "
+	}
+	"WRSelectBonusMenuTitle"
 	{
 		"en"		"Choose a bonus:\n "
 	}
@@ -352,6 +352,56 @@
 	"WRTime"
 	{
 		"en"		"Time"
+	}
+	// ---------- Playtime stats --------- //
+	"PersonalRecordSummary"
+	{
+		"en"		"Record Summary"
+	}
+	"PersonalRecordSummaryMenuTitle"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s}"
+		"en"		"{1} Personal Record Summary for {2} | {3} - [{4}]"
+	}
+	"FullTrack"
+	{
+		"en"		"Full Track"
+	}
+	"PersonalBest"
+	{
+		"en"		"Personal Best"
+	}
+	"FisrtCompletion"
+	{
+		"en"		"First Completion"
+	}
+	"TimeTaken"
+	{
+		"en"		"Time taken"
+	}
+	"Attempts"
+	{
+		"en"		"Attempts"
+	}
+	"NoCompletion"
+	{
+		"en"		"No Completion"
+	}
+	"PlaytimeStatistics"
+	{
+		"en"		"Play time Statistics"
+	}
+	"PlayTime"
+	{
+		"en"		"Total time spent"
+	}
+	"TotalAttempts"
+	{
+		"en"		"Total Attempts"
+	}
+	"LastPlayed"
+	{
+		"en"		"Last Played"
 	}
 	// ---------- Messages ---------- //
 	"CheckpointTime"

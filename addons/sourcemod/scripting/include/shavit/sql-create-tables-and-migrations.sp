@@ -63,9 +63,8 @@ enum
 	Migration_AddCptimesStagetimeAndAttempts,
 	Migration_AddCpwrsStagetimeAndAttempts, 
 	Migration_AddUsersFirstlogin, 
-	Migration_SetZoneSpeedLimitFlagToDefault, //49
-	// Migration_AddCpwrsStartvelAndEndvel,
-	// Migration_AddCptimesStartvelAndEndvel,
+	Migration_SetZoneSpeedLimitFlagToDefault,  //40
+	Migration_PopulateMapplaytimeFromPlayertimesAndStagetimes,
 	MIGRATIONS_END
 };
 
@@ -111,8 +110,7 @@ char gS_MigrationNames[][] = {
 	"AddCpwrsStagetimeAndAttempts",	
 	"AddUsersFirstlogin",
 	"SetZoneSpeedLimitFlagToDefault",
-	// "AddCpwrsStartvelAndEndvel",
-	// "AddCptimesStartvelAndEndvel",
+	"PopulateMapplaytimeFromPlayertimesAndStagetimes",
 };
 
 static Database gH_SQL;
@@ -213,10 +211,26 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 		gS_SQLPrefix);
 	AddQueryLog(trans, sQuery);
 
+	if(driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"CREATE TABLE IF NOT EXISTS `%smapplaytime` (`auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `track` TINYINT NOT NULL, `stage` TINYINT NOT NULL DEFAULT 0, `style` TINYINT NOT NULL DEFAULT 0, `playtime` FLOAT NOT NULL DEFAULT 0.0, `attempts` INT NOT NULL DEFAULT 0, `first_completion_timetaken` FLOAT NOT NULL DEFAULT 0.0, `first_completion_attempts` INT NOT NULL DEFAULT 0, `first_completion_date` INT NOT NULL DEFAULT 0, `last_played` INT NOT NULL DEFAULT 0, "...
+			"PRIMARY KEY (`auth`,`map`,`track`,`stage`,`style`), INDEX `map` (`map`), INDEX `auth` (`auth`), CONSTRAINT `%smp_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=INNODB;",
+			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);		
+	}
+	else
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"CREATE TABLE IF NOT EXISTS `%smapplaytime` (`auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `track` TINYINT NOT NULL, `stage` TINYINT NOT NULL DEFAULT 0, `style` TINYINT NOT NULL DEFAULT 0, `playtime` FLOAT NOT NULL DEFAULT 0.0, `attempts` INT NOT NULL DEFAULT 0, `first_completion_timetaken` FLOAT NOT NULL DEFAULT 0.0, `first_completion_attempts` INT NOT NULL DEFAULT 0, `first_completion_date` INT NOT NULL DEFAULT 0, `last_played` INT NOT NULL DEFAULT 0, "...
+			"PRIMARY KEY (`auth`,`map`,`track`,`stage`,`style`), CONSTRAINT `%smp_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE RESTRICT ON DELETE RESTRICT);",
+			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+	}
+
+	AddQueryLog(trans, sQuery);
+
 	//
 	//// shavit-wr
 	//
-
 	if (driver == Driver_mysql)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
@@ -448,6 +462,7 @@ void ApplyMigration(int migration)
 		case Migration_AddCpwrsStagetimeAndAttempts: ApplyMigration_AddCpwrsStagetimeAndAttempts();
 		case Migration_AddUsersFirstlogin: ApplyMigration_AddUsersFirstlogin();
 		case Migration_SetZoneSpeedLimitFlagToDefault: ApplyMigration_SetZoneSpeedLimitFlagToDefault();
+		case Migration_PopulateMapplaytimeFromPlayertimesAndStagetimes: ApplyMigration_PopulateMapplaytimeFromPlayertimesAndStagetimes();
 		// case Migration_AddCpwrsStartvelAndEndvel: ApplyMigration_AddCpwrsStartvelAndEndvel();
 		// case Migration_AddCptimesStartvelAndEndvel: ApplyMigration_AddCptimesStartvelAndEndvel();
 	}
@@ -645,16 +660,6 @@ void ApplyMigration_AddCpwrsStagetimeAndAttempts()
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddCpwrsStagetimeAndAttempts, DBPrio_High);
 }
 
-// void ApplyMigration_AddCpwrsStartvelAndEndvel()
-// {
-
-// }
-
-// void ApplyMigration_AddCptimesStartvelAndEndvel()
-// {
-
-// }
-
 void ApplyMigration_AddUsersFirstlogin()
 {
 	char sQuery[128];
@@ -674,6 +679,49 @@ void ApplyMigration_SetZoneSpeedLimitFlagToDefault()
 	char sQuery[128];
 	FormatEx(sQuery, 128, "UPDATE `%smapzones` SET speedlimit = 3 WHERE speedlimit = 1;", gS_SQLPrefix);
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_SetZoneSpeedLimitFlagToDefault, DBPrio_High);
+}
+
+void ApplyMigration_PopulateMapplaytimeFromPlayertimesAndStagetimes()
+{
+	Transaction trans = new Transaction();
+
+	char sQuery[1024];
+
+	FormatEx(sQuery, 1024, "INSERT INTO `%smapplaytime` ( "...
+		"`auth`, `map`, `track`, `stage`, `style`, `playtime`, `attempts`, `first_completion_timetaken`, `first_completion_attempts`, `first_completion_date`, `last_played`) "...
+		"SELECT auth, map, track, 0 AS stage, style, SUM(time * completions) AS playtime, SUM(completions) AS attempts, MIN(time) AS first_completion_timetaken, 1 AS first_completion_attempts, MIN(date) AS first_completion_date, MAX(date) AS last_played "... 
+		"FROM `%splayertimes` GROUP BY auth, map, track, style;", 
+		gS_SQLPrefix, gS_SQLPrefix);
+	AddQueryLog(trans, sQuery);
+
+	FormatEx(sQuery, 1024, "INSERT INTO `%smapplaytime` ( "...
+		"`auth`,`map`,`track`, `stage`, `style`, `playtime`,`attempts`, `first_completion_timetaken`,`first_completion_attempts`,`first_completion_date`,`last_played`) "...
+		"SELECT st.auth, st.map, st.track, 0 AS stage, st.style, SUM(st.time * st.completions) AS playtime, SUM(st.completions) AS attempts, 0 AS first_completion_timetaken, 0 AS first_completion_attempts, 0 AS first_completion_date, MAX(st.date) AS last_played "...
+		"FROM `%sstagetimes` st LEFT JOIN `%smapplaytime` mpt ON mpt.auth = st.auth AND mpt.map = st.map AND mpt.track = st.track AND mpt.stage = 0 AND mpt.style = st.style WHERE st.track = 0 AND mpt.auth IS NULL "...
+		"GROUP BY st.auth, st.map, st.track, st.style;",
+		gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+	AddQueryLog(trans, sQuery);
+
+	FormatEx(sQuery, 1024,
+		"INSERT INTO `%smapplaytime` ( "...
+		"`auth`,`map`,`track`,`stage`,`style`, `playtime`,`attempts`, `first_completion_timetaken`,`first_completion_attempts`,`first_completion_date`,`last_played`) "...
+		"SELECT st.auth, st.map, st.track, st.stage, st.style, SUM(st.time * st.completions) AS playtime, SUM(st.completions) AS attempts, MIN(st.time) AS first_completion_timetaken, 1 AS first_completion_attempts, MIN(st.date) AS first_completion_date, MAX(st.date) AS last_played "...
+		"FROM `%sstagetimes` st LEFT JOIN `%smapplaytime` mpt ON mpt.auth = st.auth AND mpt.map = st.map AND mpt.track = st.track AND mpt.stage = st.stage AND mpt.style = st.style "...
+		"WHERE st.track = 0 AND st.stage > 0 AND mpt.auth IS NULL GROUP BY st.auth, st.map, st.track, st.stage, st.style;",
+		gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+	AddQueryLog(trans, sQuery);
+
+	gH_SQL.Execute(trans, Trans_PopulateMapplaytimeFromPlayertimesAndStagetimes_Success, Trans_PopulateMapplaytimeFromPlayertimesAndStagetimes_Failed, 0);
+}
+
+public void Trans_PopulateMapplaytimeFromPlayertimesAndStagetimes_Success(Database db, DataPack data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	InsertMigration(Migration_PopulateMapplaytimeFromPlayertimesAndStagetimes);
+}
+
+public void Trans_PopulateMapplaytimeFromPlayertimesAndStagetimes_Failed(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (core) error! PopulateMapplaytimeFromPlayertimesAndStagetimes migration failed. %d/%d Reason: %s", numQueries, failIndex, error);
 }
 
 public void SQL_Migration_DeprecateExactTimeInt_Query(Database db, DBResultSet results, const char[] error, any data)
