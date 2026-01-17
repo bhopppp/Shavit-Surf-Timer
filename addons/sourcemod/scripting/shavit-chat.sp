@@ -1513,9 +1513,16 @@ void RemoveFromString(char[] buf, char[] thing, int extra)
 
 		while (buf[index] != 0)
 		{
+			if (index + extra >= len)
+			{
+				buf[index] = '\0';
+				break;
+			}
+
 			buf[index] = buf[index+extra];
 			++index;
 		}
+
 	}
 }
 
