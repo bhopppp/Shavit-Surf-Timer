@@ -94,8 +94,8 @@ Handle gH_Forwards_OnProcessMovement = null;
 Handle gH_Forwards_OnProcessMovementPost = null;
 Handle gH_Forwards_OnTimerMenuCreate = null;
 Handle gH_Forwards_OnTimerMenuSelected = null;
-Handle gH_Forawrds_OnToggleTriggersPre = null;
-Handle gH_Forawrds_OnToggleTriggers = null;
+Handle gH_Forwards_OnToggleTriggersPre = null;
+Handle gH_Forwards_OnToggleTriggers = null;
 
 // player timer variables
 timer_snapshot_t gA_Timers[MAXPLAYERS+1];
@@ -335,8 +335,8 @@ public void OnPluginStart()
 	gH_Forwards_OnProcessMovementPost = CreateGlobalForward("Shavit_OnProcessMovementPost", ET_Event, Param_Cell);
 	gH_Forwards_OnTimerMenuCreate = CreateGlobalForward("Shavit_OnTimerMenuMade", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnTimerMenuSelected = CreateGlobalForward("Shavit_OnTimerMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
-	gH_Forawrds_OnToggleTriggersPre = CreateGlobalForward("Shavit_OnToggleTriggersPre", ET_Event, Param_Cell, Param_Cell);
-	gH_Forawrds_OnToggleTriggers = CreateGlobalForward("Shavit_OnToggleTriggers", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnToggleTriggersPre = CreateGlobalForward("Shavit_OnToggleTriggersPre", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnToggleTriggers = CreateGlobalForward("Shavit_OnToggleTriggers", ET_Event, Param_Cell, Param_Cell);
 
 	Bhopstats_CreateForwards();
 	Shavit_Style_Settings_Forwards();
