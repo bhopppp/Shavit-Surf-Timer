@@ -4452,6 +4452,7 @@ public int MenuHandler_SelectPRSummaryTrack(Menu menu, MenuAction action, int pa
 		char sTrack[4];
 		menu.GetItem(param2, sTrack, sizeof(sTrack));
 		gA_WRCache[param1].iLastTrack = StringToInt(sTrack);
+		gA_WRCache[param1].iLastStage = 0;
 
 		if (gA_WRCache[param1].iLastTrack == Track_Main)
 		{
