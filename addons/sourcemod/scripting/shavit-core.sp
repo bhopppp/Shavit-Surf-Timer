@@ -3235,7 +3235,7 @@ public void ChangeClientLastStage(int client, int stage)
 	
 	if(gA_Timers[client].iTimerTrack >= Track_Bonus && stage > 1)
 	{
-		gA_Timers[client].iTimerTrack = Track_Main;
+		CallOnTrackChanged(client, gA_Timers[client].iTimerTrack, Track_Main);
 	}
 
 	int oldstage = gA_Timers[client].iLastStage;
@@ -3376,7 +3376,7 @@ void StartTimer(int client, int track)
 
 			if (gA_Timers[client].bOnlyStageMode)
 			{
-				gA_Timers[client].iLastStage = iZoneStage;
+				ChangeClientLastStage(client, iZoneStage);
 			}
 			else
 			{
