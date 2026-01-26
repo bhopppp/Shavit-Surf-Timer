@@ -4696,7 +4696,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			// Block A and D without S or W.
 			if (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0)
 			{
-				bool bSHSW = (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
+				bool bSHSW = (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") == 2);
 				int iCombination = -1;
 
 				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] > 0.0);
@@ -4716,7 +4716,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					}
 
 					// int gI_SHSW_FirstCombination[MAXPLAYERS+1]; // 0 - W/A S/D | 1 - W/D S/A
-					if(gA_Timers[client].iKeyCombo == -1 && iCombination != -1)
+					if(gA_Timers[client].iKeyCombo == -1 && iCombination != -1 && !bInStart)
 					{
 						Shavit_PrintToChat(client, "%T", (iCombination == 0)? "SHSWCombination0":"SHSWCombination1", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 						gA_Timers[client].iKeyCombo = iCombination;
