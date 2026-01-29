@@ -141,6 +141,24 @@ Convar gCV_AccessFlag;
 Convar gCV_PingDuration;
 Convar gCV_PingInterval;
 
+/* DATABASE & SAVE */
+Database      gH_SQL;
+int           gI_Driver;
+char          gS_MySQLPrefix[32];
+ArrayList     g_hPaintData[MAXPLAYERS + 1];
+ArrayList     g_hPendingPaints[MAXPLAYERS + 1];
+int           g_iPaintLoadOffset[MAXPLAYERS + 1];
+int           g_iConfirmAction[MAXPLAYERS + 1];
+
+enum struct PaintData
+{
+    float x;
+    float y;
+    float z;
+    int   color;
+    int   size;
+}
+
 public Plugin myinfo =
 {
 	name = "[shavit-surf] Mark",
@@ -184,7 +202,14 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ping", Command_Ping, "Ping the position where player aiming at");
 	RegConsoleCmd("sm_pingmenu", Command_PingMenu, "Open a ping menu for a client");
 	RegConsoleCmd("sm_pingcolor", Command_PingColor, "Open a ping color menu for a client");
-	
+
+	RegConsoleCmd("sm_paintsave", Command_PaintSave, "Save your current paints");
+	RegConsoleCmd("sm_paintload", Command_PaintLoad, "Load your saved paints");
+	RegConsoleCmd("sm_paintdelete", Command_PaintDelete, "Delete your saved paints");
+	RegConsoleCmd("sm_savepaint", Command_PaintSave, "Save your current paints");
+	RegConsoleCmd("sm_loadpaint", Command_PaintLoad, "Load your saved paints");
+	RegConsoleCmd("sm_deletepaint", Command_PaintDelete, "Delete your saved paints");
+
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-mark.phrases");
 
@@ -200,6 +225,7 @@ public void OnPluginStart()
 	if(gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
+		Shavit_OnDatabaseLoaded();
 	}
 }
 
@@ -276,6 +302,15 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 public void OnMapStart()
 {
+    // Clear paint data for all clients on map change
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (g_hPaintData[i] != null)
+        {
+            g_hPaintData[i].Clear();
+        }
+    }
+
 	char buffer[PLATFORM_MAX_PATH];
 
 	for (int color = 1; color < sizeof(gS_PaintColors); color++)
@@ -301,6 +336,13 @@ public void OnClientConnected(int client)
 	gI_PlayerPing[client] = 0;
 	gI_PingEntity[gI_PlayerPing[client]] = -1;
 	gI_PlayerLastPing[client] = 0;
+
+    delete g_hPaintData[client];
+    g_hPaintData[client] = new ArrayList(sizeof(PaintData));
+
+    delete g_hPendingPaints[client];
+    g_hPendingPaints[client]   = null;
+    g_iPaintLoadOffset[client] = 0;
 }
 
 public void OnMapEnd()
@@ -684,6 +726,15 @@ void OpenPaintMenu(int client)
 	FormatEx(sMenuItem, sizeof(sMenuItem), "%T\n \n ", "PaintOptions", client);
 	menu.AddItem("option", sMenuItem);
 
+    FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "PaintSave", client);
+    menu.AddItem("save", sMenuItem);
+
+    FormatEx(sMenuItem, sizeof(sMenuItem), "%T\n ", "PaintLoad", client);
+    menu.AddItem("load", sMenuItem);
+
+    FormatEx(sMenuItem, sizeof(sMenuItem), "%T\n ", "PaintDelete", client);
+    menu.AddItem("delete", sMenuItem);
+
 	FormatEx(sMenuItem, sizeof(sMenuItem), "%T >>", "PingMenuTitle", client);
 	menu.AddItem("pingmenu", sMenuItem);
 
@@ -712,11 +763,9 @@ public int Paint_MenuHandler(Menu menu, MenuAction action, int param1, int param
 			OpenPaintMenu(param1);
 		}
 		else if(StrEqual(sInfo, "clear"))
-		{
-			ClientCommand(param1, "r_cleardecals");
-			Shavit_PrintToChat(param1, "%T", "PaintCleared", param1);
-			OpenPaintMenu(param1);
-		}
+        {
+            OpenConfirmMenu(param1, 0);
+        }
 		else if(StrEqual(sInfo, "partner"))
 		{
 			OpenPartnerMenu(param1);
@@ -727,6 +776,20 @@ public int Paint_MenuHandler(Menu menu, MenuAction action, int param1, int param
 
 			OpenPaintMenu(param1);
 		}
+        else if(StrEqual(sInfo, "save"))
+        {
+            Command_PaintSave(param1, 0);
+            OpenPaintMenu(param1);
+        }
+        else if(StrEqual(sInfo, "load"))
+        {
+            Command_PaintLoad(param1, 0);
+            OpenPaintMenu(param1);
+        }
+        else if(StrEqual(sInfo, "delete"))
+        {
+            OpenConfirmMenu(param1, 1);
+        }
 		else if(StrEqual(sInfo, "pingmenu"))
 		{
 			OpenPingMenu(param1);
@@ -910,6 +973,9 @@ public void OnClientDisconnect(int client)
 	}
 
 	RemovePing(client);
+
+    delete g_hPaintData[client];
+    delete g_hPendingPaints[client];
 }
 
 public void OpenPartnerMenu(int client)
@@ -1334,6 +1400,14 @@ void AddPaint(int client, float pos[3], int paint = 0, int size = 0)
 		paint = GetRandomInt(1, sizeof(gS_PaintColors) - 1);
 	}
 
+    PaintData data;
+    data.x     = pos[0];
+    data.y     = pos[1];
+    data.z     = pos[2];
+    data.color = paint;
+    data.size  = size;
+    g_hPaintData[client].PushArray(data);
+
 	if(gB_PaintToAll[client])
 	{
 		TE_SetupWorldDecal(pos, gI_Sprites[paint - 1][size]);
@@ -1354,6 +1428,25 @@ void AddPaint(int client, float pos[3], int paint = 0, int size = 0)
 
 void EracePaint(int client, float pos[3], int size = 0)
 {
+    // Remove nearby paint entries from the ArrayList
+    float eraseRadius = 10.0;
+
+    for (int i = g_hPaintData[client].Length - 1; i >= 0; i--)
+    {
+        PaintData data;
+        g_hPaintData[client].GetArray(i, data, sizeof(data));
+
+        float paintPos[3];
+        paintPos[0] = data.x;
+        paintPos[1] = data.y;
+        paintPos[2] = data.z;
+
+        if (GetVectorDistance(pos, paintPos) <= eraseRadius)
+        {
+            g_hPaintData[client].Erase(i);
+        }
+    }
+
 	TE_SetupWorldDecal(pos, gI_Eraser[size]);
 	TE_SendToClient(client);
 
@@ -1497,4 +1590,303 @@ stock void AddFilesToDownloadsTable()
 	AddFileToDownloadsTable("models/expert_zone/pingtool/pingtool.vvd");
 	PrecacheModel(PING_MODEL_PATH);
 	PrecacheSound(PING_SOUND_PATH);
+}
+
+public void Shavit_OnDatabaseLoaded()
+{
+    GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+    gH_SQL = Shavit_GetDatabase(gI_Driver);
+
+    char sQuery[512];
+    FormatEx(sQuery, sizeof(sQuery), "CREATE TABLE IF NOT EXISTS `%spaints` (`id` INT PRIMARY KEY AUTO_INCREMENT, `auth` VARCHAR(64) NOT NULL, `map` VARCHAR(128) NOT NULL, `x` FLOAT NOT NULL, `y` FLOAT NOT NULL, `z` FLOAT NOT NULL, `color` INT NOT NULL, `size` INT NOT NULL);", gS_MySQLPrefix);
+    gH_SQL.Query(SQL_OnTableCreated, sQuery);
+}
+
+public void SQL_OnTableCreated(Database db, DBResultSet results, const char[] error, any data)
+{
+    if (results == null)
+    {
+        LogError("Failed to create paints table: %s", error);
+    }
+}
+
+public Action Command_PaintSave(int client, int args)
+{
+    if (gH_SQL == null)
+    {
+        Shavit_PrintToChat(client, "Database not connected.");
+        return Plugin_Handled;
+    }
+
+    if (g_hPaintData[client] == null || g_hPaintData[client].Length == 0)
+    {
+        Shavit_PrintToChat(client, "You have no paints to save.");
+        return Plugin_Handled;
+    }
+
+    char sAuth[64];
+    if (!GetClientAuthId(client, AuthId_Engine, sAuth, sizeof(sAuth)))
+    {
+        Shavit_PrintToChat(client, "Failed to get SteamID.");
+        return Plugin_Handled;
+    }
+
+    char sMap[128];
+    GetCurrentMap(sMap, sizeof(sMap));
+
+    char sQuery[512];
+    FormatEx(sQuery, sizeof(sQuery), "DELETE FROM `%spaints` WHERE auth = '%s' AND map = '%s';", gS_MySQLPrefix, sAuth, sMap);
+    gH_SQL.Query(SQL_OnDeleteBeforeSave, sQuery, GetClientUserId(client));
+
+    Shavit_PrintToChat(client, "Saving paints...");
+
+    return Plugin_Handled;
+}
+
+public void SQL_OnDeleteBeforeSave(Database db, DBResultSet results, const char[] error, any data)
+{
+    int client = GetClientOfUserId(data);
+    if (!client) return;
+
+    if (results == null)
+    {
+        Shavit_PrintToChat(client, "Save failed (Delete Error): %s", error);
+        LogError("Save Delete Error: %s", error);
+        return;
+    }
+
+    char sAuth[64];
+    GetClientAuthId(client, AuthId_Engine, sAuth, sizeof(sAuth));
+    char sMap[128];
+    GetCurrentMap(sMap, sizeof(sMap));
+
+    Transaction txn = new Transaction();
+    char        sQuery[512];
+
+    for (int i = 0; i < g_hPaintData[client].Length; i++)
+    {
+        PaintData pData;
+        g_hPaintData[client].GetArray(i, pData, sizeof(pData));
+
+        if (pData.color == -1)
+            continue;
+
+        FormatEx(sQuery, sizeof(sQuery), "INSERT INTO `%spaints` (auth, map, x, y, z, color, size) VALUES ('%s', '%s', %.2f, %.2f, %.2f, %d, %d);", gS_MySQLPrefix, sAuth, sMap, pData.x, pData.y, pData.z, pData.color, pData.size);
+        txn.AddQuery(sQuery);
+    }
+
+    gH_SQL.Execute(txn, SQL_OnSaveComplete, _, GetClientUserId(client));
+}
+
+public void SQL_OnSaveComplete(Database db, any data, int numQueries, Handle[] results, any[] queryData)
+{
+    int client = GetClientOfUserId(data);
+    if (client)
+    {
+        Shavit_PrintToChat(client, "Paints saved successfully!");
+    }
+}
+
+public Action Command_PaintLoad(int client, int args)
+{
+    if (gH_SQL == null)
+    {
+        Shavit_PrintToChat(client, "Database not connected.");
+        return Plugin_Handled;
+    }
+
+    char sAuth[64];
+    GetClientAuthId(client, AuthId_Engine, sAuth, sizeof(sAuth));
+    char sMap[128];
+    GetCurrentMap(sMap, sizeof(sMap));
+
+    char sQuery[512];
+    FormatEx(sQuery, sizeof(sQuery), "SELECT x, y, z, color, size FROM `%spaints` WHERE auth = '%s' AND map = '%s';", gS_MySQLPrefix, sAuth, sMap);
+    gH_SQL.Query(SQL_OnPaintLoad, sQuery, GetClientUserId(client));
+
+    return Plugin_Handled;
+}
+
+public void SQL_OnPaintLoad(Database db, DBResultSet results, const char[] error, any data)
+{
+    int client = GetClientOfUserId(data);
+    if (!client) return;
+
+    if (results == null)
+    {
+        LogError("Paint load failed: %s", error);
+        Shavit_PrintToChat(client, "Failed to load paints.");
+        return;
+    }
+
+    if (results.RowCount == 0)
+    {
+        Shavit_PrintToChat(client, "No saved paints found for this map.");
+        return;
+    }
+
+    g_hPaintData[client].Clear();
+    ClientCommand(client, "r_cleardecals");
+
+    delete g_hPendingPaints[client];
+    g_hPendingPaints[client] = new ArrayList(sizeof(PaintData));
+
+    float pos[3];
+    int   color;
+    int   size;
+    int   loadCount = 0;
+
+    while (results.FetchRow())
+    {
+        pos[0] = results.FetchFloat(0);
+        pos[1] = results.FetchFloat(1);
+        pos[2] = results.FetchFloat(2);
+        color  = results.FetchInt(3);
+        size   = results.FetchInt(4);
+
+        if (color == -1)
+            continue;
+
+        PaintData pdata;
+        pdata.x     = pos[0];
+        pdata.y     = pos[1];
+        pdata.z     = pos[2];
+        pdata.color = color;
+        pdata.size  = size;
+        g_hPendingPaints[client].PushArray(pdata);
+        loadCount++;
+    }
+
+    if (loadCount == 0)
+    {
+        Shavit_PrintToChat(client, "No paints to load.");
+        return;
+    }
+
+    g_iPaintLoadOffset[client] = 0;
+    Shavit_PrintToChat(client, "Loading %d paints...", loadCount);
+    RequestFrame(Frame_LoadPaintBatch, client);
+}
+
+public void Frame_LoadPaintBatch(int client)
+{
+    if (!IsClientInGame(client) || g_hPendingPaints[client] == null)
+        return;
+
+    int batchSize = 16;
+    int start     = g_iPaintLoadOffset[client];
+    int end       = start + batchSize;
+    int total     = g_hPendingPaints[client].Length;
+
+    if (end > total)
+        end = total;
+
+    for (int i = start; i < end; i++)
+    {
+        PaintData pdata;
+        g_hPendingPaints[client].GetArray(i, pdata, sizeof(pdata));
+
+        float pos[3];
+        pos[0] = pdata.x;
+        pos[1] = pdata.y;
+        pos[2] = pdata.z;
+
+        AddPaint(client, pos, pdata.color, pdata.size);
+    }
+
+    g_iPaintLoadOffset[client] = end;
+
+    if (end < total)
+    {
+        RequestFrame(Frame_LoadPaintBatch, client);
+    }
+    else
+    {
+        Shavit_PrintToChat(client, "Loaded %d paints.", total);
+        delete g_hPendingPaints[client];
+        g_hPendingPaints[client]   = null;
+        g_iPaintLoadOffset[client] = 0;
+    }
+}
+
+public Action Command_PaintDelete(int client, int args)
+{
+    if (gH_SQL == null) return Plugin_Handled;
+
+    char sAuth[64];
+    GetClientAuthId(client, AuthId_Engine, sAuth, sizeof(sAuth));
+    char sMap[128];
+    GetCurrentMap(sMap, sizeof(sMap));
+
+    char sQuery[512];
+    FormatEx(sQuery, sizeof(sQuery), "DELETE FROM `%spaints` WHERE auth = '%s' AND map = '%s';", gS_MySQLPrefix, sAuth, sMap);
+    gH_SQL.Query(SQL_OnDeleteComplete, sQuery, GetClientUserId(client));
+
+    g_hPaintData[client].Clear();
+    ClientCommand(client, "r_cleardecals");
+
+    return Plugin_Handled;
+}
+
+public void SQL_OnDeleteComplete(Database db, DBResultSet results, const char[] error, any data)
+{
+    int client = GetClientOfUserId(data);
+    if (client) Shavit_PrintToChat(client, "Paints deleted.");
+}
+
+void OpenConfirmMenu(int client, int action)
+{
+    g_iConfirmAction[client] = action;
+    Menu menu                = new Menu(Confirm_MenuHandler);
+    menu.SetTitle("%T\n ", "ConfirmAction", client);
+
+    char sMenuItem[64];
+
+    FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ConfirmYes", client);
+    menu.AddItem("yes", sMenuItem);
+
+    FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ConfirmNo", client);
+    menu.AddItem("no", sMenuItem);
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int Confirm_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+    if (action == MenuAction_Select)
+    {
+        char sInfo[16];
+        menu.GetItem(param2, sInfo, sizeof(sInfo));
+
+        if (StrEqual(sInfo, "yes"))
+        {
+            if (g_iConfirmAction[param1] == 0)
+            {
+                g_hPaintData[param1].Clear();
+                ClientCommand(param1, "r_cleardecals");
+                Shavit_PrintToChat(param1, "%T", "PaintCleared", param1);
+                OpenPaintMenu(param1);
+            }
+            else if (g_iConfirmAction[param1] == 1)
+            {
+                Command_PaintDelete(param1, 0);
+                OpenPaintMenu(param1);
+            }
+        }
+        else if (StrEqual(sInfo, "no"))
+        {
+            OpenPaintMenu(param1);
+        }
+    }
+    else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+    {
+        OpenPaintMenu(param1);
+    }
+    else if (action == MenuAction_End)
+    {
+        delete menu;
+    }
+
+    return 0;
 }
