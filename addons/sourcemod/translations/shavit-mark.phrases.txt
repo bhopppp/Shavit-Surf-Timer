@@ -314,4 +314,34 @@
 	{
 		"en"		"Turquoise"
 	}
+    "PaintSave"
+    {
+        "en"
+        "Save Paints"
+    }
+    "PaintLoad"
+    {
+        "en"
+        "Load Paints"
+    }
+    "PaintDelete"
+    {
+        "en"
+        "Delete Saved Paints"
+    }
+    "ConfirmAction"
+    {
+        "en"
+        "Are you sure?"
+    }
+    "ConfirmYes"
+    {
+        "en"
+        "Yes"
+    }
+    "ConfirmNo"
+    {
+        "en"
+        "No"
+    }
 }
