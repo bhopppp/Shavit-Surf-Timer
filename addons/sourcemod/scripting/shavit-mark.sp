@@ -32,6 +32,7 @@
 #pragma semicolon 1
 
 #define PAINT_DISTANCE_SQ 1.0
+#define DECAL_LIMIT       192    // r_decals is 200 by default in cs:s I wish we could've use clientcommand to change it
 
 #define MENU_PAINT 1
 #define MENU_PING 2
@@ -1400,6 +1401,12 @@ void AddPaint(int client, float pos[3], int paint = 0, int size = 0)
 		paint = GetRandomInt(1, sizeof(gS_PaintColors) - 1);
 	}
 
+	// Remove oldest paint if at limit (engine removes oldest decal automatically)
+	while (g_hPaintData[client].Length >= DECAL_LIMIT)
+	{
+		g_hPaintData[client].Erase(0);
+	}
+
     PaintData data;
     data.x     = pos[0];
     data.y     = pos[1];
@@ -1618,6 +1625,12 @@ public Action Command_PaintSave(int client, int args)
         return Plugin_Handled;
     }
 
+    if (g_hPendingPaints[client] != null)
+    {
+        Shavit_PrintToChat(client, "Cannot save while loading paints.");
+        return Plugin_Handled;
+    }
+
     if (g_hPaintData[client] == null || g_hPaintData[client].Length == 0)
     {
         Shavit_PrintToChat(client, "You have no paints to save.");
@@ -1692,6 +1705,12 @@ public Action Command_PaintLoad(int client, int args)
     if (gH_SQL == null)
     {
         Shavit_PrintToChat(client, "Database not connected.");
+        return Plugin_Handled;
+    }
+
+    if (g_hPendingPaints[client] != null)
+    {
+        Shavit_PrintToChat(client, "Already loading paints, please wait.");
         return Plugin_Handled;
     }
 
