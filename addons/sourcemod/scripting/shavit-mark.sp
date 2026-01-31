@@ -1433,10 +1433,65 @@ void AddPaint(int client, float pos[3], int paint = 0, int size = 0)
 	}
 }
 
+void RedrawPaints(int client)
+{
+    if (g_hPendingPaints[client] != null) return;
+
+    ClientCommand(client, "r_cleardecals");
+
+    g_hPendingPaints[client] = g_hPaintData[client].Clone();
+    g_hPaintData[client].Clear();
+    g_iPaintLoadOffset[client] = 0;
+
+    RequestFrame(Frame_RedrawPaintBatch, client);
+}
+
+public void Frame_RedrawPaintBatch(int client)
+{
+    if (!IsClientInGame(client) || g_hPendingPaints[client] == null)
+        return;
+
+    int batchSize = 16;
+    int start     = g_iPaintLoadOffset[client];
+    int end       = start + batchSize;
+    int total     = g_hPendingPaints[client].Length;
+
+    if (end > total) end = total;
+
+    for (int i = start; i < end; i++)
+    {
+        PaintData data;
+        g_hPendingPaints[client].GetArray(i, data, sizeof(data));
+
+        float pos[3];
+        pos[0] = data.x;
+        pos[1] = data.y;
+        pos[2] = data.z;
+
+        AddPaint(client, pos, data.color, data.size);
+    }
+    g_iPaintLoadOffset[client] = end;
+
+    if (end < total)
+    {
+        RequestFrame(Frame_RedrawPaintBatch, client);
+    }
+    else
+    {
+        delete g_hPendingPaints[client];
+        g_hPendingPaints[client]   = null;
+        g_iPaintLoadOffset[client] = 0;
+    }
+}
+
 void EracePaint(int client, float pos[3], int size = 0)
 {
-    // Remove nearby paint entries from the ArrayList
-    float eraseRadius = 10.0;
+    static float radiusValues[] = { 18.0, 58.0, 154.0 };
+
+    if (size < 0 || size >= sizeof(radiusValues)) size = 0;
+
+    float eraserVisualRadius = radiusValues[size];
+    bool  paintDeleted       = false;
 
     for (int i = g_hPaintData[client].Length - 1; i >= 0; i--)
     {
@@ -1444,24 +1499,43 @@ void EracePaint(int client, float pos[3], int size = 0)
         g_hPaintData[client].GetArray(i, data, sizeof(data));
 
         float paintPos[3];
-        paintPos[0] = data.x;
-        paintPos[1] = data.y;
-        paintPos[2] = data.z;
+        paintPos[0]      = data.x;
+        paintPos[1]      = data.y;
+        paintPos[2]      = data.z;
 
-        if (GetVectorDistance(pos, paintPos) <= eraseRadius)
+        int paintSizeIdx = data.size;
+        if (paintSizeIdx < 0 || paintSizeIdx >= sizeof(radiusValues)) paintSizeIdx = 0;
+
+        float paintRadius   = radiusValues[paintSizeIdx];
+        float eraseDistance = eraserVisualRadius;
+
+        if (size == 2)
+        {
+            eraseDistance += (paintRadius * 0.9);
+        }
+        else if (size == 1)
+        {
+            eraseDistance += (paintRadius * 0.5);
+        }
+        else
+        {
+            eraseDistance += (paintRadius * 0.2);
+        }
+
+        if (GetVectorDistance(pos, paintPos) <= eraseDistance)
         {
             g_hPaintData[client].Erase(i);
+            paintDeleted = true;
         }
     }
 
-	TE_SetupWorldDecal(pos, gI_Eraser[size]);
-	TE_SendToClient(client);
+    if (paintDeleted)
+    {
+        RedrawPaints(client);
+    }
 
-	if(gI_Partner[client] != 0)
-	{
-		TE_SetupWorldDecal(pos, gI_Eraser[size]);
-		TE_SendToClient(gI_Partner[client]);
-	}
+    TE_SetupWorldDecal(pos, gI_Eraser[size]);
+    TE_SendToClient(client);
 }
 
 int PrecachePaint(char[] filename)
@@ -1582,8 +1656,28 @@ stock void AddFilesToDownloadsTable()
 	FormatEx(sPath, sizeof(sPath), "sound/%s", PING_SOUND_PATH);
 
 	AddFileToDownloadsTable(sPath);
-	AddFileToDownloadsTable("materials/decals/paint/paint_decal.vtf");
-	AddFileToDownloadsTable("materials/decals/paint/paint_eraser.vtf");
+    AddFileToDownloadsTable("materials/decals/paint/paint_decal.vtf");
+    AddFileToDownloadsTable("materials/decals/paint/paint_eraser.vtf");
+
+    char buffer[PLATFORM_MAX_PATH];
+
+    // Add Paint VMTs
+    for (int color = 1; color < sizeof(gS_PaintColors); color++)
+    {
+        for (int size = 0; size < sizeof(gS_PaintSizes); size++)
+        {
+            Format(buffer, sizeof(buffer), "materials/decals/paint/%s%s.vmt", gS_PaintColors[color][1], gS_PaintSizes[size][1]);
+            AddFileToDownloadsTable(buffer);
+        }
+    }
+
+    // Add Eraser VMTs
+    for (int size = 0; size < sizeof(gS_PaintSizes); size++)
+    {
+        Format(buffer, sizeof(buffer), "materials/decals/paint/paint_eraser%s.vmt", gS_PaintSizes[size][1]);
+        AddFileToDownloadsTable(buffer);
+    }
+
 	AddFileToDownloadsTable("materials/expert_zone/pingtool/circle_arrow.vtf");
 	AddFileToDownloadsTable("materials/expert_zone/pingtool/circle_arrow.vmt");
 	AddFileToDownloadsTable("materials/expert_zone/pingtool/circle_point.vtf");
