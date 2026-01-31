@@ -435,32 +435,52 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-	if (IsClientInGame(client) && gB_IsPainting[client])
-	{
-		static float pos[3];
-		TraceEye(client, pos);
+    if (IsClientInGame(client) && gB_IsPainting[client])
+    {
+        // Detect start of new stroke to allow first paint immediately
+        static bool bWasPainting[MAXPLAYERS + 1];
+        if (!bWasPainting[client])
+        {
+            gF_LastPaint[client][0] = -99999.0;
+            bWasPainting[client]    = true;
+        }
 
-		if (GetVectorDistance(pos, gF_LastPaint[client], true) > PAINT_DISTANCE_SQ) 
-		{
-			if (gB_ErasePaint[client])
-			{
-				EracePaint(client, pos, gI_PlayerPaintSize[client]);
-			}
-			else
-			{
-				AddPaint(client, pos, gI_PlayerPaintColor[client], gI_PlayerPaintSize[client]);
-			}
-		}
+        static float pos[3];
+        TraceEye(client, pos);
 
-		gF_LastPaint[client] = pos;
+        // Dynamic spacing to prevent excessive stacking of large paints
+        // Squared distances: Small(5^2=25), Medium(15^2=225), Large(40^2=1600)
+        static float minSpacingSq[] = { 25.0, 225.0, 1600.0 };
+        int          sizeIdx        = gI_PlayerPaintSize[client];
+        if (sizeIdx < 0 || sizeIdx >= sizeof(minSpacingSq)) sizeIdx = 0;
 
-		if(gB_PaintMode[client])
-		{
-			gB_IsPainting[client] = false;
-		}
-	}
+        if (GetVectorDistance(pos, gF_LastPaint[client], true) > minSpacingSq[sizeIdx])
+        {
+            if (gB_ErasePaint[client])
+            {
+                EracePaint(client, pos, gI_PlayerPaintSize[client]);
+            }
+            else
+            {
+                AddPaint(client, pos, gI_PlayerPaintColor[client], sizeIdx);
+            }
 
-	return Plugin_Continue;
+            gF_LastPaint[client] = pos;
+        }
+
+        if (gB_PaintMode[client])
+        {
+            gB_IsPainting[client] = false;
+            bWasPainting[client]  = false;
+        }
+    }
+    else
+    {
+        static bool bWasPainting[MAXPLAYERS + 1];
+        bWasPainting[client] = false;
+    }
+
+    return Plugin_Continue;
 }
 
 void OpenPingMenu(int client)
