@@ -31,18 +31,17 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-#define DECAL_LIMIT              192    // r_decals is 200 by default in cs:s I wish we could've use clientcommand to change it
-#define PAINT_SAVE_LOAD_COOLDOWN 5.0
+#define DECAL_LIMIT      192    // r_decals is 200 by default in cs:s I wish we could've use clientcommand to change it
 
-#define MENU_PAINT               1
-#define MENU_PING                2
+#define MENU_PAINT       1
+#define MENU_PING        2
 
-#define RESPONSE_ACCEPT          1
-#define RESPONSE_DECLINE         2
-#define RESPONSE_CANCEL          3
+#define RESPONSE_ACCEPT  1
+#define RESPONSE_DECLINE 2
+#define RESPONSE_CANCEL  3
 
-#define PING_MODEL_PATH          "models/expert_zone/pingtool/pingtool.mdl"
-#define PING_SOUND_PATH          "expert_zone/pingtool/click.wav"
+#define PING_MODEL_PATH  "models/expert_zone/pingtool/pingtool.mdl"
+#define PING_SOUND_PATH  "expert_zone/pingtool/click.wav"
 
 /* Colour name, file name */
 char gS_PaintColors[][][64] =    // Modify this to add/change colours
@@ -143,6 +142,7 @@ Cookie        gH_PlayerPingColor;
 Convar        gCV_AccessFlag;
 Convar        gCV_PingDuration;
 Convar        gCV_PingInterval;
+Convar        gCV_PaintSaveLoadCooldown;
 
 /* DATABASE & SAVE */
 float         g_fLastSaveLoad[MAXPLAYERS + 1];
@@ -178,18 +178,19 @@ public void
     OnPluginStart()
 {
     /* Register Cookies */
-    gH_PlayerPaintColor    = new Cookie("mark_playerpaintcolor", "mark_playerpaintcolor", CookieAccess_Protected);
-    gH_PlayerPaintSize     = new Cookie("mark_playerpaintsize", "mark_playerpaintsize", CookieAccess_Protected);
-    gH_PlayerPaintMode     = new Cookie("mark_playerpaintmode", "mark_playerpaintmode", CookieAccess_Protected);
-    gH_PlayerReciveRequest = new Cookie("mark_playerreciverequest", "mark_playerreciverequest", CookieAccess_Protected);
+    gH_PlayerPaintColor       = new Cookie("mark_playerpaintcolor", "mark_playerpaintcolor", CookieAccess_Protected);
+    gH_PlayerPaintSize        = new Cookie("mark_playerpaintsize", "mark_playerpaintsize", CookieAccess_Protected);
+    gH_PlayerPaintMode        = new Cookie("mark_playerpaintmode", "mark_playerpaintmode", CookieAccess_Protected);
+    gH_PlayerReciveRequest    = new Cookie("mark_playerreciverequest", "mark_playerreciverequest", CookieAccess_Protected);
 
-    gH_PlayerPingDuration  = new Cookie("paint_playerpingduration", "paint_playerpingduration", CookieAccess_Protected);
-    gH_PlayerPingSound     = new Cookie("paint_playerpingsound", "paint_playerpingsound", CookieAccess_Protected);
-    gH_PlayerPingColor     = new Cookie("paint_playerpingcolor", "paint_playerpingcolor", CookieAccess_Protected);
+    gH_PlayerPingDuration     = new Cookie("paint_playerpingduration", "paint_playerpingduration", CookieAccess_Protected);
+    gH_PlayerPingSound        = new Cookie("paint_playerpingsound", "paint_playerpingsound", CookieAccess_Protected);
+    gH_PlayerPingColor        = new Cookie("paint_playerpingcolor", "paint_playerpingcolor", CookieAccess_Protected);
 
-    gCV_AccessFlag         = new Convar("shavit_mark_displaytoall_accessflag", "", "Admin flag to require privileges for send decals or ping markers to all players", 0, false, 0.0, false, 0.0);
-    gCV_PingDuration       = new Convar("shavit_mark_pingduration", "4.0", "The duration time (in seconds) of ping marks\n 0.0 - Until next ping marks created", 0, true, 0.0, true, 20.0);
-    gCV_PingInterval       = new Convar("shavit_mark_pinginterval", "0.5", "The minimum time interval (in seconds) between two ping marks", 0, true, 0.1, true, 5.0);
+    gCV_AccessFlag            = new Convar("shavit_mark_displaytoall_accessflag", "", "Admin flag to require privileges for send decals or ping markers to all players", 0, false, 0.0, false, 0.0);
+    gCV_PingDuration          = new Convar("shavit_mark_pingduration", "4.0", "The duration time (in seconds) of ping marks\n 0.0 - Until next ping marks created", 0, true, 0.0, true, 20.0);
+    gCV_PingInterval          = new Convar("shavit_mark_pinginterval", "0.5", "The minimum time interval (in seconds) between two ping marks", 0, true, 0.1, true, 5.0);
+    gCV_PaintSaveLoadCooldown = new Convar("shavit_mark_save_load_cooldown", "5.0", "Cooldown in seconds for saving/loading paints.", 0, true, 0.0);
     Convar.AutoExecConfig();
 
     gCV_PingInterval.AddChangeHook(OnConVarChanged);
@@ -231,7 +232,7 @@ public void
         }
     }
 
-    if (gB_Late)
+    if (gB_Late || LibraryExists("shavit"))
     {
         Shavit_OnChatConfigLoaded();
         Shavit_OnDatabaseLoaded();
@@ -1805,9 +1806,10 @@ public Action Command_PaintSave(int client, int args)
         return Plugin_Handled;
     }
 
-    if (GetEngineTime() - g_fLastSaveLoad[client] < PAINT_SAVE_LOAD_COOLDOWN)
+    float fCooldown = gCV_PaintSaveLoadCooldown.FloatValue;
+    if (GetEngineTime() - g_fLastSaveLoad[client] < fCooldown)
     {
-        Shavit_PrintToChat(client, "%T", "SaveCooldown", client, PAINT_SAVE_LOAD_COOLDOWN - (GetEngineTime() - g_fLastSaveLoad[client]));
+        Shavit_PrintToChat(client, "%T", "SaveCooldown", client, fCooldown - (GetEngineTime() - g_fLastSaveLoad[client]));
         return Plugin_Handled;
     }
 
@@ -1896,9 +1898,10 @@ public Action Command_PaintLoad(int client, int args)
         return Plugin_Handled;
     }
 
-    if (GetEngineTime() - g_fLastSaveLoad[client] < PAINT_SAVE_LOAD_COOLDOWN)
+    float fCooldown = gCV_PaintSaveLoadCooldown.FloatValue;
+    if (GetEngineTime() - g_fLastSaveLoad[client] < fCooldown)
     {
-        Shavit_PrintToChat(client, "%T", "LoadCooldown", client, PAINT_SAVE_LOAD_COOLDOWN - (GetEngineTime() - g_fLastSaveLoad[client]));
+        Shavit_PrintToChat(client, "%T", "LoadCooldown", client, fCooldown - (GetEngineTime() - g_fLastSaveLoad[client]));
         return Plugin_Handled;
     }
 
