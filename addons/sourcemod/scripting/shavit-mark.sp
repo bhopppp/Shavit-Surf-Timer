@@ -123,8 +123,11 @@ bool          gB_PingToAll[MAXPLAYERS + 1];
 int           gI_Tickrate;
 int           gI_PingIntervalTick;
 bool          gB_Late = false;
-
 chatstrings_t gS_ChatStrings;
+EngineVersion gEV_Type = Engine_Unknown;
+int           gI_TELimitData;
+Address       TELimitAddress;
+bool          gB_Linux;
 
 /* COOKIES */
 Cookie        gH_PlayerPaintColor;
@@ -193,6 +196,8 @@ public void
 
     gI_Tickrate = RoundToNearest(1.0 / GetTickInterval());
 
+    LoadDHooks();
+
     /* COMMANDS */
     RegConsoleCmd("+paint", Command_EnablePaint, "Start Painting");
     RegConsoleCmd("-paint", Command_DisablePaint, "Stop Painting");
@@ -231,6 +236,54 @@ public void
         Shavit_OnChatConfigLoaded();
         Shavit_OnDatabaseLoaded();
     }
+}
+
+void LoadDHooks()
+{
+    GameData gamedata = new GameData("shavit.games");
+
+    if (gamedata == null)
+    {
+        SetFailState("Failed to load shavit gamedata");
+    }
+
+    gB_Linux = (gamedata.GetOffset("OS") == 2);
+
+    gEV_Type = GetEngineVersion();
+
+    if (gEV_Type == Engine_CSS)
+    {
+        // TELimit
+        TELimitAddress = GameConfGetAddress(gamedata, "TELimit");
+
+        if (TELimitAddress == Address_Null)
+        {
+            SetFailState("Failed to get address for TELimit");
+        }
+
+        gI_TELimitData = LoadFromAddress(TELimitAddress, NumberType_Int8);
+
+        if (gB_Linux)
+        {
+            StoreToAddress(TELimitAddress, 0x02, NumberType_Int8);
+        }
+        else
+        {
+            StoreToAddress(TELimitAddress, 0xFF, NumberType_Int8);
+        }
+    }
+
+    delete gamedata;
+}
+
+public void OnPluginEnd()
+{
+    if (TELimitAddress == Address_Null)
+    {
+        return;
+    }
+
+    StoreToAddress(TELimitAddress, gI_TELimitData, NumberType_Int8);
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -1478,7 +1531,7 @@ public void Frame_RedrawPaintBatch(int serial)
     if (!client || g_hPendingPaints[client] == null)
         return;
 
-    int batchSize = 16;
+    int batchSize = 256;
     int start     = g_iPaintLoadOffset[client];
     int end       = start + batchSize;
     int total     = g_hPendingPaints[client].Length;
@@ -1933,7 +1986,7 @@ public void Frame_LoadPaintBatch(int serial)
     if (!client || g_hPendingPaints[client] == null)
         return;
 
-    int batchSize = 16;
+    int batchSize = 256;
     int start     = g_iPaintLoadOffset[client];
     int end       = start + batchSize;
     int total     = g_hPendingPaints[client].Length;
