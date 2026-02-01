@@ -166,7 +166,7 @@ enum struct PaintData
 public Plugin myinfo =
 {
     name        = "[shavit-surf] Mark",
-    author      = "SlidyBat, Ciallo-Ani, KikI",
+    author      = "SlidyBat, Ciallo-Ani, KikI, Nora",
     description = "Allow players to mark a position with decals or ping markers.",
     version     = "4.0",
     url         = "https://github.com/bhopppp/Shavit-Surf-Timer"
