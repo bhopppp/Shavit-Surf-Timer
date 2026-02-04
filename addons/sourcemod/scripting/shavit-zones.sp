@@ -1418,6 +1418,7 @@ void add_prebuilts_to_cache(const char[] classname, bool button)
 		cache.iDatabaseID = -1;
 		cache.iForm = button ? ZoneForm_func_button : ZoneForm_trigger_multiple;
 		cache.sSource = button ? "autobutton" : "autozone";
+		cache.iSpeedLimitFlags = gCV_DefaultZonePrespeedLimit.IntValue;
 
 		if (button)
 		{
