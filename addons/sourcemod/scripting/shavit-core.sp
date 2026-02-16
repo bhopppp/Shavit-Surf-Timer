@@ -2773,7 +2773,8 @@ public int Native_RestartTimer(Handle handler, int numParams)
 
 	SetEntityMoveType(client, MOVETYPE_WALK);
 	gI_LastNoclipTick[client] = 0;
-	gA_Timers[client].bPracticeMode = false;
+	CallOnPracticeModeChanged(client, false);
+	// gA_Timers[client].bPracticeMode = false;
 
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
@@ -2890,7 +2891,14 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	bool practice = view_as<bool>(GetNativeCell(2));
 	bool alert = view_as<bool>(GetNativeCell(3));
 
-	if(alert && practice && !gA_Timers[client].bPracticeMode && (gI_MessageSettings[client] & MSG_PRACALERT) == 0 && !(gCV_DisablePracticeModeOnStart.BoolValue && Shavit_InsideZone(client, Zone_Start, -1)))
+	CallOnPracticeModeChanged(client, practice, alert);
+
+	return 1;
+}
+
+void CallOnPracticeModeChanged(int client, bool practice, bool alert = true)
+{
+	if(alert && practice && !gA_Timers[client].bPracticeMode && (gI_MessageSettings[client] & MSG_PRACALERT) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "PracticeModeAlert", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		
@@ -2901,8 +2909,6 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	}
 
 	gA_Timers[client].bPracticeMode = practice;
-
-	return 1;
 }
 
 public int Native_SetOnlyStageMode(Handle handler, int numParams)
@@ -2993,6 +2999,11 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	if (gA_Timers[client].iLastStage != snapshot.iLastStage)
 	{
 		ChangeClientLastStage(client, snapshot.iLastStage);
+	}
+
+	if (gA_Timers[client].bPracticeMode != snapshot.bPracticeMode)
+	{
+		CallOnPracticeModeChanged(client, snapshot.bPracticeMode, true);
 	}
 
 	float oldts = gA_Timers[client].fTimescale;
@@ -3432,9 +3443,9 @@ void StartTimer(int client, int track)
 			gA_Timers[client].fAvgVelocity = curVel;
 			gA_Timers[client].fMaxVelocity = curVel;
 
-			if(gCV_DisablePracticeModeOnStart.BoolValue)
+			if(gA_Timers[client].bPracticeMode && gCV_DisablePracticeModeOnStart.BoolValue)
 			{
-				gA_Timers[client].bPracticeMode = false;
+				CallOnPracticeModeChanged(client, false, false);
 			}
 
 			// TODO: Look into when this should be reset (since resetting it here disables timescale while in startzone).

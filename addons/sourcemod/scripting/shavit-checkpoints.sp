@@ -1927,8 +1927,9 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 	bool bInsideStageZone = iTrack == Track_Main ? Shavit_InsideZoneStage(client, iZoneStage):false;
 	bool bInStart = Shavit_InsideZone(client, Zone_Start, iTrack) || 
 						(Shavit_IsOnlyStageMode(client) && bInsideStageZone && iZoneStage == Shavit_GetClientLastStage(client));
+	bool bCheckpointInsideStart = cpcache.aSnapshot.iZoneIncrement == 0 && cpcache.aSnapshot.bTimerEnabled && cpcache.fVelocity[2] == 0 && GetVectorLength(cpcache.fVelocity) <= Shavit_GetStyleSettingFloat(cpcache.aSnapshot.bsStyle, "runspeed");
 
-	if(bInStart && !Shavit_IsPaused(client))
+	if((bInStart || bCheckpointInsideStart) && !Shavit_IsPaused(client))
 	{
 		Shavit_StopTimer(client);
 	}
@@ -2033,12 +2034,11 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		return true;
 	}
 
-	if (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
+	// walk inside start zone with normal speed
+	bool bCheckpointInsideStart = cpcache.aSnapshot.iZoneIncrement == 0 && cpcache.aSnapshot.bTimerEnabled && cpcache.fVelocity[2] == 0 && GetVectorLength(cpcache.fVelocity) <= Shavit_GetStyleSettingFloat(cpcache.aSnapshot.bsStyle, "runspeed");
+	if (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || bCheckpointInsideStart || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
 	{
 		cpcache.aSnapshot.bPracticeMode = true;
-
-		// Do this here to trigger practice mode alert
-		Shavit_SetPracticeMode(client, true, true);
 	}
 
 	Shavit_LoadSnapshot(client, cpcache.aSnapshot, sizeof(timer_snapshot_t), force);
