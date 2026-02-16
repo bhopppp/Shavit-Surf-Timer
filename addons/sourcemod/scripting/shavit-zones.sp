@@ -31,6 +31,7 @@
 #include <shavit/zones>
 #include <shavit/wr>
 #include <shavit/hud>
+#include <shavit/checkpoints>
 #include <shavit/physicsuntouch>
 
 #undef REQUIRE_PLUGIN
@@ -144,6 +145,8 @@ char gS_BeamSpriteIgnoreZ[PLATFORM_MAX_PATH];
 int gI_BeamSpriteIgnoreZ;
 
 int gI_OffsetMFEffects = -1;
+
+int gI_TickServed[MAXPLAYERS + 1];
 
 // admin menu
 TopMenu gH_AdminMenu = null;
@@ -6394,6 +6397,16 @@ public void Shavit_OnEnd(int client, int track)
 	// }
 }
 
+public void Shavit_OnCheckpointCacheLoaded(int client, cp_cache_t cache, int index)
+{
+	if (!gB_Eventqueuefix && (index == -1 || Shavit_IsPaused(client) || Shavit_GetStyleSettingInt(cache.aSnapshot.bsStyle, "kzcheckpoints") || cache.aSnapshot.bPracticeMode))
+	{
+		return;
+	}
+	
+	gI_TickServed[client] = GetGameTickCount();
+}
+
 bool EmptyVector(float vec[3])
 {
 	return (IsNullVector(vec) || (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0));
@@ -6896,6 +6909,28 @@ public void TouchPost(int entity, int other)
 				return;
 			}
 
+			if (gB_Eventqueuefix)	// we also do this here to prevent EndTouch events fire after teleport back to stage start zone
+			{
+				int curr_tick = GetGameTickCount();
+
+				if (gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4)
+				{
+					if (curr_tick != gI_TickServed[other])
+					{
+						PhysicsRemoveTouchedList(other);
+						ClearClientEvents(other);
+						
+						gI_TickServed[other] = curr_tick;
+					}
+
+					return;
+				}
+				else if (curr_tick != gI_TickServed[other])
+				{
+					gI_TickServed[other] = 0;
+				}
+			}
+
 			if (GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1 && !Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(other), "startinair"))
 			{
 				return;
@@ -6907,7 +6942,6 @@ public void TouchPost(int entity, int other)
 		{
 			if (gB_Eventqueuefix)
 			{
-				static int tick_served[MAXPLAYERS + 1];
 				int curr_tick = GetGameTickCount();
 				// GAMMACASE: This prevents further abuses related to external events being ran after you teleport from the trigger, with events setup, outside the start zone into the start zone.
 				// This accounts for the io events that might be set inside the start zone trigger in OnStartTouch and wont reset them!
@@ -6918,7 +6952,7 @@ public void TouchPost(int entity, int other)
 				// before the OnStartTouch from triggers in start zone are run, thus preventing the maps to be abusable if they don't have any reset triggers in place
 				if (gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4)
 				{
-					if (curr_tick != tick_served[other])
+					if (curr_tick != gI_TickServed[other])
 					{
 						if(gCV_ForceTargetnameReset.IntValue > 0)
 						{
@@ -6928,14 +6962,14 @@ public void TouchPost(int entity, int other)
 						PhysicsRemoveTouchedList(other);
 						ClearClientEvents(other);
 						
-						tick_served[other] = curr_tick;
+						gI_TickServed[other] = curr_tick;
 					}
 
 					return;
 				}
-				else if (curr_tick != tick_served[other])
+				else if (curr_tick != gI_TickServed[other])
 				{
-					tick_served[other] = 0;
+					gI_TickServed[other] = 0;
 				}
 			}
 
