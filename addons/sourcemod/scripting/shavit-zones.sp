@@ -2815,6 +2815,7 @@ public Action Command_Stages(int client, int args)
 			}
 
 			Shavit_TrimFailureFrames(client);
+			Shavit_StopStageTimer(client);
 		}
 	}
 	else

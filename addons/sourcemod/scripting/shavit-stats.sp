@@ -25,6 +25,7 @@
 #include <dhooks>
 
 #include <shavit/core>
+#include <shavit/checkpoints>
 #include <shavit/zones>
 
 #undef REQUIRE_PLUGIN
@@ -43,6 +44,13 @@
 #define MAPSDONE 0
 #define MAPSLEFT 1
 #define MAPSRECORD 2
+
+enum struct attempt_info_t
+{
+	int tick;
+	int track;
+	int style;
+}
 
 // modules
 bool gB_Mapchooser = false;
@@ -71,6 +79,7 @@ int gI_LastTrack[MAXPLAYERS+1];
 float gF_PlaytimeStyleSum[MAXPLAYERS+1][STYLE_LIMIT];
 bool gB_HavePlaytimeOnStyle[MAXPLAYERS+1][STYLE_LIMIT];
 bool gB_QueriedStylePlaytime[MAXPLAYERS+1];
+float gF_PlayerLastSpawnTime[MAXPLAYERS+1];
 
 // map playtime stuffs
 int gI_PlayerTrackAttempts[MAXPLAYERS+1][TRACKS_SIZE][STYLE_LIMIT];
@@ -84,6 +93,10 @@ float gF_PlayerStagePlaytimeSum[MAXPLAYERS+1][STYLE_LIMIT][MAX_STAGES];
 bool gB_QueriedTrackPlaytime[MAXPLAYERS+1];
 bool gB_HavePlaytimeOnTrack[MAXPLAYERS+1][TRACKS_SIZE][STYLE_LIMIT];
 bool gB_HavePlaytimeOnStage[MAXPLAYERS+1][STYLE_LIMIT][MAX_STAGES];
+
+int gI_LastRestartTick[MAXPLAYERS + 1];
+attempt_info_t gA_LastCountedAttemptInfo[MAXPLAYERS + 1][2];
+int gI_TempTickCount;
 
 bool gB_Late = false;
 EngineVersion gEV_Type = Engine_Unknown;
@@ -169,6 +182,7 @@ public void OnPluginStart()
 		}
 	}
 
+	gI_TempTickCount = RoundFloat(0.7/GetTickInterval());
 	CreateTimer(2.5 * 60.0, Timer_SavePlaytime, 0, TIMER_REPEAT);
 	CreateTimer(3.0, Timer_SaveDisconnectPlaytime, 0, TIMER_REPEAT);
 }
@@ -287,6 +301,10 @@ public void OnClientPutInServer(int client)
 	gF_PlaytimeStyleStart[client] = now;
 	gF_PlayerTrackPlaytimeStart[client] = now;
 	gF_PlayerStagePlaytimeStart[client] = now;
+
+	attempt_info_t empty_attempt;
+	gA_LastCountedAttemptInfo[client][0] = empty_attempt;
+	gA_LastCountedAttemptInfo[client][1] = empty_attempt;
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
@@ -384,6 +402,8 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	}
 
 	float now = GetEngineTime();
+
+	gF_PlayerLastSpawnTime[client] = now;
 
 	if (gF_PlaytimeStyleStart[client] == 0.0)
 	{
@@ -502,6 +522,57 @@ public void OnClientDisconnect(int client)
 	SavePlaytime(client, GetEngineTime(), gH_DisconnectPlaytimeQueries);
 }
 
+// To prevent attempts from spamming too much, withdraw attempt count if a run stopped within 0.8 sec
+public Action Shavit_OnStart(int client)
+{
+	attempt_info_t attempt;
+	if (GetGameTickCount() - gA_LastCountedAttemptInfo[client][0].tick <= gI_TempTickCount)
+	{
+		gI_PlayerTrackAttempts[client][gA_LastCountedAttemptInfo[client][0].track][gA_LastCountedAttemptInfo[client][0].style] -= 1;
+		gA_LastCountedAttemptInfo[client][0] = attempt;
+
+		if (gA_LastCountedAttemptInfo[client][0].track == Track_Main && gA_LastCountedAttemptInfo[client][1].tick > 0)
+		{
+			gI_PlayerStageAttempts[client][gA_LastCountedAttemptInfo[client][1].style][1] -= 1;
+			gA_LastCountedAttemptInfo[client][1] = attempt;
+		}
+	}
+	else if (GetGameTickCount() - gA_LastCountedAttemptInfo[client][1].tick <= gI_TempTickCount)
+	{
+		gI_PlayerStageAttempts[client][gA_LastCountedAttemptInfo[client][1].style][gA_LastCountedAttemptInfo[client][1].track] -= 1;
+		gA_LastCountedAttemptInfo[client][1] = attempt;
+	}
+
+	return Plugin_Continue;
+}
+
+public Action Shavit_OnStageStart(int client, int stage, bool restart, bool first)
+{
+	if (GetGameTickCount() - gA_LastCountedAttemptInfo[client][1].tick <= gI_TempTickCount && 
+	gA_LastCountedAttemptInfo[client][1].track == stage && gA_LastCountedAttemptInfo[client][1].style == Shavit_GetBhopStyle(client))
+	{
+		gI_PlayerStageAttempts[client][gA_LastCountedAttemptInfo[client][1].style][gA_LastCountedAttemptInfo[client][1].track] -= 1;
+
+		attempt_info_t attempt;
+		gA_LastCountedAttemptInfo[client][1] = attempt;
+	}
+
+	return Plugin_Continue;
+}
+
+public void Shavit_OnCheckpointCacheLoaded(int client, cp_cache_t cache, int index)
+{
+	if (cache.aSnapshot.iZoneIncrement == 0 && cache.aSnapshot.bTimerEnabled)
+	{
+		gI_LastRestartTick[client] = GetGameTickCount();
+	}
+}
+
+public void Shavit_OnRestart(int client, int track)
+{
+	gI_LastRestartTick[client] = GetGameTickCount();
+}
+
 public void Shavit_OnStarted(int client, int track, int stage, int style, bool bMainStageTimer)
 {
 	if (Shavit_IsPracticeMode(client))
@@ -509,19 +580,42 @@ public void Shavit_OnStarted(int client, int track, int stage, int style, bool b
 		return;
 	}
 
-	if (!bMainStageTimer && !Shavit_IsOnlyStageMode(client))
+	if (GetEngineTime() - gF_PlayerLastSpawnTime[client] < 0.1)
+	{
+		return;
+	}
+
+	int curr_tick = GetGameTickCount();
+
+	if (curr_tick - gI_LastRestartTick[client] <= 2)
+	{
+		return;
+	}
+
+	if ((!bMainStageTimer && !Shavit_IsOnlyStageMode(client)) || track >= Track_Bonus)
 	{
 		gI_PlayerTrackAttempts[client][track][style] += 1;
+
+		attempt_info_t aLastAttempt;
+		aLastAttempt.tick = curr_tick; aLastAttempt.track = track; aLastAttempt.style = style;
+		gA_LastCountedAttemptInfo[client][0] = aLastAttempt;
 
 		if (track == Track_Main)
 		{
 			gI_PlayerStageAttempts[client][style][1] += 1;
+
+			aLastAttempt.tick = curr_tick; aLastAttempt.track = 1; aLastAttempt.style = style;
+			gA_LastCountedAttemptInfo[client][1] = aLastAttempt;
 		}
 
 	}
 	else if (stage > 0)
 	{
 		gI_PlayerStageAttempts[client][style][stage] += 1;
+
+		attempt_info_t aLastAttempt;
+		aLastAttempt.tick = curr_tick; aLastAttempt.track = stage; aLastAttempt.style = style;
+		gA_LastCountedAttemptInfo[client][1] = aLastAttempt;
 	}
 }
 
