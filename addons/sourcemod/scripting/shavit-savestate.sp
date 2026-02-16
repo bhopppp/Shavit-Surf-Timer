@@ -1302,7 +1302,7 @@ stock bool WriteTimerData(char[] sPath, cp_cache_t cache)
 	kv.SetNum("TiFractionalTicks", cache.aSnapshot.iFractionalTicks);
 	kv.SetNum("TbPracticeMode", view_as<int>(cache.aSnapshot.bPracticeMode));
 	kv.SetNum("TbOnlyStageMode", view_as<int>(cache.aSnapshot.bOnlyStageMode));
-	kv.SetNum("TbStageTimeValid", view_as<int>(cache.aSnapshot.bStageTimeValid));
+	kv.SetNum("TbStageTimeValid", view_as<int>(cache.aSnapshot.bStageTimerEnabled));
 	kv.SetNum("TbJumped", view_as<int>(cache.aSnapshot.bJumped));
 	kv.SetNum("TbCanUseAllKeys", view_as<int>(cache.aSnapshot.bCanUseAllKeys));
 	kv.SetNum("TbOnGround", view_as<int>(cache.aSnapshot.bOnGround));
@@ -1523,7 +1523,7 @@ stock bool LoadTimerData(char[] sPath, cp_cache_t cache, int& iRealFrameCount)
 		cache.aSnapshot.iFractionalTicks = kv.GetNum("TiFractionalTicks", 0);
 		cache.aSnapshot.bPracticeMode = view_as<bool>(kv.GetNum("TbPracticeMode", 0));
 		cache.aSnapshot.bOnlyStageMode = view_as<bool>(kv.GetNum("TbOnlyStageMode", 0));
-		cache.aSnapshot.bStageTimeValid = view_as<bool>(kv.GetNum("TbStageTimeValid", 1));
+		cache.aSnapshot.bStageTimerEnabled = view_as<bool>(kv.GetNum("TbStageTimeValid", 1));
 		cache.aSnapshot.bJumped = view_as<bool>(kv.GetNum("TbJumped", 0));
 		cache.aSnapshot.bCanUseAllKeys = view_as<bool>(kv.GetNum("TbCanUseAllKeys", 1));
 		cache.aSnapshot.bOnGround = view_as<bool>(kv.GetNum("TbOnGround", 1));

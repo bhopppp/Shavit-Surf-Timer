@@ -246,8 +246,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetClientStageAttempts", Native_SetClientStageAttempts);
 	CreateNative("Shavit_GetClientStageAttempt", Native_GetClientStageAttempt);
 	CreateNative("Shavit_SetClientStageAttempt", Native_SetClientStageAttempt);
-	CreateNative("Shavit_StageTimeValid", Native_StageTimeValid);
-	CreateNative("Shavit_SetStageTimeValid", Native_SetStageTimeValid);
+	CreateNative("Shavit_IsStageTimerEnabled", Native_IsStageTimerEnabled);
+	CreateNative("Shavit_StopStageTimer", Native_StopStageTimer);
 	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
 	CreateNative("Shavit_GetPerfectJumps", Native_GetPerfectJumps);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
@@ -2226,6 +2226,7 @@ public int Native_StopTimer(Handle handler, int numParams)
 	}
 
 	StopTimer(client);
+	StopStageTimer(client);
 
 	Call_StartForward(gH_Forwards_Stop);
 	Call_PushCell(client);
@@ -2352,7 +2353,7 @@ public Action Shavit_OnFinishStagePre(int client, timer_snapshot_t snapshot)
 		return Plugin_Stop;
 	}
 
-	if (!snapshot.bStageTimeValid)
+	if (!snapshot.bStageTimerEnabled)
 	{
 		if(Shavit_IsOnlyStageMode(client))
 		{
@@ -2571,6 +2572,7 @@ public int Native_FinishStage(Handle handler, int numParams)
 	}
 	else
 	{
+		StopStageTimer(client);
 		gA_Timers[client].fStageFinishTimes[stage] = end.fCurrentTime;
 	}
 
@@ -3170,15 +3172,14 @@ public int Native_SetClientCPTime(Handle plugin, int numParams)
 	return 0;
 }
 
-public int Native_StageTimeValid(Handle plugin, int numParams)
+public int Native_IsStageTimerEnabled(Handle plugin, int numParams)
 {
-	return view_as<int>(gA_Timers[GetNativeCell(1)].bStageTimeValid);
+	return view_as<int>(gA_Timers[GetNativeCell(1)].bStageTimerEnabled);
 }
 
-public int Native_SetStageTimeValid(Handle plugin, int numParams)
+public int Native_StopStageTimer(Handle plugin, int numParams)
 {
-	gA_Timers[GetNativeCell(1)].bStageTimeValid = GetNativeCell(2);
-	
+	StopStageTimer(GetNativeCell(1));
 	return 1;
 }
 
@@ -3416,7 +3417,7 @@ void StartTimer(int client, int track)
 					gA_Timers[client].aStageStartInfo.iGoodGains = gA_Timers[client].iGoodGains;
 					gA_Timers[client].aStageStartInfo.fMaxVelocity = curVel;	
 					gA_Timers[client].aStageStartInfo.fAvgVelocity = curVel;
-					gA_Timers[client].bStageTimeValid = true;
+					gA_Timers[client].bStageTimerEnabled = true;
 				}
 				else
 				{
@@ -3522,6 +3523,7 @@ void StartStageTimer(int client, int track, int stage, bool force, bool first)
 					}
 				}
 
+				gA_Timers[client].bStageTimerEnabled = true;
 				gA_Timers[client].aStageStartInfo.fStageStartTime = gA_Timers[client].fCurrentTime;
 				gA_Timers[client].aStageStartInfo.iFractionalTicks = gA_Timers[client].iFractionalTicks;
 				gA_Timers[client].aStageStartInfo.iFullTicks = gA_Timers[client].iFullTicks;
@@ -3536,6 +3538,27 @@ void StartStageTimer(int client, int track, int stage, bool force, bool first)
 		}
 	}
 }
+
+void StopStageTimer(int client)
+{
+	if(!IsValidClient(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	gA_Timers[client].bStageTimerEnabled = false;
+	gA_Timers[client].aStageStartInfo.fStageStartTime = 0.0;
+	gA_Timers[client].aStageStartInfo.iFractionalTicks = 0;
+	gA_Timers[client].aStageStartInfo.iFullTicks = 0;
+	gA_Timers[client].aStageStartInfo.iJumps = 0;
+	gA_Timers[client].aStageStartInfo.iStrafes = 0;
+	gA_Timers[client].aStageStartInfo.iGoodGains = 0;
+	gA_Timers[client].aStageStartInfo.iTotalMeasures = 0;
+	// gA_Timers[client].aStageStartInfo.iZoneIncrement = 0;
+	gA_Timers[client].aStageStartInfo.fMaxVelocity = 0.0;	
+	gA_Timers[client].aStageStartInfo.fAvgVelocity = 0.0;
+}
+
 
 void StopTimer(int client)
 {
@@ -4048,7 +4071,7 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 			bZoneLimited = true;
 		}
 		
-		gA_Timers[client].bStageTimeValid = bZoneLimited ? true:curVel < fMaxPrespeed;
+		gA_Timers[client].bStageTimerEnabled = bZoneLimited ? true:curVel < fMaxPrespeed;
 
 		if(curVel > 20)
 		{
@@ -4077,13 +4100,13 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 
 			if((gI_MessageSettings[client] & MSG_SPEEDTRAP) == 0)
 			{
-				Shavit_StopChatSound();							
+				Shavit_StopChatSound();
 				Shavit_PrintToChat(client, "%T %s", "StageStartZonePrespeed", client,
 					gS_ChatStrings.sVariable2, stage, gS_ChatStrings.sText,
-					gA_Timers[client].bStageTimeValid ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, speed, gS_ChatStrings.sText, sVelDiff);
+					gA_Timers[client].bStageTimerEnabled ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, speed, gS_ChatStrings.sText, sVelDiff);
 			}
 
-			if(!gA_Timers[client].bStageTimeValid)
+			if(!gA_Timers[client].bStageTimerEnabled)
 			{
 				Shavit_PrintToChat(client, "%T", "PrespeedLimitExcceded", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 			}
@@ -4095,7 +4118,7 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 					Shavit_StopChatSound();
 					Shavit_PrintToChat(i, "%s*%N*%s %T %s", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "StageStartZonePrespeed", i,
 						gS_ChatStrings.sVariable2, stage, gS_ChatStrings.sText,
-						gA_Timers[client].bStageTimeValid ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, speed, gS_ChatStrings.sText, sVelDiff);
+						gA_Timers[client].bStageTimerEnabled ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, speed, gS_ChatStrings.sText, sVelDiff);
 				}
 			}
 		}
@@ -4104,7 +4127,7 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 	{
 		gA_Timers[client].fStartVelocity = speed;
 		gA_Timers[client].aStageStartInfo.fStartVelocity = speed;
-		gA_Timers[client].bStageTimeValid = true;
+		gA_Timers[client].bStageTimerEnabled = true;
 
 		if(curVel > 20)
 		{
@@ -4131,9 +4154,9 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 				FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s)", sVelDiff, gS_ChatStrings.sText);
 			}
 
-			if((Shavit_GetMessageSetting(client) & MSG_SPEEDTRAP) == 0)
+			if((gI_MessageSettings[client] & MSG_SPEEDTRAP) == 0)
 			{
-				Shavit_StopChatSound();							
+				Shavit_StopChatSound();
 				Shavit_PrintToChat(client, "%T %s", "TrackStartZonePrespeed", client, gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
 			}
 
@@ -4141,7 +4164,7 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 			{
 				if(IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_SPEEDTRAP) == 0)
 				{
-					Shavit_StopChatSound();							
+					Shavit_StopChatSound();
 					Shavit_PrintToChat(i, "%s*%N*%s %T %s", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "TrackStartZonePrespeed", i, gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
 				}
 			}	
@@ -4292,7 +4315,11 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	float time = interval * ts;
 
 	gA_Timers[client].iZoneIncrement++;
-	gA_Timers[client].aStageStartInfo.iZoneIncrement++;
+
+	if (gA_Timers[client].bStageTimerEnabled)
+	{
+		gA_Timers[client].aStageStartInfo.iZoneIncrement++;		
+	}
 
 	timer_snapshot_t snapshot;
 	BuildSnapshot(client, snapshot);
@@ -4490,7 +4517,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		if(GetEntityFlags(client) & FL_BASEVELOCITY) // they are on booster, dont limit their speed
 		{
-			gA_Timers[client].bStageTimeValid = true;
+			gA_Timers[client].bStageTimerEnabled = true;
 			bBlockBhop   = ((iTrackStartLimitFlags & ZSLF_BlockBhop) > 0);
 			bBlockJump   = ((iTrackStartLimitFlags & ZSLF_BlockJump) > 0);
 			bNoVerticalSpeed = ((iTrackStartLimitFlags & ZSLF_NoVerticalSpeed) > 0);

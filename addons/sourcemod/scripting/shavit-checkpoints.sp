@@ -1757,7 +1757,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		snapshot.fplayer_speedmod = 1.0;
 		snapshot.iLastStage = Shavit_GetReplayBotCurrentStage(target);
 
-		snapshot.bStageTimeValid = false;
+		snapshot.bStageTimerEnabled = Shavit_GetReplayBotStage(target) > 0 ? true : false;
 		snapshot.bOnlyStageMode = Shavit_GetReplayBotStage(target) > 0 ? true : false;
 
 		float ticks = float(Shavit_GetReplayBotRealTick(target) - Shavit_GetReplayCachePreFrames(target));

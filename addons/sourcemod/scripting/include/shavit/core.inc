@@ -175,7 +175,7 @@ enum struct timer_snapshot_t
 
 	bool bPracticeMode;
 	bool bOnlyStageMode;
-	bool bStageTimeValid;
+	bool bStageTimerEnabled;
 
 	bool bJumped;
 	bool bCanUseAllKeys;
@@ -1259,21 +1259,20 @@ native int Shavit_GetClientStageAttempt(int client, int stage);
 native void Shavit_SetClientStageAttempt(int client, int stage, int attempts);
 
 /**
- * Returns if client's current stage run is valid.
+ * Returns if client's current stage timer is enabled.
  *
  * @param client                    Client index.
  * @return							Bool value.                          
  */
-native bool Shavit_StageTimeValid(int client);
+native bool Shavit_IsStageTimerEnabled(int client);
 
 /**
- * Set client's current stage run valid to specific value.
+ * Stop client's current stage timer.
  *
  * @param client                    Client index.
- * @param valid						The value need to set.
  * @return							Bool value.                          
  */
-native void Shavit_SetStageTimeValid(int client, bool valid);
+native void Shavit_StopStageTimer(int client);
 
 /**
  * Retrieve client jumps since timer start.

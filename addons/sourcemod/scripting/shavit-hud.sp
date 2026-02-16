@@ -1500,7 +1500,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 							if((gI_HUD2Settings[client] & HUD2_STAGETIME) == 0)
 							{
-								if(Shavit_StageTimeValid(data.iTarget))
+								if(Shavit_IsStageTimerEnabled(data.iTarget))
 								{
 									char sStageTime[32];
 									FormatSeconds(data.fStageTime, sStageTime, 32, false);
