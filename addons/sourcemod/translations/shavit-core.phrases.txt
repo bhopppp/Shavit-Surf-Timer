@@ -280,10 +280,6 @@
 		"#format"	"{1:s},{2:s},{3:s},{4:s}"
 		"en"		"Use {1}!m{2}/{3}!main{4} go to back to the main track."
 	}
-	"MapNoBonus"
-	{
-		"en"		"There are no bonuses on this map."
-	}
 	"UnZonedMap"
 	{
 		"en"		"Current map is unzoned."

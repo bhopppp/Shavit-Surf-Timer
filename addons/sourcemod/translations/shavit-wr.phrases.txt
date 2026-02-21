@@ -228,6 +228,10 @@
 		"en"		"Select Stage records"
 	}
 	// ---------- WR Menu ---------- //
+	"RecordLeaderboard"
+	{
+		"en"		"Record Leaderboard"
+	}
 	"WRDate"
 	{
 		"en"		"Date"
@@ -272,6 +276,18 @@
 	"WRPlayerStats"
 	{
 		"en"		"Player stats"
+	}
+	"CheckpointRecordComparison"
+	{
+		"en"		"Comparison"
+	}
+	"CheckpointRecordWR"
+	{
+		"en"		"WR"
+	}
+	"CheckpointRecordPB"
+	{
+		"en"		"PB"
 	}
 	"CheckpointRecord"
 	{

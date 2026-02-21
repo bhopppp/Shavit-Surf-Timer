@@ -108,4 +108,8 @@
 	{
 		"en"		"　"
 	}
+	"MapNoBonus"
+	{
+		"en"		"There are no bonuses on this map."
+	}
 }

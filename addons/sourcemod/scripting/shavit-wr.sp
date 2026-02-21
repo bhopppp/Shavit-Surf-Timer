@@ -230,6 +230,8 @@ public void OnPluginStart()
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
 	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
+	RegConsoleCmd("sm_maptop", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
+	RegConsoleCmd("sm_mtop", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
 
 	RegConsoleCmd("sm_swr", Command_WorldRecord, "View the leaderboard of a map's stage. Usage: sm_wrcp [map] [stage number]");
 	RegConsoleCmd("sm_stagewr", Command_WorldRecord, "View the leaderboard of a map's stage. Usage: sm_wrcp [map] [stage number]");
@@ -241,6 +243,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map] [bonus number]");
 	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map] [bonus number]");
 	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map] [bonus number]");
+	RegConsoleCmd("sm_bonustop", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
+	RegConsoleCmd("sm_btop", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
 
 	RegConsoleCmd("sm_recent", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
@@ -2656,8 +2660,12 @@ public Action Command_CheckpointRecord(int client, int args)
 		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
 		LowercaseString(gA_WRCache[client].sClientMap);
 
+		char sNavi[128];
+		FormatEx(sNavi, sizeof(sNavi), "%T (%T) >\n", "CheckpointRecord", client, 
+		gA_WRCache[client].iCPRMode == 1 ? "CheckpointRecordWR": gA_WRCache[client].iCPRMode == 2 ? "CheckpointRecordPB":"CheckpointRecordComparison", client);
+
 		Menu mapmatches = new Menu(CPRRMatchesMenuHandler);
-		mapmatches.SetTitle("%T", "Choose Map", client);
+		mapmatches.SetTitle("%s%T\n ", sNavi, "Choose Map", client);
 
 		int length = gA_ValidMaps.Length;
 		for (int i = 0; i < length; i++)
@@ -2787,8 +2795,12 @@ public void SQL_RetrieveCPRMenu_Callback(Database db, DBResultSet results, const
 
 public void ShowCPRStyleMenu(int client)
 {
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T (%T) | %s >\n", "CheckpointRecord", client, 
+	gA_WRCache[client].iCPRMode == 1 ? "CheckpointRecordWR": gA_WRCache[client].iCPRMode == 2 ? "CheckpointRecordPB":"CheckpointRecordComparison", client, gA_WRCache[client].sClientMap);
+
 	Menu menu = new Menu(MenuHandler_CPRStyleChooser);
-	menu.SetTitle("%T", "WRSelectStyleMenuTitle", client);
+	menu.SetTitle("%s%T", sNavi, "WRSelectStyleMenuTitle", client);
 
 	int[] styles = new int[gI_Styles];
 	Shavit_GetOrderedStyles(styles, gI_Styles);
@@ -2956,7 +2968,7 @@ public Action Command_WorldRecord(int client, int args)
 
 			if (track < Track_Bonus || track > Track_Bonus_Last)
 			{
-				track = Track_Bonus;
+				track = -1;
 			}
 		}
 		else
@@ -3001,8 +3013,11 @@ public Action Command_WorldRecord(int client, int args)
 		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
 		LowercaseString(gA_WRCache[client].sClientMap);
 
+		char sNavi[128];
+		FormatEx(sNavi, sizeof(sNavi), "%T >\n", "RecordLeaderboard", client);
+
 		Menu mapmatches = new Menu(WRMatchesMenuHandler);
-		mapmatches.SetTitle("%T", "Choose Map", client);
+		mapmatches.SetTitle("%s%T\n ", sNavi, "Choose Map", client);
 
 		int length = gA_ValidMaps.Length;
 		for (int i = 0; i < length; i++)
@@ -3066,6 +3081,9 @@ void RetrieveWRMenu(int client, int track, int stage = 0)
 		return;
 	}
 
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "RecordLeaderboard", client, gA_WRCache[client].sClientMap);
+
 	if (stage == 0)
 	{
 		if(track >= 0)
@@ -3098,38 +3116,86 @@ void RetrieveWRMenu(int client, int track, int stage = 0)
 		}
 		else
 		{
-			int iTrackMask = Shavit_GetMapTracks(false, true);
-
-			Menu selectbonus = new Menu(MenuHandler_WRSelectBonus);
-			selectbonus.SetTitle("%T", "WRSelectBonusMenuTitle", client);
-			char sTrack[32];
-
-			for(int i = Track_Bonus; i < TRACKS_SIZE; i++)
+			if (StrEqual(gA_WRCache[client].sClientMap, gS_Map))
 			{
-				if(iTrackMask < 0)
+				int iTrackMask = Shavit_GetMapTracks(false, true);
+
+				Menu selectbonus = new Menu(MenuHandler_WRSelectBonus);
+				selectbonus.SetTitle("%s%T", sNavi, "WRSelectBonusMenuTitle", client);
+				char sTrack[32];
+
+				for(int i = Track_Bonus; i < TRACKS_SIZE; i++)
 				{
-					break;
+					if(iTrackMask < 0)
+					{
+						break;
+					}
+
+					if (((iTrackMask >> i) & 1) == 1)
+					{
+						GetTrackName(client, i, sTrack, sizeof(sTrack));
+
+						char sInfo[8];
+						IntToString(i, sInfo, 8);
+
+						selectbonus.AddItem(sInfo, sTrack, ITEMDRAW_DEFAULT);
+					}
 				}
 
-				if (((iTrackMask >> i) & 1) == 1)
+				if(selectbonus.ItemCount == 0)
 				{
-					GetTrackName(client, i, sTrack, sizeof(sTrack));
-
-					char sInfo[8];
-					IntToString(i, sInfo, 8);
-
-					selectbonus.AddItem(sInfo, sTrack, ITEMDRAW_DEFAULT);
+					Shavit_PrintToChat(client, "%T", "MapNoBonus", client);
+					delete selectbonus;
+					return;
 				}
-			}
 
-			if(selectbonus.ItemCount == 0)
-			{
-				delete selectbonus;
+				selectbonus.Display(client, MENU_TIME_FOREVER);
 				return;
 			}
+			else if (gB_Rankings)
+			{
+				mapinfo_t info;
+				StringMap tiersMap = Shavit_GetMapInfo();
 
-			selectbonus.Display(client, MENU_TIME_FOREVER);
-			return;
+				if (tiersMap.GetArray(gA_WRCache[client].sClientMap, info, sizeof(mapinfo_t)))
+				{
+					if (info.iBonuses == 0)
+					{
+						Shavit_PrintToChat(client, "%T", "MapNoBonus", client);
+						delete tiersMap;
+						return;
+					}
+
+					Menu selectbonus = new Menu(MenuHandler_WRSelectBonus);
+					selectbonus.SetTitle("%s%T", sNavi, "WRSelectBonusMenuTitle", client);
+					char sTrack[32];
+					char sInfo[8];
+
+					for(int i = 1; i <= info.iBonuses; i++)
+					{
+						GetTrackName(client, i, sTrack, sizeof(sTrack));
+						IntToString(i, sInfo, 8);
+
+						selectbonus.AddItem(sInfo, sTrack, ITEMDRAW_DEFAULT);
+					}
+
+					selectbonus.Display(client, MENU_TIME_FOREVER);
+					delete tiersMap;
+				}
+				else
+				{
+					Shavit_PrintToChat(client, "%t", "Map was not found", client, gA_WRCache[client].sClientMap);
+					delete tiersMap;			
+				}
+			}
+			else
+			{
+				char sQuery[256];
+				FormatEx(sQuery, sizeof(sQuery), "SELECT COUNT(DISTINCT CASE WHEN type = %d AND track > %d THEN track END) FROM %smapzones WHERE map = '%s'", 
+					Zone_Start, Track_Main, gS_MySQLPrefix, gA_WRCache[client].sClientMap);
+				
+				QueryLog(gH_SQL, SQL_RetrieveWRBonusMenu_Callback, sQuery, GetClientSerial(client));
+			}
 		}
 	}
 	else if (stage < 0)
@@ -3145,7 +3211,7 @@ void RetrieveWRMenu(int client, int track, int stage = 0)
 			}
 
 			Menu selectstage = new Menu(MenuHandler_WRSelectStage);
-			selectstage.SetTitle("%T", "WRSelectStageMenuTitle", client);
+			selectstage.SetTitle("%s%T", sNavi, "WRSelectStageMenuTitle", client);
 			char sSelection[4];
 			char sMenu[16];
 
@@ -3172,11 +3238,12 @@ void RetrieveWRMenu(int client, int track, int stage = 0)
 				if(iStageCount == 0)
 				{
 					Shavit_PrintToChat(client, "%T", "NoStages", client, gS_ChatStrings.sVariable2, gA_WRCache[client].sClientMap, gS_ChatStrings.sText);
+					delete tiersMap;
 					return;
 				}
 
 				Menu selectstage = new Menu(MenuHandler_WRSelectStage);
-				selectstage.SetTitle("%T", "WRSelectStageMenuTitle", client);
+				selectstage.SetTitle("%s%T", sNavi, "WRSelectStageMenuTitle", client);
 				char sSelection[4];
 				char sMenu[16];
 
@@ -3188,11 +3255,12 @@ void RetrieveWRMenu(int client, int track, int stage = 0)
 				}
 
 				selectstage.Display(client, MENU_TIME_FOREVER);
+				delete tiersMap;				
 			}
 			else
 			{
-				Shavit_PrintToChat(client, "%T", "NoStages", client, gS_ChatStrings.sVariable2, gA_WRCache[client].sClientMap, gS_ChatStrings.sText);
-				return;
+				Shavit_PrintToChat(client, "%t", "Map was not found", client, gA_WRCache[client].sClientMap);
+				delete tiersMap;			
 			}
 		}
 		else
@@ -3274,6 +3342,51 @@ public int MenuHandler_WRSelectStage(Menu menu, MenuAction action, int param1, i
 	return 0;
 }
 
+public void SQL_RetrieveWRBonusMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	int client = GetClientFromSerial(data);
+	gA_WRCache[client].bPendingMenu = false;
+
+	if(results == null)
+	{
+		LogError("Timer (WR RetrieveWRMenu - Bonus) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	int iBonusCount = 0;
+
+	if(results.FetchRow())
+	{
+		iBonusCount = results.FetchInt(0);
+	}
+
+	if(iBonusCount == 0)
+	{
+		Shavit_PrintToChat(client, "%T", "MapNoBonus", client);
+		return;
+	}
+
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "RecordLeaderboard", client, gA_WRCache[client].sClientMap);
+
+	Menu selectbonus = new Menu(MenuHandler_WRSelectBonus);
+	selectbonus.SetTitle("%s%T", sNavi, "WRSelectBonusMenuTitle", client);
+	char sTrack[32];
+	char sInfo[8];
+
+	for(int i = 1; i <= iBonusCount; i++)
+	{
+		GetTrackName(client, i, sTrack, sizeof(sTrack));
+		IntToString(i, sInfo, 8);
+
+		selectbonus.AddItem(sInfo, sTrack, ITEMDRAW_DEFAULT);
+	}
+
+	selectbonus.Display(client, MENU_TIME_FOREVER);
+
+	return;
+}
+
 public void SQL_RetrieveWRCPStageMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	int client = GetClientFromSerial(data);
@@ -3281,7 +3394,7 @@ public void SQL_RetrieveWRCPStageMenu_Callback(Database db, DBResultSet results,
 
 	if(results == null)
 	{
-		LogError("Timer (WR RetrieveWRMenu) SQL query failed. Reason: %s", error);
+		LogError("Timer (WR RetrieveWRMenu - Stage) SQL query failed. Reason: %s", error);
 		return;
 	}
 
@@ -3298,8 +3411,11 @@ public void SQL_RetrieveWRCPStageMenu_Callback(Database db, DBResultSet results,
 		return;
 	}
 
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "RecordLeaderboard", client, gA_WRCache[client].sClientMap);
+
 	Menu selectstage = new Menu(MenuHandler_WRSelectStage);
-	selectstage.SetTitle("%T", "WRSelectStageMenuTitle", client);
+	selectstage.SetTitle("%s%T", sNavi, "WRSelectStageMenuTitle", client);
 	char sSelection[4];
 	char sMenu[16];
 
@@ -3355,8 +3471,21 @@ public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const 
 
 void ShowWRStyleMenu(int client, int first_item=0)
 {
+	char sTrack[32];
+	if (gA_WRCache[client].iLastStage > 0)
+	{
+		FormatEx(sTrack, 32, "%T %d", "StageText", client, gA_WRCache[client].iLastStage);
+	}
+	else
+	{
+		GetTrackName(client, gA_WRCache[client].iLastTrack, sTrack, 32);
+	}
+
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s | %s >\n", "RecordLeaderboard", client, gA_WRCache[client].sClientMap, sTrack);
+
 	Menu menu = new Menu(MenuHandler_WRStyleChooser);
-	menu.SetTitle("%T", "WRSelectStyleMenuTitle", client);
+	menu.SetTitle("%s%T", sNavi, "WRSelectStyleMenuTitle", client);
 
 	int[] styles = new int[gI_Styles];
 	Shavit_GetOrderedStyles(styles, gI_Styles);
@@ -3967,8 +4096,11 @@ public Action Command_PersonalBest(int client, int args)
 
 		gA_WRCache[client].sClientMap = map;
 
+		char sNavi[128];
+		FormatEx(sNavi, sizeof(sNavi), "%T >\n", "PersonalBest", client);
+
 		Menu mapmatches = new Menu(PBMatchesMenuHandler);
-		mapmatches.SetTitle("%T", "Choose Map", client);
+		mapmatches.SetTitle("%s%T\n ", sNavi, "Choose Map", client);
 
 		int length = gA_ValidMaps.Length;
 		for (int i = 0; i < length; i++)
@@ -3994,9 +4126,9 @@ public Action Command_PersonalBest(int client, int args)
 			}
 			case 1:
 			{
-				int stlye = 0;
-				mapmatches.GetItem(0, "", sizeof(wrcache_t::sClientMap), stlye, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
-
+				mapmatches.GetItem(0, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
+				int index = StrContains(gA_WRCache[client].sClientMap, ";");
+				gA_WRCache[client].sClientMap[index] = '\0';
 				delete mapmatches;
 			}
 			default:
@@ -4036,9 +4168,11 @@ public int PBMatchesMenuHandler(Menu menu, MenuAction action, int param1, int pa
 
 public void RetrievePBMenu(int client, int steamid)
 {
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "PersonalBest", client, gA_WRCache[client].sClientMap);
+
 	Menu menu = new Menu(MenuHandler_PBStyleChooser);
-	
-	menu.SetTitle("%T", "WRSelectStyleMenuTitle", client);
+	menu.SetTitle("%s%T", sNavi, "WRSelectStyleMenuTitle", client);
 
 	int[] styles = new int[gI_Styles];
 	Shavit_GetOrderedStyles(styles, gI_Styles);
@@ -4367,8 +4501,11 @@ public Action Command_PersonalRecordSummary(int client, int args)
 		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
 		LowercaseString(gA_WRCache[client].sClientMap);
 
+		char sNavi[128];
+		FormatEx(sNavi, sizeof(sNavi), "%T >\n", "PersonalRecordSummary", client);
+
 		Menu mapmatches = new Menu(MenuHandler_PRSummaryMapMatches);
-		mapmatches.SetTitle("%T", "Choose Map", client);
+		mapmatches.SetTitle("%s%T\n ", sNavi, "Choose Map", client);
 
 		int length = gA_ValidMaps.Length;
 		for (int i = 0; i < length; i++)
@@ -4427,22 +4564,77 @@ public int MenuHandler_PRSummaryMapMatches(Menu menu, MenuAction action, int par
 
 public void DisplayPRSummaryTrackMenu(int client)
 {
-	Menu menu = new Menu(MenuHandler_SelectPRSummaryTrack);
-	menu.SetTitle("%T", "WRSelectTrackMenuTitle", client);
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "PersonalRecordSummary", client, gA_WRCache[client].sClientMap);
 
-	for(int i = 0; i < TRACKS_SIZE; i++)
+	if (StrEqual(gA_WRCache[client].sClientMap, gS_Map))
 	{
+		int iTrackMask = Shavit_GetMapTracks(false, true);
+
+		Menu menu = new Menu(MenuHandler_SelectPRSummaryTrack);
+		menu.SetTitle("%s%T", sNavi, "WRSelectTrackMenuTitle", client);
+
 		char sInfo[8];
-		IntToString(i, sInfo, 8);
+		char sTrack[32];
 
-		char sDisplay[16];
-		GetTrackName(client, i, sDisplay, 16);
+		IntToString(Track_Main, sInfo, 8);
+		GetTrackName(client, Track_Main, sTrack, 16);
+		menu.AddItem(sInfo, sTrack);
 
-		menu.AddItem(sInfo, sDisplay);
+		for(int i = Track_Bonus; i < TRACKS_SIZE; i++)
+		{
+			if(iTrackMask < 0)
+			{
+				break;
+			}
+
+			if (((iTrackMask >> i) & 1) == 1)
+			{
+				GetTrackName(client, i, sTrack, sizeof(sTrack));
+				IntToString(i, sInfo, 8);
+
+				menu.AddItem(sInfo, sTrack, ITEMDRAW_DEFAULT);
+			}
+		}
+
+		menu.Display(client, MENU_TIME_FOREVER);
 	}
+	else if (gB_Rankings)
+	{
+		mapinfo_t info;
+		StringMap tiersMap = Shavit_GetMapInfo();
 
-	menu.ExitBackButton = true;
-	menu.Display(client, MENU_TIME_FOREVER);
+		if (tiersMap.GetArray(gA_WRCache[client].sClientMap, info, sizeof(mapinfo_t)))
+		{
+			Menu menu = new Menu(MenuHandler_SelectPRSummaryTrack);
+			menu.SetTitle("%s%T", sNavi, "WRSelectTrackMenuTitle", client);
+			char sInfo[8];
+			char sTrack[32];
+
+			IntToString(Track_Main, sInfo, 8);
+			GetTrackName(client, Track_Main, sTrack, 32);
+			menu.AddItem(sInfo, sTrack);
+
+			for(int i = 1; i <= info.iBonuses; i++)
+			{
+				IntToString(i, sInfo, sizeof(sInfo));
+				GetTrackName(client, i, sTrack, sizeof(sTrack));
+				menu.AddItem(sInfo, sTrack);
+			}
+
+			menu.Display(client, MENU_TIME_FOREVER);
+		}
+
+		delete tiersMap;
+	}
+	else
+	{
+		char sQuery[256];
+		FormatEx(sQuery, sizeof(sQuery), "SELECT COUNT(DISTINCT CASE WHEN type = %d AND track > %d THEN track END) FROM %smapzones WHERE map = '%s'", 
+			Zone_Start, Track_Main, gS_MySQLPrefix, gA_WRCache[client].sClientMap);
+		
+		QueryLog(gH_SQL, SQL_PRSummaryTrackMenu_Callback, sQuery, GetClientSerial(client));
+	}
 }
 
 public int MenuHandler_SelectPRSummaryTrack(Menu menu, MenuAction action, int param1, int param2)
@@ -4473,6 +4665,9 @@ public int MenuHandler_SelectPRSummaryTrack(Menu menu, MenuAction action, int pa
 
 public void DisplayPRSummaryStageMenu(int client, int first_item)
 {
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "PersonalRecordSummary", client, gA_WRCache[client].sClientMap);
+
 	if(StrEqual(gA_WRCache[client].sClientMap, gS_Map))
 	{
 		int iStageCount = Shavit_GetStageCount(Track_Main);
@@ -4484,7 +4679,7 @@ public void DisplayPRSummaryStageMenu(int client, int first_item)
 		}
 
 		Menu selectstage = new Menu(MenuHandler_SelectPRSummaryStage);
-		selectstage.SetTitle("%T", "WRSelectStageMenuTitle", client);
+		selectstage.SetTitle("%s%T", sNavi, "WRSelectStageMenuTitle", client);
 		char sSelection[4];
 		char sMenu[16];
 
@@ -4498,6 +4693,7 @@ public void DisplayPRSummaryStageMenu(int client, int first_item)
 			selectstage.AddItem(sSelection, sMenu);
 		}
 
+		selectstage.ExitBackButton = true;
 		selectstage.Display(client, MENU_TIME_FOREVER);
 	}
 	else if (gB_Rankings)
@@ -4517,7 +4713,7 @@ public void DisplayPRSummaryStageMenu(int client, int first_item)
 			}
 
 			Menu selectstage = new Menu(MenuHandler_SelectPRSummaryStage);
-			selectstage.SetTitle("%T", "WRSelectStageMenuTitle", client);
+			selectstage.SetTitle("%s%T", sNavi, "WRSelectStageMenuTitle", client);
 			char sSelection[4];
 			char sMenu[16];
 
@@ -4531,6 +4727,7 @@ public void DisplayPRSummaryStageMenu(int client, int first_item)
 				selectstage.AddItem(sSelection, sMenu);
 			}
 
+			selectstage.ExitBackButton = true;
 			selectstage.Display(client, MENU_TIME_FOREVER);
 		}
 		else
@@ -4549,6 +4746,48 @@ public void DisplayPRSummaryStageMenu(int client, int first_item)
 
 		QueryLog(gH_SQL, SQL_PRSummaryStageMenu_Callback, sQuery, GetClientSerial(client));
 	}
+}
+
+public void SQL_PRSummaryTrackMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	int client = GetClientFromSerial(data);
+	gA_WRCache[client].bPendingMenu = false;
+
+	if(results == null)
+	{
+		LogError("Timer (WR PRSummaryStageMenu) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	int iBonusCount = 0;
+
+	if(results.FetchRow())
+	{
+		iBonusCount = results.FetchInt(0);
+	}
+
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "PersonalRecordSummary", client, gA_WRCache[client].sClientMap);
+
+	Menu menu = new Menu(MenuHandler_SelectPRSummaryTrack);
+	menu.SetTitle("%s%T", sNavi, "WRSelectTrackMenuTitle", client);
+	char sInfo[8];
+	char sTrack[32];
+
+	IntToString(Track_Main, sInfo, 8);
+	GetTrackName(client, Track_Main, sTrack, 32);
+	menu.AddItem(sInfo, sTrack);
+
+	for(int i = 1; i <= iBonusCount; i++)
+	{
+		IntToString(i, sInfo, sizeof(sInfo));
+		GetTrackName(client, i, sTrack, sizeof(sTrack));
+		menu.AddItem(sInfo, sTrack);
+	}
+
+	menu.Display(client, MENU_TIME_FOREVER);
+
+	return;
 }
 
 public void SQL_PRSummaryStageMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -4575,8 +4814,11 @@ public void SQL_PRSummaryStageMenu_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s >\n", "PersonalRecordSummary", client, gA_WRCache[client].sClientMap);
+
 	Menu selectstage = new Menu(MenuHandler_SelectPRSummaryStage);
-	selectstage.SetTitle("%T", "WRSelectStageMenuTitle", client);
+	selectstage.SetTitle("%s%T", sNavi, "WRSelectStageMenuTitle", client);
 	char sSelection[4];
 	char sMenu[16];
 
@@ -4590,6 +4832,7 @@ public void SQL_PRSummaryStageMenu_Callback(Database db, DBResultSet results, co
 		selectstage.AddItem(sSelection, sMenu);
 	}
 
+	selectstage.ExitBackButton = true;
 	selectstage.Display(client, MENU_TIME_FOREVER);
 
 	return;
@@ -4620,8 +4863,21 @@ public int MenuHandler_SelectPRSummaryStage(Menu menu, MenuAction action, int pa
 
 public void DisplayPRSummaryStyleMenu(int client, int first_item)
 {
+	char sTrack[32];
+	if (gA_WRCache[client].iLastStage > 0)
+	{
+		FormatEx(sTrack, 32, "%T %d", "StageText", client, gA_WRCache[client].iLastStage);
+	}
+	else
+	{
+		GetTrackName(client, gA_WRCache[client].iLastTrack, sTrack, 32);
+	}
+
+	char sNavi[128];
+	FormatEx(sNavi, sizeof(sNavi), "%T | %s | %s >\n", "PersonalRecordSummary", client, gA_WRCache[client].sClientMap, sTrack);
+
 	Menu menu = new Menu(MenuHandler_SelectPRSummaryStyle);
-	menu.SetTitle("%T", "WRSelectStyleMenuTitle", client);
+	menu.SetTitle("%s%T", sNavi, "WRSelectStyleMenuTitle", client);
 
 	int[] styles = new int[gI_Styles];
 	Shavit_GetOrderedStyles(styles, gI_Styles);
