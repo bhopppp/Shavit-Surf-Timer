@@ -51,6 +51,7 @@ jobs:
           path: |
             addons
             materials
+            models
             sound
             CHANGELOG.md
             LICENSE
