@@ -6895,7 +6895,7 @@ public void TouchPost(int entity, int other)
 		}
 	}
 
-	if (!gB_InsideZoneID[other][zone] || (gI_InsideZone[other][track] & (1 << type)) == 0)
+	if (!gB_InsideZoneID[other][zone] && (gI_InsideZone[other][track] & (1 << type)) == 0)
 	{
 		StartTouchPost(entity, other);
 	}
