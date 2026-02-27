@@ -638,7 +638,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_Offset || convar == gCV_PrebuiltVisualOffset)
 	{
-		for (int i = 0; i < gI_MapZones; i--)
+		for (int i = 0; i < gI_MapZones; i++)
 		{
 			if ((convar == gCV_Offset && gA_ZoneCache[i].iForm == ZoneForm_Box)
 			||  (convar == gCV_PrebuiltVisualOffset && gA_ZoneCache[i].iForm == ZoneForm_trigger_multiple))
