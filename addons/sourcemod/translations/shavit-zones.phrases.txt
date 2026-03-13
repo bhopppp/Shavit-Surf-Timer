@@ -173,6 +173,10 @@
 	{
 		"en"		"Abort zone creation"
 	}
+	"LastStep"
+	{
+		"en"		"Last Step"
+	}
 	"GridSnapPlus"
 	{
 		"#format"	"{1:d}"

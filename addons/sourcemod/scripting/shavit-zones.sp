@@ -4339,7 +4339,10 @@ void ShowPanel(int client, int step)
 
 	pPanel.DrawItem(sPanelText, ITEMDRAW_RAWLINE);
 	char sPanelItem[64];
-	FormatEx(sPanelItem, 64, "%T\n ", "AbortZoneCreation", client);
+	FormatEx(sPanelItem, 64, "%T", "AbortZoneCreation", client);
+	pPanel.DrawItem(sPanelItem);
+
+	FormatEx(sPanelItem, 64, "%T\n ", "LastStep", client);
 	pPanel.DrawItem(sPanelItem);
 
 	char sDisplay[64];
@@ -4378,6 +4381,20 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 
 			case 2:
 			{
+				if (gI_MapStep[param1] > 1)
+				{
+					if (gI_MapStep[param1] == 2)
+					{
+						gA_EditCache[param1].fCorner1 = NULL_VECTOR;
+						gA_EditCache[param1].fCorner2 = NULL_VECTOR;
+					}
+
+					gI_MapStep[param1]--;
+				}
+			}
+
+			case 3:
+			{
 				gI_GridSnap[param1] *= 2;
 
 				if(gI_GridSnap[param1] > 64)
@@ -4386,7 +4403,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				}
 			}
 
-			case 3:
+			case 4:
 			{
 				gI_GridSnap[param1] /= 2;
 
@@ -4396,7 +4413,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				}
 			}
 
-			case 4:
+			case 5:
 			{
 				if(gI_MapStep[param1] == 1 || gI_MapStep[param1] == 2)
 				{
@@ -4432,7 +4449,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				}
 			}
 
-			case 5:
+			case 6:
 			{
 				gB_SnapToWall[param1] = !gB_SnapToWall[param1];
 
@@ -4447,7 +4464,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				}
 			}
 
-			case 6:
+			case 7:
 			{
 				gB_CursorTracing[param1] = !gB_CursorTracing[param1];
 
