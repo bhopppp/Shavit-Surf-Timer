@@ -4884,6 +4884,8 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		else if(gI_ChatInput[client] == ChatInput_Filter)
 		{
 			int maxlength = 30;
+			bool bHasOutput = gA_EditCache[client].iType == Zone_Stage || gA_EditCache[client].iType == Zone_Checkpoint || 
+				gA_EditCache[client].iType == Zone_Start || gA_EditCache[client].iType == Zone_Output || gA_EditCache[client].iType == Zone_Teleport;
 
 			if(strlen(sArgs) > maxlength)
 			{
@@ -4891,7 +4893,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			}
 			else if(StrContains(sArgs, "*", false) > -1)
 			{
-				if(gA_EditCache[client].iType == Zone_Output)
+				if(bHasOutput)
 				{
 					int split = FindCharInString(gA_EditCache[client].sTarget, ';');
 
@@ -4913,9 +4915,6 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			}
 			else
 			{
-				bool bHasOutput = gA_EditCache[client].iType == Zone_Stage || gA_EditCache[client].iType == Zone_Checkpoint || 
-					gA_EditCache[client].iType == Zone_Start || gA_EditCache[client].iType == Zone_Output || gA_EditCache[client].iType == Zone_Teleport;
-
 				if(bHasOutput)
 				{
 					int split = FindCharInString(gA_EditCache[client].sTarget, ';');
