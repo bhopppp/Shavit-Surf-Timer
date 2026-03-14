@@ -71,6 +71,7 @@ enum struct zone_settings_t
 	int iBlue;
 	int iAlpha;
 	float fWidth;
+	float fEditWidth;
 	bool bFlatZone;
 	bool bUseVanillaSprite;
 	bool bNoHalo;
@@ -108,15 +109,16 @@ int gI_ChatInput[MAXPLAYERS+1];
 float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 
-float gF_Modifier[MAXPLAYERS+1];
 int gI_AdjustAxis[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
 int gI_LockAxis[MAXPLAYERS+1];
 float gF_LockPos[MAXPLAYERS+1];
 bool gB_SnapToWall[MAXPLAYERS+1];
 bool gB_CursorTracing[MAXPLAYERS+1];
+bool gB_IsAdjusting[MAXPLAYERS+1];
 
 int gI_LatestTeleportTick[MAXPLAYERS+1];
+
 
 // player zone status
 int gI_InsideZone[MAXPLAYERS+1][TRACKS_SIZE]; // bit flag
@@ -142,6 +144,9 @@ int gI_ZoneStage[MAXPLAYERS+1][2];	// 0 for stage num  1 for zone id
 
 char gS_BeamSprite[PLATFORM_MAX_PATH];
 char gS_BeamSpriteIgnoreZ[PLATFORM_MAX_PATH];
+char gS_EditBeamSpriteIgnoreZ[PLATFORM_MAX_PATH];
+
+int gI_EditBeamSpriteIgnoreZ;
 int gI_BeamSpriteIgnoreZ;
 
 int gI_OffsetMFEffects = -1;
@@ -299,8 +304,6 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deletezone", Command_DeleteZone, ADMFLAG_RCON, "Delete a mapzone");
 	RegAdminCmd("sm_deleteallzones", Command_DeleteAllZones, ADMFLAG_RCON, "Delete all mapzones");
 
-	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
-
 	RegAdminCmd("sm_addspawn", Command_AddSpawn, ADMFLAG_RCON, "Adds a custom spawn location");
 	RegAdminCmd("sm_delspawn", Command_DelSpawn, ADMFLAG_RCON, "Deletes a custom spawn location");
 
@@ -443,6 +446,7 @@ public void OnPluginStart()
 			gA_ZoneSettings[i][j].iBlue = 255;
 			gA_ZoneSettings[i][j].iAlpha = 255;
 			gA_ZoneSettings[i][j].fWidth = 2.0;
+			gA_ZoneSettings[i][j].fEditWidth = 0.5;
 			gA_ZoneSettings[i][j].bFlatZone = false;
 		}
 	}
@@ -1225,6 +1229,7 @@ bool LoadZonesConfig()
 	kv.JumpToKey("Sprites");
 	kv.GetString("beam", gS_BeamSprite, PLATFORM_MAX_PATH);
 	kv.GetString("beam_ignorez", gS_BeamSpriteIgnoreZ, PLATFORM_MAX_PATH, gS_BeamSprite);
+	kv.GetString("beam_edit_ignorez", gS_EditBeamSpriteIgnoreZ, PLATFORM_MAX_PATH, gS_BeamSprite);
 
 	char sDownloads[PLATFORM_MAX_PATH * 8];
 	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
@@ -1261,6 +1266,7 @@ bool LoadZonesConfig()
 				gA_ZoneSettings[type][track].iBlue = kv.GetNum("blue", 255);
 				gA_ZoneSettings[type][track].iAlpha = kv.GetNum("alpha", 255);
 				gA_ZoneSettings[type][track].fWidth = kv.GetFloat("width", 2.0);
+				gA_ZoneSettings[type][track].fEditWidth = kv.GetFloat("width_edit", 0.5);
 				gA_ZoneSettings[type][track].bFlatZone = view_as<bool>(kv.GetNum("flat", false));
 				gA_ZoneSettings[type][track].bUseVanillaSprite = view_as<bool>(kv.GetNum("vanilla_sprite", false));
 				gA_ZoneSettings[type][track].bNoHalo = view_as<bool>(kv.GetNum("no_halo", false));
@@ -1313,6 +1319,7 @@ void LoadZoneSettings()
 	}
 
 	gI_BeamSpriteIgnoreZ = PrecacheModel(gS_BeamSpriteIgnoreZ, true);
+	gI_EditBeamSpriteIgnoreZ = PrecacheModel(gS_EditBeamSpriteIgnoreZ, true);
 
 	for (int i = 0; i < ZONETYPES_SIZE; i++)
 	{
@@ -1979,8 +1986,7 @@ public void OnClientConnected(int client)
 	Reset(client);
 
 	gI_ZoneStage[client][1] = -1;
-	gF_Modifier[client] = 16.0;
-	gI_AdjustAxis[client] = 0;
+	gI_AdjustAxis[client] = -1;
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = true;
@@ -2294,39 +2300,6 @@ public void SQL_DeleteSetStart_Callback(Database db, DBResultSet results, const 
 
 		return;
 	}
-}
-
-public Action Command_Modifier(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	if(args == 0)
-	{
-		Shavit_PrintToChat(client, "%T", "ModifierCommandNoArgs", client);
-
-		return Plugin_Handled;
-	}
-
-	char sArg1[16];
-	GetCmdArg(1, sArg1, 16);
-
-	float fArg1 = StringToFloat(sArg1);
-
-	if(fArg1 <= 0.0)
-	{
-		Shavit_PrintToChat(client, "%T", "ModifierTooLow", client);
-
-		return Plugin_Handled;
-	}
-
-	gF_Modifier[client] = fArg1;
-
-	Shavit_PrintToChat(client, "%T %s%.01f%s.", "ModifierSet", client, gS_ChatStrings.sVariable, fArg1, gS_ChatStrings.sText);
-
-	return Plugin_Handled;
 }
 
 bool CanDrawAllZones(int client)
@@ -4261,6 +4234,8 @@ void Reset(int client)
 	delete gH_StupidTimer[client];
 	gI_ChatInput[client] = ChatInput_None;
 	gI_ZoneID[client] = -1;
+	gI_AdjustAxis[client] = -1;
+	gB_IsAdjusting[client] = false;
 
 	gV_WallSnap[client] = ZERO_VECTOR;
 }
@@ -4752,9 +4727,13 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		{
 			if (gI_ZoneID[param1] == -1)
 			{
-				if(gA_EditCache[param1].iForm != ZoneForm_Box || gI_HookListPos[param1] != -1)
+				if(gA_EditCache[param1].iForm == ZoneForm_Box && gI_HookListPos[param1] == -1)
 				{
-					OpenHookMenu_Editor(param1);					
+					Reset(param1);
+				}
+				else
+				{
+					OpenHookMenu_Editor(param1);
 				}
 			}
 			else
@@ -5477,33 +5456,47 @@ public int MenuHandler_SpeedLimitOption(Menu menu, MenuAction action, int param1
 
 void CreateAdjustMenu(int client, int page)
 {
+	if (gI_AdjustAxis[client] == -1)
+		gI_AdjustAxis[client] = 0;
+
 	Menu hMenu = new Menu(ZoneAdjuster_Handler);
 	char sMenuItem[64];
-	hMenu.SetTitle("%T\n ", "ZoneAdjustPosition", client);
-
-	char sAxis[4];
-	strcopy(sAxis, 4, "XYZ");
+	hMenu.SetTitle("%T %T | %T\n ", "ZoneAdjustPosition", client, "ZoneCorner", client, (gI_AdjustAxis[client] % 2) + 1, gI_AdjustAxis[client] > 1 ? "ZoneVerticalAxis":"ZoneHorizontalAxis", client);
 
 	char sDisplay[32];
-	char sInfo[16];
-
-	for(int iPoint = 1; iPoint <= 2; iPoint++)
+	if (gB_IsAdjusting[client])
 	{
-		for (int iState = 1; iState <= 2; iState++)
-		{
-			FormatEx(sDisplay, 32, "%T %c%.01f%s", "ZonePoint", client, iPoint, sAxis[gI_AdjustAxis[client]], (iState == 1)? '+':'-', gF_Modifier[client], (iState==2)?"\n ":"");
-			FormatEx(sInfo, 16, "%d;%d;%d", iPoint, gI_AdjustAxis[client], iState);
-			hMenu.AddItem(sInfo, sDisplay);
-		}
+		FormatEx(sDisplay, 32, "%T", "ZoneLockInAdjust", client);
+		hMenu.AddItem("lock", sDisplay);
+
+		FormatEx(sMenuItem, 64, "%T\n ", "ZoneCancelAdjust", client);
+		hMenu.AddItem("cancel", sMenuItem);
+	}
+	else 
+	{
+		FormatEx(sDisplay, 32, "%T", "ZoneStartAdjust", client);
+		hMenu.AddItem("adjust", sDisplay);
+
+		FormatEx(sMenuItem, 64, "%T\n ", "ZoneChangeCorner", client);
+		hMenu.AddItem("corner", sMenuItem);
 	}
 
-	FormatEx(sMenuItem, 64, "%T\n ", "ZoneAxis", client);
-	hMenu.AddItem("axis", sMenuItem);
+	FormatEx(sDisplay, 64, "%T", "GridSnapPlus", client, gI_GridSnap[client]);
+	hMenu.AddItem("gridplus", sDisplay);
 
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
-	hMenu.AddItem("done", sMenuItem);
+	FormatEx(sDisplay, 64, "%T\n ", "GridSnapMinus", client);
+	hMenu.AddItem("gridminus", sDisplay);
 
-	hMenu.ExitButton = true;
+	FormatEx(sDisplay, 64, "%T\n ", "LockZoneAxis", client, gI_LockAxis[client] == -1 ? "None": gI_LockAxis[client] == 1 ? "Y":"X");
+	hMenu.AddItem("lockaxis", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "WallSnap", client, (gB_SnapToWall[client])? "ZoneSetYes":"ZoneSetNo", client);
+	hMenu.AddItem("wallsnap", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T%s", "CursorZone", client, (gB_CursorTracing[client])? "ZoneSetYes":"ZoneSetNo", client, gB_IsAdjusting[client] ? "\n \n ":"");
+	hMenu.AddItem("cursor", sDisplay);
+
+	hMenu.ExitBackButton = gB_IsAdjusting[client] ? false:true;
 	hMenu.DisplayAt(client, page, MENU_TIME_FOREVER);
 }
 
@@ -5514,59 +5507,202 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(sInfo, "done"))
+		if (StrEqual(sInfo, "corner"))
 		{
-			CreateEditMenu(param1);
-		}
-		else if (StrEqual(sInfo, "axis"))
-		{
-			gI_AdjustAxis[param1] = (gI_AdjustAxis[param1] + 1) % 3;
+			gI_LockAxis[param1] = -1;
+			gI_AdjustAxis[param1] = (gI_AdjustAxis[param1] + 1) % 4;
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
-		else
+		else if (StrEqual(sInfo, "adjust"))
 		{
-			char sAxis[4];
-			strcopy(sAxis, 4, "XYZ");
+			gB_IsAdjusting[param1] = !gB_IsAdjusting[param1];
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
+		}
+		else if (StrEqual(sInfo, "cancel"))
+		{
+			gB_IsAdjusting[param1] = !gB_IsAdjusting[param1];
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
+		}
+		else if (StrEqual(sInfo, "gridplus"))
+		{
+			gI_GridSnap[param1] *= 2;
 
-			char sExploded[3][8];
-			ExplodeString(sInfo, ";", sExploded, 3, 8);
-
-			int iPoint = StringToInt(sExploded[0]);
-			int iAxis = StringToInt(sExploded[1]);
-			bool bIncrease = view_as<bool>(StringToInt(sExploded[2]) == 1);
-			float mod = ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]);
-
-			if (iPoint == 1)
-				gA_EditCache[param1].fCorner1[iAxis] += mod;
-			else
-				gA_EditCache[param1].fCorner2[iAxis] += mod;
-
-			if((gA_EditCache[param1].iType == Zone_Start || gA_EditCache[param1].iType == Zone_End || gA_EditCache[param1].iType == Zone_Stage || gA_EditCache[param1].iType == Zone_Checkpoint))
+			if(gI_GridSnap[param1] > 64)
 			{
-				if (Abs(gA_EditCache[param1].fCorner2[2] - gA_EditCache[param1].fCorner1[2]) < gCV_MinHeight.FloatValue)
-				{
-					if (iPoint == 1)
-						gA_EditCache[param1].fCorner1[iAxis] -= mod;
-					else
-						gA_EditCache[param1].fCorner2[iAxis] -= mod;
-					
-					char sZoneName[32];
-					GetZoneName(param1, gA_EditCache[param1].iType, sZoneName, 32);
-					Shavit_StopChatSound();
-					Shavit_PrintToChat(param1, "%T", "ZoneLowHeight", param1, sZoneName, gS_ChatStrings.sVariable, gCV_MinHeight.FloatValue, gS_ChatStrings.sText);
-					CreateAdjustMenu(param1, GetMenuSelectionPosition());
-					
-					return 0;
-				}
+				gI_GridSnap[param1] = 1;
 			}
 
-			Shavit_StopChatSound();
-			Shavit_PrintToChat(param1, "%T", (bIncrease)? "ZoneSizeIncrease":"ZoneSizeDecrease", param1, gS_ChatStrings.sVariable2, sAxis[iAxis], gS_ChatStrings.sText, iPoint, gS_ChatStrings.sVariable, gF_Modifier[param1], gS_ChatStrings.sText);		
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
+		}
+		else if (StrEqual(sInfo, "gridminus"))
+		{
+			gI_GridSnap[param1] /= 2;
+
+			if(gI_GridSnap[param1] < 1)
+			{
+				gI_GridSnap[param1] = 64;
+			}
+			
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
+		}
+		else if (StrEqual(sInfo, "lockaxis"))
+		{
+			if(gI_AdjustAxis[param1] == 0 || gI_AdjustAxis[param1] == 1)
+			{
+				gI_LockAxis[param1] += 1;
+
+				if(gI_LockAxis[param1] > 1)
+				{
+					gI_LockAxis[param1] = -1;
+				}
+				
+				if(gI_LockAxis[param1] > -1)
+				{
+					if (gB_IsAdjusting[param1])
+					{
+						float vPlayerOrigin[3];
+						GetClientAbsOrigin(param1, vPlayerOrigin);
+
+						float origin[3];
+
+						if(gB_CursorTracing[param1])
+						{
+							origin = GetAimPosition(param1);
+						}
+						else if(!(gB_SnapToWall[param1] && SnapToWall(vPlayerOrigin, param1, origin)))
+						{
+							origin = SnapToGrid(vPlayerOrigin, gI_GridSnap[param1], false);
+						}
+						else
+						{
+							gV_WallSnap[param1] = origin;
+						}
+
+						gF_LockPos[param1] = origin[gI_LockAxis[param1]];							
+					}
+					else
+					{
+						gF_LockPos[param1] = gI_AdjustAxis[param1] == 0 ? gA_EditCache[param1].fCorner1[gI_LockAxis[param1]]:gA_EditCache[param1].fCorner2[gI_LockAxis[param1]];
+					}
+				}
+			}
+			
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
+		}
+		else if (StrEqual(sInfo, "wallsnap"))
+		{
+			gB_SnapToWall[param1] = !gB_SnapToWall[param1];
+
+			if(gB_SnapToWall[param1])
+			{
+				gB_CursorTracing[param1] = false;
+
+				if(gI_GridSnap[param1] < 32)
+				{
+					gI_GridSnap[param1] = 32;
+				}
+			}
+			
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
+		}
+		else if (StrEqual(sInfo, "cursor"))
+		{
+			gB_CursorTracing[param1] = !gB_CursorTracing[param1];
+
+			if(gB_CursorTracing[param1])
+			{
+				gB_SnapToWall[param1] = false;
+			}
+			
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
+		}
+		else if (StrEqual(sInfo, "lock"))
+		{
+			float origin[3];
+			float vPlayerOrigin[3];
+			GetClientAbsOrigin(param1, vPlayerOrigin);
+
+			if(gB_CursorTracing[param1])
+			{
+				origin = GetAimPosition(param1);
+			}
+			else if(!(gB_SnapToWall[param1] && SnapToWall(vPlayerOrigin, param1, origin)))
+			{
+				origin = gI_AdjustAxis[param1] == 3 ? GetAimPosition(param1):SnapToGrid(vPlayerOrigin, gI_GridSnap[param1], false);
+			}
+			else
+			{
+				gV_WallSnap[param1] = origin;
+			}
+			
+			if (gI_LockAxis[param1] != -1)
+			{
+				origin[gI_LockAxis[param1]] = gF_LockPos[param1];
+			}
+
+			if (gI_AdjustAxis[param1] == 0)
+			{
+				origin[2] = gA_EditCache[param1].fCorner1[2];
+				if (!(origin[0] != gA_EditCache[param1].fCorner2[0] && origin[1] != gA_EditCache[param1].fCorner2[1] && !InStartOrEndZone(gA_EditCache[param1].fCorner2, origin, gA_EditCache[param1].iTrack, gA_EditCache[param1].iType)))
+				{
+					CreateAdjustMenu(param1, GetMenuSelectionPosition());
+					return 0;
+				}
+
+				gA_EditCache[param1].fCorner1 = origin;
+			}
+			else if (gI_AdjustAxis[param1] == 1)
+			{
+				origin[2] = gA_EditCache[param1].fCorner2[2];
+				if (!(origin[0] != gA_EditCache[param1].fCorner1[0] && origin[1] != gA_EditCache[param1].fCorner1[1] && !InStartOrEndZone(gA_EditCache[param1].fCorner1, origin, gA_EditCache[param1].iTrack, gA_EditCache[param1].iType)))
+				{
+					CreateAdjustMenu(param1, GetMenuSelectionPosition());
+					return 0;
+				}
+
+				gA_EditCache[param1].fCorner2 = origin;
+			}
+			else if (gI_AdjustAxis[param1] >= 2)
+			{
+				if((gA_EditCache[param1].iType == Zone_Start || gA_EditCache[param1].iType == Zone_End || gA_EditCache[param1].iType == Zone_Stage || gA_EditCache[param1].iType == Zone_Checkpoint))
+				{
+					float fCornerZ = gI_AdjustAxis[param1] == 3 ? gA_EditCache[param1].fCorner1[2]:gA_EditCache[param1].fCorner2[2];
+
+					if (Abs(origin[2] - fCornerZ) < gCV_MinHeight.FloatValue)
+					{
+						char sZoneName[32];
+						GetZoneName(param1, gA_EditCache[param1].iType, sZoneName, 32);
+						Shavit_StopChatSound();
+						Shavit_PrintToChat(param1, "%T", "ZoneLowHeight", param1, sZoneName, gS_ChatStrings.sVariable, gCV_MinHeight.FloatValue, gS_ChatStrings.sText);
+						CreateAdjustMenu(param1, GetMenuSelectionPosition());
+						
+						return 0;
+					}
+				}
+
+				if (gI_AdjustAxis[param1] == 3)
+					gA_EditCache[param1].fCorner2[2] = origin[2];
+				else
+					gA_EditCache[param1].fCorner1[2] = origin[2];
+			}
+
+			gB_IsAdjusting[param1] = !gB_IsAdjusting[param1];
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
 	}
 	else if (action == MenuAction_Cancel)
 	{
+		if(param2 == MenuCancel_ExitBack)
+		{
+			Shavit_PrintToChat(param1, "%T", "ZonePositionUpdated", param1);
+
+			gI_LockAxis[param1] = -1;
+			gI_AdjustAxis[param1] = -1;
+			CreateEditMenu(param1);				
+
+			return 0;		
+		}
+
 		if (gI_ZoneID[param1] != -1)
 		{
 			// reenable original zone
@@ -5840,6 +5976,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		return Plugin_Stop;
 	}
 
+	int editaxis = 0;
 	float vPlayerOrigin[3];
 	GetClientAbsOrigin(client, vPlayerOrigin);
 
@@ -5851,7 +5988,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	}
 	else if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
 	{
-		origin = gI_MapStep[client] == 3 ? GetAimPosition(client):SnapToGrid(vPlayerOrigin, gI_GridSnap[client], false);
+		origin = (gI_MapStep[client] == 3 || gI_AdjustAxis[client] == 3) ? GetAimPosition(client):SnapToGrid(vPlayerOrigin, gI_GridSnap[client], false);
 	}
 	else
 	{
@@ -5865,20 +6002,46 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	if (gI_MapStep[client] == 1)// || gA_EditCache[client].fCorner2[0] == 0.0)
 	{
+		editaxis = 0;
 		origin[2] = vPlayerOrigin[2];
 	}
 	else if(gI_MapStep[client] == 2)
 	{
+		editaxis = 1;
 		origin[2] = gA_EditCache[client].fCorner1[2];
 	}
 	else if(gI_MapStep[client] == 3)
 	{
+		editaxis = 3;
 		origin[0] = gA_EditCache[client].fCorner2[0];
 		origin[1] = gA_EditCache[client].fCorner2[1];
 	}
 	else if(gI_MapStep[client] == 4)
 	{
-		origin = gA_EditCache[client].fCorner2;
+		editaxis = gI_AdjustAxis[client];
+
+		if (!gB_IsAdjusting[client])
+		{
+			origin = gA_EditCache[client].fCorner2;			
+		}
+		else
+		{
+			if (gI_AdjustAxis[client] == 0 || gI_AdjustAxis[client] == 1)
+			{
+				if(gI_AdjustAxis[client] == 0) editaxis = 4;
+				origin[2] = gA_EditCache[client].fCorner2[2];
+			}
+			else if (gI_AdjustAxis[client] == 2)
+			{
+				origin[0] = gA_EditCache[client].fCorner1[0];
+				origin[1] = gA_EditCache[client].fCorner1[1];
+			}
+			else if (gI_AdjustAxis[client] == 3)
+			{
+				origin[0] = gA_EditCache[client].fCorner2[0];
+				origin[1] = gA_EditCache[client].fCorner2[1];
+			}
+		}
 	}
 
 	int type = gA_EditCache[client].iType; type = type < 0 ? 0 : type;
@@ -5887,16 +6050,28 @@ public Action Timer_Draw(Handle Timer, any data)
 	if (!EmptyVector(gA_EditCache[client].fCorner1) || !EmptyVector(gA_EditCache[client].fCorner2))
 	{
 		float points[8][3];
-		points[0] = gA_EditCache[client].fCorner1;
-		points[7] = origin;
+
+		if (gB_IsAdjusting[client] && (gI_AdjustAxis[client] == 0 || gI_AdjustAxis[client] == 2))
+		{
+			points[0] = origin;
+			points[7] = gA_EditCache[client].fCorner2;
+			if (gI_AdjustAxis[client] == 0)
+				points[7][2] = gA_EditCache[client].fCorner1[2];
+		}
+		else
+		{
+			points[0] = gA_EditCache[client].fCorner1;
+			points[7] = origin;			
+		}
+		
 		CreateZonePoints(points, false);
 
 		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
-		origin = points[7];
+		origin = (gB_IsAdjusting[client] && (gI_AdjustAxis[client] == 0 || gI_AdjustAxis[client] == 2)) ? points[0]:points[7];
 
 		int colors[4];
 		GetZoneColors(colors, type, track, 125);
-		DrawZone(points, colors, 0.1, 0.3, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0, gI_AdjustAxis[client]);
+		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fEditWidth, false, origin, gI_EditBeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0, editaxis);
 
 		if (gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
 		{
@@ -5905,10 +6080,34 @@ public Action Timer_Draw(Handle Timer, any data)
 		}
 	}
 
-	if(gI_MapStep[client] != 4 && !EmptyVector(origin))
+	if((gI_MapStep[client] != 4 || gI_AdjustAxis[client] != -1) && !EmptyVector(origin))
 	{
-		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 0.3, 0.3, 0, 0.0, {255, 255, 255, 75}, 0);
-		TE_SendToAll(0.0);
+		if (!gB_IsAdjusting[client] && gI_AdjustAxis[client] != -1)
+		{
+			if (gI_AdjustAxis[client] == 0)
+			{
+				origin = gA_EditCache[client].fCorner1;
+			}
+			else if (gI_AdjustAxis[client] == 1)
+			{
+				origin = gA_EditCache[client].fCorner2;
+				origin[2] = gA_EditCache[client].fCorner1[2];
+			}
+			else if (gI_AdjustAxis[client] >= 2)
+			{
+				return Plugin_Continue;
+			}
+		}
+		else
+		{
+			if (gI_AdjustAxis[client] == 0 || gI_AdjustAxis[client] == 1)
+			{
+				origin[2] = gA_EditCache[client].fCorner1[2];
+			}
+
+			TE_SetupBeamPoints(vPlayerOrigin, origin, gI_EditBeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 0.3, 0.3, 0, 0.0, {255, 255, 255, 75}, 0);
+			TE_SendToAll(0.0);
+		}
 
 		// visualize grid snap
 		float snap1[3];
@@ -5929,7 +6128,7 @@ public Action Timer_Draw(Handle Timer, any data)
 				color = {255, 0, 0, 75};
 			}
 
-			TE_SetupBeamPoints(snap1, snap2, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 0.3, 0.3, 0, 0.0, color, 0);
+			TE_SetupBeamPoints(snap1, snap2, gI_EditBeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 0.3, 0.3, 0, 0.0, color, 0);
 			TE_SendToAll(0.0);
 		}
 	}
@@ -6004,14 +6203,16 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	}
 
 	if (editaxis != -1)
-	{
-		char magic[] = "\x01\x132\x02EWvF\x04\x15&77&2v\x15\x04\x10T\x13W\x02F7\x151u&\x04 d#g\x01E";
+	{	//\x15\x01\x02\x132EWvF\x04&7
+		char magic[] = "\x04\x01\x02\x132EWvF\x15&7v&F27\x15\x04\x10T\x13W\x02\x04&d \x15u\x0117g#E7\x151u&\x04 d#g\x01E\x15\x01\x13\x022EWvF\x04&7";
+		int lines = (1 < editaxis < 4) ? 4 : 3;
 
 		for (int j = 0; j < 12; j++)
 		{
-			float actual_width = (j >= 8) ? (gA_ZoneSettings[type][track].fWidth * 0.65) : gA_ZoneSettings[type][track].fWidth;
+			float actual_width = (j >= lines) ? (gA_ZoneSettings[type][track].fEditWidth * 0.65) : gA_ZoneSettings[type][track].fEditWidth;
 			char x = magic[editaxis*12+j];
-			TE_SetupBeamPoints(points[x >> 4], points[x & 7], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, clrs[((j >= 8) ? ZoneColor_White : ZoneColor_Green) - 1], speed);
+
+			TE_SetupBeamPoints(points[x >> 4], points[x & 7], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, clrs[((j >= lines) ? ZoneColor_White : ZoneColor_Green) - 1], speed);
 			TE_Send(clients, count, 0.0);
 		}
 

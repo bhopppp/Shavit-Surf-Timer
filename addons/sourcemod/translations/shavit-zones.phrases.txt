@@ -164,6 +164,10 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"Your timer was forced to stop because {1}All Zones{2} have been deleted."
 	}
+	"ZonePositionUpdated"
+	{
+		"en"		"Zone position updated."
+	}
 	// ---------- Panel Text ---------- //
 	"AbortZoneCreation"
 	{
@@ -198,21 +202,38 @@
 		"en"		"Use cursor position: {1}"
 	}
 	// ---------- Zone Menu ---------- //
-	"ZoneAdjustCancel"
+	"ZoneLockInAdjust"
 	{
-		"en"		"Cancel"
+		"en"		"Lock in Position"
 	}
-	"ZoneAdjustDone"
+	"ZoneStartAdjust"
 	{
-		"en"		"Done!"
+		"en"		"Start Adjust"
+	}
+	"ZoneCancelAdjust"
+	{
+		"en"		"Cancel Adjust"
 	}
 	"ZoneAdjustPosition"
 	{
-		"en"		"Adjust the zone's position.\nUse 'sm_modifier <number>' to set a new modifier."
+		"en"		"Adjust the zone's position.\nCurrent Ajusting:"
 	}
-	"ZoneAxis"
+	"ZoneChangeCorner"
 	{
-		"en"		"Change Axis"
+		"en"		"Change Corner"
+	}
+	"ZoneCorner"
+	{
+		"#format"	"{1:d}"
+		"en"		"Corner {1}"
+	}
+	"ZoneHorizontalAxis"
+	{
+		"en"		"Horizontal Axis"
+	}
+	"ZoneVerticalAxis"
+	{
+		"en"		"Vertical Axis"
 	}
 	"ZoneCreateType"
 	{
@@ -282,11 +303,6 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"Press ATTACK2 (default 'right click') to set the {1} corner in your current position."
-	}
-	"ZonePoint"
-	{
-		"#format"	"{1:d},{2:c}"
-		"en"		"Point {1} | {2} axis"
 	}
 	"ZoneLowHeight"
 	{
@@ -410,16 +426,6 @@
 	"ZoneSetCancel"
 	{
 		"en"		"Cancel"
-	}
-	"ZoneSizeIncrease"
-	{
-		"#format"	"{1:s},{2:c},{3:s},{4:d},{5:s},{6:.01f},{7:s}"
-		"en"		"{1}{2} axis{3} (point {4}) increased by {5}{6}{7}."
-	}
-	"ZoneSizeDecrease"
-	{
-		"#format"	"{1:s},{2:c},{3:s},{4:d},{5:s},{6:.01f},{7:s}"
-		"en"		"{1}{2} axis{3} (point {4}) decreased by {5}{6}{7}."
 	}
 	"ZoneTeleportUpdated"
 	{
