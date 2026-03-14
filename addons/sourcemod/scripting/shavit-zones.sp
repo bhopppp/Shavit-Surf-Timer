@@ -6121,11 +6121,12 @@ public Action Timer_Draw(Handle Timer, any data)
 			snap2 = origin;
 			snap2[i] += gI_GridSnap[client];
 
-			int color[4] = {255, 255, 255, 75};
+			int color[4] = {0, 0, 0, 155};
+			color[i] = 255;
 
 			if(gI_LockAxis[client] == i)
 			{
-				color = {255, 0, 0, 75};
+				color = {255, 255, 255, 20};
 			}
 
 			TE_SetupBeamPoints(snap1, snap2, gI_EditBeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 0.3, 0.3, 0, 0.0, color, 0);
@@ -6212,7 +6213,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 			float actual_width = (j >= lines) ? (gA_ZoneSettings[type][track].fEditWidth * 0.65) : gA_ZoneSettings[type][track].fEditWidth;
 			char x = magic[editaxis*12+j];
 
-			TE_SetupBeamPoints(points[x >> 4], points[x & 7], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, clrs[((j >= lines) ? ZoneColor_White : ZoneColor_Green) - 1], speed);
+			TE_SetupBeamPoints(points[x >> 4], points[x & 7], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, clrs[((j >= lines) ? ZoneColor_Green : ZoneColor_White) - 1], speed);
 			TE_Send(clients, count, 0.0);
 		}
 
