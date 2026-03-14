@@ -3164,7 +3164,7 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 				| (1 << Zone_Slay)
 			};
 
-			int form = gA_EditCache[param1].iForm == ZoneForm_Box ? ZoneForm_trigger_multiple:gA_EditCache[param1].iForm;
+			int form = gA_EditCache[param1].iForm;
 
 			for (int i = 0; i < 100; i++) // no infinite loops = good :)
 			{
@@ -3187,44 +3187,14 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 			else
 				gA_EditCache[param1].iFlags |= ZF_Hammerid;
 		}
-		else if (StrEqual(info, "asbox"))
-		{
-			if(gA_EditCache[param1].iForm == ZoneForm_trigger_multiple)
-			{
-				gA_EditCache[param1].iForm = ZoneForm_Box;
-			}
-			else if(gA_EditCache[param1].iForm == ZoneForm_Box)
-			{
-				gA_EditCache[param1].iForm = ZoneForm_trigger_multiple;	
-			}
-
-			for(int i = 0; i < 2; i++)
-			{
-				float offset = gA_EditCache[param1].fCorner1[i] > gA_EditCache[param1].fCorner2[i] ? -1.0:1.0;
-
-				if(gA_EditCache[param1].iForm == ZoneForm_trigger_multiple)
-				{
-					gA_EditCache[param1].fCorner1[i] -= offset;
-					gA_EditCache[param1].fCorner2[i] += offset;
-				}
-				else if(gA_EditCache[param1].iForm == ZoneForm_Box)
-				{
-					gA_EditCache[param1].fCorner1[i] += offset;
-					gA_EditCache[param1].fCorner2[i] -= offset;
-				}
-			}
-		}
 		else if (StrEqual(info, "hook"))
 		{
-			if (gA_EditCache[param1].iForm != ZoneForm_Box)
-			{
-				if (gA_EditCache[param1].iFlags & ZF_Hammerid)
-					IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Data, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
-				else if (gA_EditCache[param1].iFlags & ZF_Origin)
-					EntToOriginHex(gA_EditCache[param1].iEntity, gA_EditCache[param1].sTarget, false);
-				else
-					GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, gA_EditCache[param1].iForm == ZoneForm_trigger_teleport ? "m_target" : "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
-			}
+			if (gA_EditCache[param1].iFlags & ZF_Hammerid)
+				IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Data, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
+			else if (gA_EditCache[param1].iFlags & ZF_Origin)
+				EntToOriginHex(gA_EditCache[param1].iEntity, gA_EditCache[param1].sTarget, false);
+			else
+				GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, gA_EditCache[param1].iForm == ZoneForm_trigger_teleport ? "m_target" : "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
 			
 			CreateEditMenu(param1, true);
 			return 0;
@@ -3272,7 +3242,7 @@ void OpenHookMenu_Editor(int client)
 	GetZoneName(client, zonetype, buf, sizeof(buf));
 	FormatEx(display, sizeof(display), "%T", "ZoneHook_Zonetype", client, buf);
 	menu.AddItem("ztype", display);
-	FormatEx(display, sizeof(display), "%T%s", "ZoneHook_Hooktype", client,
+	FormatEx(display, sizeof(display), "%T%s\n ", "ZoneHook_Hooktype", client,
 		(hooktype == -1) ? "UNKNOWN" :
 			(hooktype & ZF_Hammerid) ? "hammerid" :
 				((hooktype & ZF_Origin) ? "origin" : (form == ZoneForm_trigger_teleport ? "target" : "targetname")),
@@ -3281,12 +3251,6 @@ void OpenHookMenu_Editor(int client)
 				((hooktype & ZF_Origin) ? sOrigin : targetname), form == ZoneForm_trigger_multiple || form == ZoneForm_Box ? "":"\n "
 	);
 	menu.AddItem("htype", display);
-
-	if(form == ZoneForm_trigger_multiple || form == ZoneForm_Box)
-	{
-		FormatEx(display, sizeof(display), "[%T] %T\n ", form == ZoneForm_Box ? "ItemEnabled":"ItemDisabled", client, "ZoneHook_Asboxform", client);
-		menu.AddItem("asbox", display);
-	}
 
 	FormatEx(display, sizeof(display), "%T", "ZoneHook_Confirm", client);
 	menu.AddItem(

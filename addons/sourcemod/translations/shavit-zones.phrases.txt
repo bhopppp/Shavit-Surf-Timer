@@ -66,10 +66,6 @@
 		"#format"   "{1:s},{2:s}"
 		"en"        "Hook type: {1} ({2})"
 	}
-	"ZoneHook_Asboxform"
-	{
-		"en"        "Hook trigger as Box form"
-	}
 	"ZoneHook_Confirm"
 	{
 		"en"        "Go to confirm"
