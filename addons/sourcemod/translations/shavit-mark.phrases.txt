@@ -1,317 +1,530 @@
 "Phrases"
 {
-	"PingMenuTitle"
-	{
-		"en"		"Ping Menu"
-	}
-	"PingTips"
-	{
-		"en"		"Use command \"sm_ping\" to mark a position"
-	}
-	"CreatePingMarker"
-	{
-		"en"		"Create ping marker"
-	}
-	"RemovePingMarker"
-	{
-		"en"		"Remove ping marker"
-	}
-	"PingOptions"
-	{
-		"en"		"Options"
-	}
-	"PingOptionMenuTitle"
-	{
-		"en"		"Ping Options"
-	}
-	"PingDuration"
-	{
-		"en"		"Ping Duration"
-	}
-	"DurationLong"
-	{
-		"en"		"Until Next Ping"
-	}
-	"DurationShort"
-	{
-		"#format"	"{1:d}"
-		"en"		"Last {1} Seconds"
-	}
-	"PingColor"
-	{
-		"en"		"Ping Color"
-	}
-	"PingSound"
-	{
-		"en"		"Ping Sound"
-	}
-	"PingObject"
-	{
-		"en"		"Ping Object"
-	}
-	"PingColorMenuTitle"
-	{
-		"en"		"Ping Color"
-	}
-	"PaintMenuTitle"
-	{
-		"en"		"Paint Menu"
-	}
-	"PaintTips"
-	{
-		"en"		"Tips: Excute: bind <KEY> \"+paint\" in consle to bind a key to paint"
-	}
-	"ModeContinuous"
-	{
-		"en"		"Continuous"
-	}
-	"ModeSingle"
-	{
-		"en"		"Single"
-	}
-	"TogglePaint"
-	{
-		"en"		"Paint"
-	}
-	"PaintMode"
-	{
-		"en"		"Paint Mode"
-	}
-	"ToggleErase"
-	{
-		"en"		"Erase"
-	}
-	"PaintColor"
-	{
-		"en"		"Paint Color"
-	}
-	"PaintSize"
-	{
-		"en"		"Paint Size"
-	}
-	"PaintObject"
-	{
-		"en"		"Paint Object"
-	}
-	"PaintOptions"
-	{
-		"en"		"Paint Options"
-	}
-	"PaintOptionMenuTitle"
-	{
-		"en"		"Paint Options"
-	}
-	"PaintEraser"
-	{	
-		"en"		"Paint Eraser"
-	}
-	"EraserOn"
-	{
-		"en"		"ON"
-	}
-	"EraserOff"
-	{
-		"en"		"OFF"
-	}
-	"ObjectAll"
-	{
-		"en"		"All players"
-	}
-	"ObjectSingle"
-	{
-		"en"		"Own"
-	}
-	"PaintSelectPartner"
-	{
-		"en"		"Select a partner"
-	}
-	"NoPartner"
-	{
-		"en"		"You are not partnered with anyone."
-	}
-	"Refresh"
-	{
-		"en"		"Refresh"
-	}
-	"ReceivePartnerRequest"
-	{
-		"en"		"Receive partner requests"
-	}
-	"RemovePartner"
-	{
-		"en"		"Remove partner"
-	}
-	"SendPartnerRequest"
-	{
-		"en"		"Send request to a player"
-	}
-	"NoPartnerFound"
-	{
-		"en"		"No partner found"
-	}
-	"RequestSent"
-	{
-		"en"		"Request sent."
-	}
-	"ResponseWaitingMenuTitle"
-	{
-		"#format"	"{1:s}"
-		"en"		"Waiting response from {1}"
-	}
-	"ReceivedRequest"
-	{
-		"#format"	"{1:s}"
-		"en"		"Received paint partner request from {1}"
-	}
-	"AcceptRequest"
-	{
-		"en"		"Accept"
-	}
-	"DeclineRequest"
-	{
-		"en"		"Decline"
-	}
-	"CancelRequest"
-	{
-		"en"		"Cancel"
-	}
-	"MenuAutoClose"
-	{
-		"en"		"Menu will close in 10 seconds..."
-	}
-	"MenuClose"
-	{
-		"en"		"Close"
-	}
-	"RequestAccepted"
-	{
-		"#format"	"{1:s}"
-		"en"		"Your request has been accepted by {1}"
-	}
-	"RequestDeclined"
-	{
-		"#format"	"{1:s}"
-		"en"		"Your request has been declined by {1}"
-	}
-	"RequestCanceled"
-	{
-		"#format"	"{1:s}"
-		"en"		"This request has been canceled by {1}"
-	}
-	"RequestAborted"
-	{
-		"#format"	"{1:s}"
-		"en"		"Partnering with {1} aborted"
-	}
-	"Partnered"
-	{
-		"#format"	"{1:s},{2:s},{3:s}"
-		"en"		"Your are now partnered with {1}{2}{3}."
-	}
-	"Unpartnered"
-	{
-		"#format"	"{1:s},{2:s},{3:s}"
-		"en"		"Your are no longer partnered with {1}{2}{3}."
-	}
-	"PartnerDisconnected"
-	{
-		"#format"	"{1:s},{2:s},{3:s}"
-		"en"		"Your partner {1}{2}{3} has disconnected."
-	}
-	"PaintModeChangeError"
-	{
-		"en"		"You cannot change paint mode while painting."
-	}
-	"PaintClear"
-	{
-		"en"		"Clear Paint"
-	}
-	"PaintCleared"
-	{
-		"en"		"Paint has been cleared."
-	}
-	"PaintColorMenuTitle"
-	{
-		"en"		"Select A Color: "
-	}
-	"PaintSizeMenuTitle"
-	{
-		"en"		"Select A Size: "
-	}
-	"PaintSizeSmall"
-	{
-		"en"		"Small"
-	}
-	"PaintSizeMedium"
-	{
-		"en"		"Medium"
-	}
-	"PaintSizeLarge"
-	{
-		"en"		"Large"
-	}
-	"ColorRandom"
-	{
-		"en"		"Random"
-	}
-	"ColorWhite"
-	{
-		"en"		"White"
-	}
-	"ColorBlack"
-	{
-		"en"		"Black"
-	}
-	"ColorBlue"
-	{
-		"en"		"Blue"
-	}
-	"ColorLightBlue"
-	{
-		"en"		"Light Blue"
-	}
-	"ColorBrown"
-	{
-		"en"		"Brown"
-	}
-	"ColorCyan"
-	{
-		"en"		"Cyan"
-	}
-	"ColorGreen"
-	{
-		"en"		"Green"
-	}
-	"ColorDarkGreen"
-	{
-		"en"		"Dark Green"
-	}
-	"ColorRed"
-	{
-		"en"		"Red"
-	}
-	"ColorOrange"
-	{
-		"en"		"Orange"
-	}
-	"ColorYellow"
-	{
-		"en"		"Yellow"
-	}
-	"ColorPink"
-	{
-		"en"		"Pink"
-	}
-	"ColorLightPink"
-	{
-		"en"		"Light Pink"
-	}
-	"ColorPurple"
-	{
-		"en"		"Purple"
-	}
-	"ColorTurquoise"
-	{
-		"en"		"Turquoise"
-	}
+    "PingMenuTitle"
+    {
+        "en"
+        "Ping Menu"
+    }
+    "PingTips"
+    {
+        "en"
+        "Use command \"sm_ping\" to mark a position"
+    }
+    "CreatePingMarker"
+    {
+        "en"
+        "Create ping marker"
+    }
+    "RemovePingMarker"
+    {
+        "en"
+        "Remove ping marker"
+    }
+    "PingOptions"
+    {
+        "en"
+        "Options"
+    }
+    "PingOptionMenuTitle"
+    {
+        "en"
+        "Ping Options"
+    }
+    "PingDuration"
+    {
+        "en"
+        "Ping Duration"
+    }
+    "DurationLong"
+    {
+        "en"
+        "Until Next Ping"
+    }
+    "DurationShort"
+    {
+        "#format"
+        "{1:d}"
+        "en"
+        "Last {1} Seconds"
+    }
+    "PingColor"
+    {
+        "en"
+        "Ping Color"
+    }
+    "PingSound"
+    {
+        "en"
+        "Ping Sound"
+    }
+    "PingObject"
+    {
+        "en"
+        "Ping Object"
+    }
+    "PingColorMenuTitle"
+    {
+        "en"
+        "Ping Color"
+    }
+    "PaintMenuTitle"
+    {
+        "en"
+        "Paint Menu"
+    }
+    "PaintTips"
+    {
+        "en"
+        "Tips: Excute: bind <KEY> \"+paint\" in consle to bind a key to paint"
+    }
+    "ModeContinuous"
+    {
+        "en"
+        "Continuous"
+    }
+    "ModeSingle"
+    {
+        "en"
+        "Single"
+    }
+    "TogglePaint"
+    {
+        "en"
+        "Paint"
+    }
+    "PaintMode"
+    {
+        "en"
+        "Paint Mode"
+    }
+    "ToggleErase"
+    {
+        "en"
+        "Erase"
+    }
+    "PaintColor"
+    {
+        "en"
+        "Paint Color"
+    }
+    "PaintSize"
+    {
+        "en"
+        "Paint Size"
+    }
+    "PaintObject"
+    {
+        "en"
+        "Paint Object"
+    }
+    "PaintOptions"
+    {
+        "en"
+        "Paint Options"
+    }
+    "PaintOptionMenuTitle"
+    {
+        "en"
+        "Paint Options"
+    }
+    "PaintEraser"
+    {
+        "en"
+        "Paint Eraser"
+    }
+    "EraserOn"
+    {
+        "en"
+        "ON"
+    }
+    "EraserOff"
+    {
+        "en"
+        "OFF"
+    }
+    "ObjectAll"
+    {
+        "en"
+        "All players"
+    }
+    "ObjectSingle"
+    {
+        "en"
+        "Own"
+    }
+    "PaintSelectPartner"
+    {
+        "en"
+        "Select a partner"
+    }
+    "NoPartner"
+    {
+        "en"
+        "You are not partnered with anyone."
+    }
+    "Refresh"
+    {
+        "en"
+        "Refresh"
+    }
+    "ReceivePartnerRequest"
+    {
+        "en"
+        "Receive partner requests"
+    }
+    "RemovePartner"
+    {
+        "en"
+        "Remove partner"
+    }
+    "SendPartnerRequest"
+    {
+        "en"
+        "Send request to a player"
+    }
+    "NoPartnerFound"
+    {
+        "en"
+        "No partner found"
+    }
+    "RequestSent"
+    {
+        "en"
+        "Request sent."
+    }
+    "ResponseWaitingMenuTitle"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "Waiting response from {1}"
+    }
+    "ReceivedRequest"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "Received paint partner request from {1}"
+    }
+    "AcceptRequest"
+    {
+        "en"
+        "Accept"
+    }
+    "DeclineRequest"
+    {
+        "en"
+        "Decline"
+    }
+    "CancelRequest"
+    {
+        "en"
+        "Cancel"
+    }
+    "MenuAutoClose"
+    {
+        "en"
+        "Menu will close in 10 seconds..."
+    }
+    "MenuClose"
+    {
+        "en"
+        "Close"
+    }
+    "RequestAccepted"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "Your request has been accepted by {1}"
+    }
+    "RequestDeclined"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "Your request has been declined by {1}"
+    }
+    "RequestCanceled"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "This request has been canceled by {1}"
+    }
+    "RequestAborted"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "Partnering with {1} aborted"
+    }
+    "Partnered"
+    {
+        "#format"
+        "{1:s},{2:s},{3:s}"
+        "en"
+        "Your are now partnered with {1}{2}{3}."
+    }
+    "Unpartnered"
+    {
+        "#format"
+        "{1:s},{2:s},{3:s}"
+        "en"
+        "Your are no longer partnered with {1}{2}{3}."
+    }
+    "PartnerDisconnected"
+    {
+        "#format"
+        "{1:s},{2:s},{3:s}"
+        "en"
+        "Your partner {1}{2}{3} has disconnected."
+    }
+    "PaintModeChangeError"
+    {
+        "en"
+        "You cannot change paint mode while painting."
+    }
+    "PaintClear"
+    {
+        "en"
+        "Clear Paint"
+    }
+    "PaintCleared"
+    {
+        "en"
+        "Paint has been cleared."
+    }
+    "PaintColorMenuTitle"
+    {
+        "en"
+        "Select A Color: "
+    }
+    "PaintSizeMenuTitle"
+    {
+        "en"
+        "Select A Size: "
+    }
+    "PaintSizeSmall"
+    {
+        "en"
+        "Small"
+    }
+    "PaintSizeMedium"
+    {
+        "en"
+        "Medium"
+    }
+    "PaintSizeLarge"
+    {
+        "en"
+        "Large"
+    }
+    "ColorRandom"
+    {
+        "en"
+        "Random"
+    }
+    "ColorWhite"
+    {
+        "en"
+        "White"
+    }
+    "ColorBlack"
+    {
+        "en"
+        "Black"
+    }
+    "ColorBlue"
+    {
+        "en"
+        "Blue"
+    }
+    "ColorLightBlue"
+    {
+        "en"
+        "Light Blue"
+    }
+    "ColorBrown"
+    {
+        "en"
+        "Brown"
+    }
+    "ColorCyan"
+    {
+        "en"
+        "Cyan"
+    }
+    "ColorGreen"
+    {
+        "en"
+        "Green"
+    }
+    "ColorDarkGreen"
+    {
+        "en"
+        "Dark Green"
+    }
+    "ColorRed"
+    {
+        "en"
+        "Red"
+    }
+    "ColorOrange"
+    {
+        "en"
+        "Orange"
+    }
+    "ColorYellow"
+    {
+        "en"
+        "Yellow"
+    }
+    "ColorPink"
+    {
+        "en"
+        "Pink"
+    }
+    "ColorLightPink"
+    {
+        "en"
+        "Light Pink"
+    }
+    "ColorPurple"
+    {
+        "en"
+        "Purple"
+    }
+    "ColorTurquoise"
+    {
+        "en"
+        "Turquoise"
+    }
+    "PaintSave"
+    {
+        "en"
+        "Save Paints"
+    }
+    "PaintLoad"
+    {
+        "en"
+        "Load Paints"
+    }
+    "PaintDelete"
+    {
+        "en"
+        "Delete Saved Paints"
+    }
+    "ConfirmAction"
+    {
+        "en"
+        "Are you sure?"
+    }
+    "ConfirmYes"
+    {
+        "en"
+        "Yes"
+    }
+    "ConfirmNo"
+    {
+        "en"
+        "No"
+    }
+    "DatabaseNotConnected"
+    {
+        "en"
+        "Database not connected."
+    }
+    "SaveWait"
+    {
+        "en"
+        "Cannot save while loading paints."
+    }
+    "SaveCooldown"
+    {
+        "#format"
+        "{1:.1f}"
+        "en"
+        "Please wait {1} seconds before saving again."
+    }
+    "NoPaintsToSave"
+    {
+        "en"
+        "You have no paints to save."
+    }
+    "SteamIDFail"
+    {
+        "en"
+        "Failed to get SteamID."
+    }
+    "SavingPaints"
+    {
+        "en"
+        "Saving paints..."
+    }
+    "SaveFailed"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "Save failed (Delete Error): {1}"
+    }
+    "PaintsSaved"
+    {
+        "en"
+        "Paints saved successfully!"
+    }
+    "LoadWait"
+    {
+        "en"
+        "Already loading paints, please wait."
+    }
+    "LoadCooldown"
+    {
+        "#format"
+        "{1:.1f}"
+        "en"
+        "Please wait {1} seconds before loading again."
+    }
+    "PaintLoadFailed"
+    {
+        "#format"
+        "{1:s}"
+        "en"
+        "Paint load failed: {1}"
+    }
+    "FailedToLoadPaints"
+    {
+        "en"
+        "Failed to load paints."
+    }
+    "NoSavedPaints"
+    {
+        "en"
+        "No saved paints found for this map."
+    }
+    "NoPaintsToLoad"
+    {
+        "en"
+        "No paints to load."
+    }
+    "LoadingPaints"
+    {
+        "#format"
+        "{1:d}"
+        "en"
+        "Loading {1} paints..."
+    }
+    "LoadedPaints"
+    {
+        "#format"
+        "{1:d}"
+        "en"
+        "Loaded {1} paints."
+    }
+    "PaintsDeleted"
+    {
+        "en"
+        "Paints deleted."
+    }
 }
