@@ -41,10 +41,40 @@
 		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:s},{12:d},{13:s},{14:s},{15:d},{16:s},{17:s},{18:s},{19:s}"
 		"en"		"{1}{2}{3} finished [{4}{5}{6}] in {7}{8}{9} (SR: {10}). Rank: {11}{12}{13}/{14}{15}{16} ({17}{18}{19})"
 	}
-	"NotFirstCompletion"
+	"PlayerNotFirstCompletion"
 	{
 		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:s},{12:s},{13:d},{14:s},{15:s},{16:d},{17:s},{18:s},{19:s},{20:s}"
 		"en"		"{1}{2}{3} finished [{4}{5}{6}] in {7}{8}{9} (SR: {10} | PB: {11}). Rank: {12}{13}{14}/{15}{16}{17} ({18}{19}{20})"
+	}
+	"ServerFirstCompletionPractice"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s}"
+		"en"		"You finished [{1}{2}{3}] in {4}{5}{6}. ({7}{8} - Practice{9})"
+	}
+	"FirstCompletionPractice"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s}"
+		"en"		"You finished [{1}{2}{3}] in {4}{5}{6} (SR: {7}). ({8}{9} - Practice{10})"
+	}
+	"NotFirstCompletionPractice"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:s}"
+		"en"		"You finished [{1}{2}{3}] in {4}{5}{6} (SR: {7} | PB: {8}). ({9}{10} - Practice{11})"
+	}
+	"PlayerServerFirstCompletionPractice"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:s},{12:s}"
+		"en"		"{1}{2}{3} finished [{4}{5}{6}] in {7}{8}{9}. ({10}{11} - Practice{12})"
+	}
+	"PlayerFirstCompletionPractice"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:s},{12:s},{13:s}"
+		"en"		"{1}{2}{3} finished [{4}{5}{6}] in {7}{8}{9} (SR: {10}). ({11}{12} - Practice{13})"
+	}
+	"PlayerNotFirstCompletionPractice"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:s},{12:s},{13:s},{14:s}"
+		"en"		"{1}{2}{3} finished [{4}{5}{6}] in {7}{8}{9} (SR: {10} | PB: {11}). ({12}{13} - Practice{14})"
 	}
 	"NotFirstCompletionWorse"
 	{
