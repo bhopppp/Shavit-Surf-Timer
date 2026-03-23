@@ -1827,7 +1827,8 @@ bool Teleport(int client, int targetserial)
 	 		OpenStopWarningMenu(client, DoTeleport);
 	 		return true;
 	 	}
-		Shavit_StopTimer(client);
+		Shavit_SetPracticeMode(client, true, true);
+		Shavit_StopTimer(client);		
 	}
 
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
@@ -1915,6 +1916,7 @@ bool ShouldDisplayStopWarning(int client)
 void DoNoclip(int client)
 {
 	Shavit_StopTimer(client);
+	Shavit_SetPracticeMode(client, true, true);
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 }
 
@@ -1941,6 +1943,7 @@ void DoStopTimer(int client)
 
 void DoTeleport(int client)
 {
+	Shavit_SetPracticeMode(client, true, true);
 	Shavit_StopTimer(client);
 	Teleport(client, gI_LastStopInfo[client]);
 }
@@ -2096,6 +2099,7 @@ public Action Command_Noclip(int client, int args)
 			{
 				if(!ShouldDisplayStopWarning(client))
 				{
+					Shavit_SetPracticeMode(client, true, true);					
 					Shavit_StopTimer(client);
 					SetEntityMoveType(client, MOVETYPE_NOCLIP);
 				}
@@ -2202,6 +2206,7 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 			{
 				if(!ShouldDisplayStopWarning(client))
 				{
+					Shavit_SetPracticeMode(client, true, true);
 					Shavit_StopTimer(client);
 					SetEntityMoveType(client, MOVETYPE_NOCLIP);
 				}
@@ -2312,6 +2317,7 @@ public Action CommandListener_Real_Noclip(int client, const char[] command, int 
 			{
 				if(!ShouldDisplayStopWarning(client))
 				{
+					Shavit_SetPracticeMode(client, true, true);
 					Shavit_StopTimer(client);
 					SetEntityMoveType(client, MOVETYPE_NOCLIP);
 				}
