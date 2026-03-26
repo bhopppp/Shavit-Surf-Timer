@@ -51,6 +51,7 @@ enum struct cp_cache_t
 	int iSteamID;
 	ArrayList aEvents;
 	ArrayList aOutputWaits;
+	ArrayList aOnUser1_4[4];
 	float vecLadderNormal[3];
 	StringMap customdata;
 
