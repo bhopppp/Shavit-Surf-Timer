@@ -4591,7 +4591,7 @@ bool InStartOrEndZone(float point1[3], float point2[3], int track, int type)
 	return false;
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
+public void OnPlayerRunCmdPre(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
 	if(gI_MapStep[client] > 0 && gI_MapStep[client] != 4)
 	{
@@ -4675,8 +4675,11 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		}
 
 		gB_Button[client] = (buttons & button) > 0;
-	}
+	}	
+}
 
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
+{
 	if(InsideZone(client, Zone_Slide, (gCV_EnforceTracks.BoolValue)? track:-1) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
 	{
 		// trace down, see if there's 8 distance or less to ground
