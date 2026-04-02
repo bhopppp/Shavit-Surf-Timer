@@ -1,0 +1,272 @@
+"Phrases"
+{
+	// Menu
+	"ColoredHUD"
+	{
+		"en"		"Colored HUD"
+	}
+	"HUDElementMenuTitle"
+	{
+		"en"		"Colored HUD Elements"
+	}
+	"ElementSettingMenuTitle"
+	{
+		"en"		"Setting Menu"
+	}
+	"ElementEnabled"
+	{
+		"en"		"Enabled"
+	}
+	"ElementDisplayLogic"
+	{
+		"en"		"Display Logic"
+	}
+	"ElementColorSettings"
+	{
+		"en"		"Color Settings"
+	}
+	"ElementPositionSettings"
+	{
+		"en"		"Position Settings"
+	}
+	"ElementColorMenuTitle"
+	{
+		"en"		"Color Settings"
+	}
+	"ElementColorLogic"
+	{
+		"en"		"Color Display"
+	}
+	"ColorSettingMenuTitle"
+	{
+		"en"		"Color Settings"
+	}
+	"ComfirmChange"
+	{
+		"en"		"Comfirm Changes"
+	}
+	"ChangePrimaryColor"
+	{
+		"en"		"Change Primary Color"
+	}
+	"ChangeStepSize"
+	{
+		"en"		"Change Step Size"
+	}
+	"ElementPositionSettingMenuTitle"
+	{
+		"en"		"Position Settings"
+	}
+	"ChangeAxis"
+	{
+		"en"		"Change Axis"
+	}
+	"CenterHUDPosition"
+	{
+		"en"		"Center"
+	}
+	// Color Type Translation
+	"Color_Speed_Default"
+	{
+		"en"		"Speedometer Default"
+	}
+	"Color_SpeedGradient_Gain"
+	{
+		"en"		"Gaining Speed"
+	}
+	"Color_SpeedGradient_Lose"
+	{
+		"en"		"Losing Speed"
+	}
+	"Color_SpeedDifference_Default"
+	{
+		"en"		"Speed Difference Default"
+	}
+	"Color_SpeedDifference_Higher"
+	{
+		"en"		"Speed Difference Positive"
+	}
+	"Color_SpeedDifference_Lower"
+	{
+		"en"		"Speed Difference Negative"
+	}
+	"Color_Energy_Default"
+	{
+		"en"		"Energymeter Default"
+	}
+	"Color_EnergyGradient_Gain"
+	{
+		"en"		"Gaining Energy"
+	}
+	"Color_EnergyGradient_Lose"
+	{
+		"en"		"Losing Energy"
+	}
+	"Color_Energy_Higher"
+	{
+		"en"		"Energy Higher (Positive)"
+	}
+	"Color_Energy_Lower"
+	{
+		"en"		"Energy Lower (Negative)"
+	}
+	"Color_Timer_Default"
+	{
+		"en"		"Timer Default"
+	}
+	"Color_Timer_Start"
+	{
+		"en"		"Inside Start Zone"
+	}
+	"Color_Timer_Running"
+	{
+		"en"		"Timer Running"
+	}
+	"Color_Timer_Paused"
+	{
+		"en"		"Timer Paused"
+	}
+	"Color_Timer_Practice"
+	{
+		"en"		"Practice Timer"
+	}
+	"Color_Timer_Finished_Worse"
+	{
+		"en"		"Finished - Worse"
+	}	
+	"Color_Timer_Finished_PB"
+	{
+		"en"		"Finished - PB"
+	}
+	"Color_Timer_Finished_WR"
+	{
+		"en"		"Finished - WR"
+	}
+	"Color_Timer_Stopped"
+	{
+		"en"		"Timer Stopped"
+	}
+	"Color_TimeDifference_Defualt"
+	{
+		"en"		"TimeDifference Default"
+	}
+	"Color_TimeDifference_Faster"
+	{
+		"en"		"Time Difference Negative (Faster)"
+	}
+	"Color_TimeDifference_Slower"
+	{
+		"en"		"Time Difference Positive (Slower)"
+	}
+	"Color_TimeDifference_Gain"
+	{
+		"en"		"Time Difference Gaining"
+	}
+	"Color_TimeDifference_Lose"
+	{
+		"en"		"Time Difference Losing"
+	}
+	// Element Names
+	"Element_Speedometer"
+	{
+		"en"		"Speedometer"
+	}
+	"Element_SpeedDiffernece"
+	{
+		"en"		"Speed Differnece"
+	}
+	"Element_Energymeter"
+	{
+		"en"		"Energymeter"
+	}
+	"Element_Timer"
+	{
+		"en"		"Timer"
+	}
+	"Element_TimeDifference"
+	{
+		"en"		"Time Difference"
+	}
+	// Display Logic Names
+	"Speed_Horizental"
+	{
+		"en"		"Horizental Velocity"
+	}
+	"Speed_Real"
+	{
+		"en"		"Real Velocity"
+	}
+	"TimeFormat_Default"
+	{
+		"en"		"Default Format"
+	}
+	"TimeFormat_FullHMS"
+	{
+		"en"		"Full HMS Format"
+	}
+	"TimeDifference_Dynamic"
+	{
+		"en"		"Dynamic Difference"
+	}
+	"TimeDifference_Checkpoint_PB"
+	{
+		"en"		"Checkpoint Difference (PB)"
+	}
+	"TimeDifference_Checkpoint_WR"
+	{
+		"en"		"Checkpoint Difference (WR)"
+	}
+	// Color Logic Names
+	"ColorLogic_None"
+	{
+		"en"		"None"
+	}
+	"ColorLogic_Speed_GainLose"
+	{
+		"en"		"Speed - Gaining/Losing"
+	}
+	"ColorLogic_SpeedDiffernce_HigherLower"
+	{
+		"en"		"Speed Differnce - Higher/Lower"
+	}
+	"ColorLogic_Energy_GainLose"
+	{
+		"en"		"Energy - Gaining/Losing"
+	}
+	"ColorLogic_Energy_HigherLower"
+	{
+		"en"		"Energy - Higher/Lower"
+	}
+	"ColorLogic_Timer_Status"
+	{
+		"en"		"Timer - Status"
+	}
+	"ColorLogic_TimeDiffernce_GainLose"
+	{
+		"en"		"Time Difference - Gaining/Losing"
+	}
+	"ColorLogic_TimeDiffernce_FasterSlower"
+	{
+		"en"		"Time Difference - Faster/Slower"
+	}
+	"Unauthorized"
+	{
+		"en"		"Your steam account is not authorized yet, please wait or reconnect."
+	}
+	// ""
+	// {
+	// 	"en"		""
+	// }
+	// ""
+	// {
+	// 	"en"		""
+	// }
+	// ""
+	// {
+	// 	"en"		""
+	// }
+	// ""
+	// {
+	// 	"en"		""
+	// }
+}
