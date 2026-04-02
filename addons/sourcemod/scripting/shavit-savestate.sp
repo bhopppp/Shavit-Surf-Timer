@@ -502,6 +502,12 @@ public void OpenMapSaveMenu(int client, char[] sMap)
 	char sPath[PLATFORM_MAX_PATH];
 	BuildSaveFolderPath(client, sMap, sPath, sizeof(sPath));
 
+	if (!DirExists(sPath))
+	{
+		OpenViewSavesMenu(client);
+		return;
+	}
+
 	Menu menu = new Menu(MenuHandler_OpenMapSaveMenu);
 
 	char sFile[PLATFORM_MAX_PATH];
@@ -1165,16 +1171,16 @@ void DeleteGame(int client, char[] sMap, int iStyle)
 {
 	char sTimerPath[PLATFORM_MAX_PATH];
 	char sReplayPath[PLATFORM_MAX_PATH];
-	BuildStylePaths(client, iStyle, gS_Map, sTimerPath, sizeof(sTimerPath), sReplayPath, sizeof(sReplayPath));
+	BuildStylePaths(client, iStyle, sMap, sTimerPath, sizeof(sTimerPath), sReplayPath, sizeof(sReplayPath));
 
 	if(FileExists(sReplayPath))
 	{	// delete replay file
-		DeleteFile(sReplayPath);		
+		DeleteFile(sReplayPath);
 	}
 
 	if(FileExists(sTimerPath))
 	{	// delete timer file
-		DeleteFile(sTimerPath);		
+		DeleteFile(sTimerPath);	
 	}
 
 	char sMapFolder[PLATFORM_MAX_PATH];
@@ -1193,7 +1199,7 @@ void DeleteGame(int client, char[] sMap, int iStyle)
 		}
 	}
 
-	UpdateCacheOnDeleted(client, iStyle, gS_Map);
+	UpdateCacheOnDeleted(client, iStyle, sMap);
 }
 
 /**
