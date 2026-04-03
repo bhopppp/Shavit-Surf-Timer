@@ -2776,7 +2776,6 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	SetEntityMoveType(client, MOVETYPE_WALK);
 	gI_LastNoclipTick[client] = 0;
 	CallOnPracticeModeChanged(client, false);
-	// gA_Timers[client].bPracticeMode = false;
 
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
@@ -3569,6 +3568,7 @@ void StopTimer(int client)
 
 	if (gA_Timers[client].bClientPaused)
 	{
+		CallOnPracticeModeChanged(client, true);
 		SetEntityMoveType(client, MOVETYPE_WALK);
 	}
 
