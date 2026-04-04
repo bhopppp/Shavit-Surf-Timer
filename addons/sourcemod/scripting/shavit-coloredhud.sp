@@ -8,6 +8,7 @@
 #include <shavit/replay-playback>
 #include <shavit/wr>
 #include <shavit/zones>
+#include <DynamicChannels>
 
 #define BHOP_INTERVAL 3
 #define PLAYER_MASS 1.0
@@ -15,10 +16,10 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-bool gB_Core;
-bool gB_ReplayPlayback;
-bool gB_Zones;
-bool gB_AllLibraryExists;
+bool gB_ReplayPlayback = false;
+bool gB_Zones = false;
+bool gB_AllLibraryExists = false;
+bool gB_DynamicChannels = false;
 
 bool gB_Late = false;
 
@@ -128,15 +129,7 @@ public void OnPluginStart()
 	HookEventEx("player_jump", Player_Jump);
 	HookEvent("player_spawn", Player_Spawn);
 
-	RegConsoleCmd("sm_chud", Command_ColoredHUD, "");
-	
-	for (int i = 0; i < HUD_ELEMENTCOUNTS; i++)
-	{
-		if (gH_ElementHUDSynchronizer[i] == null)
-		{
-			gH_ElementHUDSynchronizer[i] = CreateHudSynchronizer();
-		} 
-	}
+	RegConsoleCmd("sm_chud", Command_ColoredHUD, "Open colored HUD menu.");
 
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, sizeof(sPath), "data/coloredhud-config");
@@ -144,6 +137,22 @@ public void OnPluginStart()
 	if(!DirExists(sPath) && !CreateDirectory(sPath, 511))
 	{
 		SetFailState("Failed to create folder for hud config (%s). Check file permissions", sPath);		
+	}
+
+	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
+	gB_Zones = LibraryExists("shavit-zones");
+	gB_DynamicChannels = LibraryExists("DynamicChannels");
+	gB_AllLibraryExists = gB_ReplayPlayback && gB_Zones;
+	
+	if (!gB_DynamicChannels)
+	{
+		for (int i = 0; i < HUD_ELEMENTCOUNTS; i++)
+		{
+			if (gH_ElementHUDSynchronizer[i] == null)
+			{
+				gH_ElementHUDSynchronizer[i] = CreateHudSynchronizer();
+			} 
+		}		
 	}
 
 	LoadDefaultHUDConfig();
@@ -172,12 +181,36 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnAllPluginsLoaded()
+public void OnLibraryAdded(const char[] name)
 {
-	gB_Core = LibraryExists("shavit");
-	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
-	gB_Zones = LibraryExists("shavit-zones");
-	gB_AllLibraryExists = gB_Core && gB_ReplayPlayback && gB_Zones;
+	if(StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = true;
+	}
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = true;
+	}
+	else if(StrEqual(name, "DynamicChannels"))
+	{
+		gB_DynamicChannels = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = false;
+	}
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = false;
+	}
+	else if(StrEqual(name, "DynamicChannels"))
+	{
+		gB_DynamicChannels = false;
+	}
 }
 
 public void OnClientPutInServer(int client)
@@ -880,19 +913,28 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 		if (gI_LastEditColorIndex[client] > -1)
 		{
 			SetHudTextParams(-1.0, -1.0, 0.12, gI_ColorEditCache[client][0], gI_ColorEditCache[client][1], gI_ColorEditCache[client][2], 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(client, gH_ElementHUDSynchronizer[gI_LastEditElement[client]], "%T", gS_ElementColorTranslations[gI_LastEditColorIndex[client]], client);		
+			if (gB_DynamicChannels)
+				ShowHudText(client, GetDynamicChannel(gI_LastEditElement[client]), "%T", gS_ElementColorTranslations[gI_LastEditColorIndex[client]], client);
+			else
+				ShowSyncHudText(client, gH_ElementHUDSynchronizer[gI_LastEditElement[client]], "%T", gS_ElementColorTranslations[gI_LastEditColorIndex[client]], client);		
 		}
 		else if (gI_EditPositionAxis[client] > -1)
 		{
 			SetHudTextParams(gF_PositionEditCache[client][0], gF_PositionEditCache[client][1], 0.12, 255, 0, 0, 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(client, gH_ElementHUDSynchronizer[gI_LastEditElement[client]], "[ %s ]", gS_ElementEditStrings[gI_LastEditElement[client]]);
+			if (gB_DynamicChannels)
+				ShowHudText(client, GetDynamicChannel(gI_LastEditElement[client]), "[ %s ]", gS_ElementEditStrings[gI_LastEditElement[client]]);
+			else
+				ShowSyncHudText(client, gH_ElementHUDSynchronizer[gI_LastEditElement[client]], "[ %s ]", gS_ElementEditStrings[gI_LastEditElement[client]]);
 
 			for (int i = 0; i < HUD_ELEMENTCOUNTS; i++)
 			{
 				if (gI_LastEditElement[client] != i)
 				{
 					SetHudTextParams(gF_HUDPosition[client][i][0], gF_HUDPosition[client][i][1], 0.12, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
-					ShowSyncHudText(client, gH_ElementHUDSynchronizer[i], "%s", gS_ElementEditStrings[i]);	
+					if (gB_DynamicChannels)
+						ShowHudText(client, GetDynamicChannel(i), "%s", gS_ElementEditStrings[i]);
+					else
+						ShowSyncHudText(client, gH_ElementHUDSynchronizer[i], "%s", gS_ElementEditStrings[i]);	
 				}
 			}
 		}
@@ -914,7 +956,10 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 				GetSpeedometerColor(client, target, color);
 
 				SetHudTextParams(fPos[0], fPos[1], 0.12, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
-				ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_Speedometer], "%.0f", fSpeed);		
+				if (gB_DynamicChannels)
+					ShowHudText(client, GetDynamicChannel(HUD_Speedometer), "%.0f", fSpeed);
+				else
+					ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_Speedometer], "%.0f", fSpeed);
 			}
 
 			if (gB_HUDEnabled[client][HUD_Energymeter])
@@ -924,7 +969,10 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 				GetEnergymeterColor(client, target, color);
 
 				SetHudTextParams(fPos[0], fPos[1], 0.12, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
-				ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_Energymeter], "%.0f", fEnergyDiff);		
+				if (gB_DynamicChannels)
+					ShowHudText(client, GetDynamicChannel(HUD_Energymeter), "%.0f", fEnergyDiff);
+				else
+					ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_Energymeter], "%.0f", fEnergyDiff);
 			}
 
 			if (gB_HUDEnabled[client][HUD_Timer])
@@ -945,7 +993,10 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 				FormatSeconds(fTime < 0.0 ? 0.0:fTime, sTime, 32, true, false, gI_HUDDisplayLogic[client][HUD_Timer] == DisplayLogic_First);
 
 				SetHudTextParams(fPos[0], fPos[1], 0.12, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
-				ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_Timer], "%s", sTime);		
+				if (gB_DynamicChannels)
+					ShowHudText(client, GetDynamicChannel(HUD_Timer), "%s", sTime);
+				else
+					ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_Timer], "%s", sTime);	
 			}
 		}
 
@@ -959,7 +1010,11 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 				FormatSeconds(gF_TimeDifference[target], sTime, 32, false);
 
 				SetHudTextParams(fPos[0], fPos[1], 0.12, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
-				ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", gF_TimeDifference[target] >= 0.0 ? "+":"", sTime);		
+				if (gB_DynamicChannels)
+					ShowHudText(client, GetDynamicChannel(HUD_TimeDifference), "%s%s", gF_TimeDifference[target] >= 0.0 ? "+":"", sTime);
+				else
+					ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", gF_TimeDifference[target] >= 0.0 ? "+":"", sTime);
+
 			}
 
 			if (gB_HUDEnabled[client][HUD_SpeedDifference] && gF_VelocityDifference[target] != -1.0)
@@ -967,7 +1022,10 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 				GetSpeedDifferenceColor(client, target, color);
 				fPos = gF_HUDPosition[client][HUD_SpeedDifference];
 				SetHudTextParams(fPos[0], fPos[1], 0.12, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
-				ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_SpeedDifference], "%s%.0f", gF_VelocityDifference[target] > 0.0 ? "+":"", gF_VelocityDifference[target]);		
+				if (gB_DynamicChannels)
+					ShowHudText(client, GetDynamicChannel(HUD_SpeedDifference), "%s%.0f", gF_VelocityDifference[target] > 0.0 ? "+":"", gF_VelocityDifference[target]);
+				else
+					ShowSyncHudText(client, gH_ElementHUDSynchronizer[HUD_SpeedDifference], "%s%.0f", gF_VelocityDifference[target] > 0.0 ? "+":"", gF_VelocityDifference[target]);
 			}
 		}
 	}
@@ -1024,7 +1082,7 @@ void GetTimerColor(int client, int target, int color[3])
 			else
 			{
 				color = gF_LastFinishedTime[target] == -1.0 ? gI_HUDColors[client][Color_Timer_Stopped]:gI_HUDColors[client][Color_Timer_Finished_Worse + gI_LastFinishState[target]];
-			}				
+			}
 		}
 		else
 		{
@@ -1186,7 +1244,10 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			iColorIndex = fTimeDifference > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
 
 			SetHudTextParams(gF_HUDPosition[i][HUD_TimeDifference][0], gF_HUDPosition[i][HUD_TimeDifference][1], 8.0, gI_HUDColors[i][iColorIndex][0], gI_HUDColors[i][iColorIndex][1], gI_HUDColors[i][iColorIndex][2], 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+			if (gB_DynamicChannels)
+				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+			else
+				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);			
 		}
 	}
 }
@@ -1231,7 +1292,10 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 			iColorIndex = fTimeDifference > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
 
 			SetHudTextParams(gF_HUDPosition[i][HUD_TimeDifference][0], gF_HUDPosition[i][HUD_TimeDifference][1], 8.0, gI_HUDColors[i][iColorIndex][0], gI_HUDColors[i][iColorIndex][1], gI_HUDColors[i][iColorIndex][2], 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+			if (gB_DynamicChannels)
+				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+			else
+				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
 		}
 	}
 }
@@ -1287,7 +1351,10 @@ public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float ti
 			}
 
 			SetHudTextParams(gF_HUDPosition[i][HUD_TimeDifference][0], gF_HUDPosition[i][HUD_TimeDifference][1], 4.0, gI_HUDColors[i][iColorIndex][0], gI_HUDColors[i][iColorIndex][1], gI_HUDColors[i][iColorIndex][2], 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+			if (gB_DynamicChannels)
+				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+			else
+				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);				
 		}
 	}
 }
