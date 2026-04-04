@@ -41,9 +41,9 @@
 	{
 		"en"		"Color Settings"
 	}
-	"ComfirmChange"
+	"ConfirmChange"
 	{
-		"en"		"Comfirm Changes"
+		"en"		"Confirm Changes"
 	}
 	"ChangePrimaryColor"
 	{
@@ -171,9 +171,9 @@
 	{
 		"en"		"Speedometer"
 	}
-	"Element_SpeedDiffernece"
+	"Element_SpeedDifference"
 	{
-		"en"		"Speed Differnece"
+		"en"		"Speed Difference"
 	}
 	"Element_Energymeter"
 	{

@@ -56,6 +56,7 @@ bool gB_InStartZone[MAXPLAYERS + 1];
 
 // HUD Editing
 int gI_LastEditElement[MAXPLAYERS + 1];
+int gI_LastEditColorIndex[MAXPLAYERS + 1];
 
 int gI_ColorEditCache[MAXPLAYERS + 1][3];
 float gF_PositionEditCache[MAXPLAYERS + 1][2];
@@ -101,7 +102,7 @@ char gS_ElementColorTranslations[][64] =
 char gS_ElementTranslations[][64] = 
 {
 	"Element_Speedometer", 
-	"Element_SpeedDiffernece", 
+	"Element_SpeedDifference", 
 	"Element_Energymeter", 
 	"Element_Timer", 
 	"Element_TimeDifference",
@@ -183,6 +184,7 @@ public void OnClientPutInServer(int client)
 {
 	gI_LastMenuPos[client] = 0;
 	gI_LastEditElement[client] = -1;
+	gI_LastEditColorIndex[client] = -1;
 	gI_EditPrimaryColor[client] = -1;
 	gI_ColorEditStepSize[client] = 5;
 	gI_EditPositionAxis[client] = -1;
@@ -404,6 +406,7 @@ public int MenuHandler_ElementColor(Menu menu, MenuAction action, int param1, in
 			int iColorIndex = StringToInt(sExploded[0]);
 			gI_LastEditElement[param1] = element;
 			gI_ColorEditCache[param1] = gI_HUDColors[param1][iColorIndex];
+			gI_LastEditColorIndex[param1] = iColorIndex;
 			OpenColorSettingMenu(param1, iColorIndex);			
 		}
 	}
@@ -432,8 +435,7 @@ public void OpenColorSettingMenu(int client, int color)
 	}
 
 	Menu menu = new Menu(MenuHandler_ColorSetting);
-	menu.SetTitle("%T\n \n[ %T ]\n(R: %d, G: %d, B: %d)\n ", "ColorSettingMenuTitle", client,
-	gS_ElementColorTranslations[color], client, gI_ColorEditCache[client][0], gI_ColorEditCache[client][1], gI_ColorEditCache[client][2]);
+	menu.SetTitle("%T - %T\n ", "ColorSettingMenuTitle", client, gS_ElementTranslations[gI_LastEditElement[client]], client);
 
 	char sMenuItem[64];
 	char sInfo[16];
@@ -441,9 +443,13 @@ public void OpenColorSettingMenu(int client, int color)
 	char sPrimaryColor[4];
 	strcopy(sPrimaryColor, 4, "RGB");
 
-	FormatEx(sMenuItem, sizeof(sMenuItem), "%T\n ", "ComfirmChange", client);
-	FormatEx(sInfo, 16, "comf;%d", color);
+	FormatEx(sMenuItem, sizeof(sMenuItem), "[ %T ]\n(R: %d, G: %d, B: %d)\n ", gS_ElementColorTranslations[color], client, gI_ColorEditCache[client][0], gI_ColorEditCache[client][1], gI_ColorEditCache[client][2]);
+	FormatEx(sInfo, 16, "color;%d", color);
 	menu.AddItem(sInfo, sMenuItem);
+
+	FormatEx(sMenuItem, sizeof(sMenuItem), "%T\n ", "ConfirmChange", client);
+	FormatEx(sInfo, 16, "conf;%d", color);
+	menu.AddItem(sInfo, sMenuItem, ColorEqual(gI_ColorEditCache[client], gI_HUDColors[client][color]) ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
 	FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ChangePrimaryColor", client);
 	FormatEx(sInfo, 16, "change;%d", color);
@@ -476,18 +482,21 @@ public int MenuHandler_ColorSetting(Menu menu, MenuAction action, int param1, in
 		ExplodeString(sInfo, ";", sExploded, 2, 16);
 		int iColorIndex = StringToInt(sExploded[1]);
 
-		if (StrEqual(sExploded[0], "comf"))
+		if (StrEqual(sExploded[0], "color"))
 		{
-			gI_EditPrimaryColor[param1] = -1;
+			if (++iColorIndex > gI_ElementColorIndexRange[element][1])
+				iColorIndex = gI_ElementColorIndexRange[element][0];
+			gI_ColorEditCache[param1] = gI_HUDColors[param1][iColorIndex];
+			gI_LastEditColorIndex[param1] = iColorIndex;
+		}
+		else if (StrEqual(sExploded[0], "conf"))
+		{
 			gI_HUDColors[param1][iColorIndex] = gI_ColorEditCache[param1];
-			gI_LastEditElement[param1] = -1;
 			gB_HUDConfigChanged[param1] = true;
-			OpenElementColorMenu(param1, element, gI_LastMenuPos[param1]);
 		}
 		else if (StrEqual(sExploded[0], "change"))
 		{
 			gI_EditPrimaryColor[param1] = (gI_EditPrimaryColor[param1] + 1) % 3;
-			OpenColorSettingMenu(param1, iColorIndex);
 		}
 		else if (StrEqual(sExploded[0], "step"))
 		{
@@ -497,8 +506,6 @@ public int MenuHandler_ColorSetting(Menu menu, MenuAction action, int param1, in
 			{
 				gI_ColorEditStepSize[param1] = 1;
 			}
-
-			OpenColorSettingMenu(param1, iColorIndex);
 		}
 		else if (StrEqual(sExploded[0], "incr"))
 		{
@@ -514,8 +521,6 @@ public int MenuHandler_ColorSetting(Menu menu, MenuAction action, int param1, in
 					gI_ColorEditCache[param1][gI_EditPrimaryColor[param1]] = 255;
 				}				
 			}
-				
-			OpenColorSettingMenu(param1, iColorIndex);
 		}
 		else if (StrEqual(sExploded[0], "decr"))
 		{
@@ -531,13 +536,14 @@ public int MenuHandler_ColorSetting(Menu menu, MenuAction action, int param1, in
 					gI_ColorEditCache[param1][gI_EditPrimaryColor[param1]] = 0;
 				}				
 			}
-
-			OpenColorSettingMenu(param1, iColorIndex);
 		}
+
+		OpenColorSettingMenu(param1, iColorIndex);
 	}
 	else if(action == MenuAction_Cancel)
 	{
 		gI_EditPrimaryColor[param1] = -1;
+		gI_LastEditColorIndex[param1] = -1;
 		int element = gI_LastEditElement[param1];
 
 		if (param2 == MenuCancel_ExitBack)
@@ -562,17 +568,21 @@ public void OpenPositionSettingMenu(int client, int element)
 	}
 
 	Menu menu = new Menu(MenuHandler_PositionSetting);
-	menu.SetTitle("%T\n \n[ %T ]\n(X: %.0f, Y: %.0f)\n ", "ElementPositionSettingMenuTitle", client,
-	gS_ElementTranslations[element], client, gF_PositionEditCache[client][0] * 1000.0, gF_PositionEditCache[client][1] * 1000.0);
+	menu.SetTitle("%T\n ", "ElementPositionSettingMenuTitle", client);
  	char sAxis[4];
 	strcopy(sAxis, 4, "XY");
 
 	char sInfo[16];
 	char sMenuItem[64];
 
-	FormatEx(sMenuItem, sizeof(sMenuItem), "%T\n ", "ComfirmChange", client);
-	FormatEx(sInfo, sizeof(sInfo), "comf;%d", element);
+	FormatEx(sMenuItem, sizeof(sMenuItem), "[ %T ]\n(X: %.0f, Y: %.0f)\n ", 
+	gS_ElementTranslations[element], client, gF_PositionEditCache[client][0] * 1000.0, gF_PositionEditCache[client][1] * 1000.0);
+	FormatEx(sInfo, sizeof(sInfo), "ele;%d", element);
 	menu.AddItem(sInfo, sMenuItem);
+
+	FormatEx(sMenuItem, sizeof(sMenuItem), "%T\n ", "ConfirmChange", client);
+	FormatEx(sInfo, sizeof(sInfo), "conf;%d", element);
+	menu.AddItem(sInfo, sMenuItem, PosEqual(gF_PositionEditCache[client], gF_HUDPosition[client][element]) ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
 	FormatEx(sMenuItem, sizeof(sMenuItem), "%T: %c", "ChangeAxis", client, sAxis[gI_EditPositionAxis[client]]);
 	FormatEx(sInfo, sizeof(sInfo), "axis;%d", element);
@@ -608,13 +618,16 @@ public int MenuHandler_PositionSetting(Menu menu, MenuAction action, int param1,
 		ExplodeString(sInfo, ";", sExploded, 2, 8);
 		int element = StringToInt(sExploded[1]);
 
-		if (StrEqual(sExploded[0], "comf"))
+		if (StrEqual(sExploded[0], "ele"))
 		{
-			gI_LastEditElement[param1] = -1;
+			element = (element + 1) % HUD_ELEMENTCOUNTS;
+			gF_PositionEditCache[param1] = gF_HUDPosition[param1][element];
+			gI_LastEditElement[param1] = element;
+		}
+		else if (StrEqual(sExploded[0], "conf"))
+		{
 			gF_HUDPosition[param1][element] = gF_PositionEditCache[param1];
 			gB_HUDConfigChanged[param1] = true;
-			OpenHUDElementSettingMenu(param1, element);
-			return 0;
 		}
 		else if (StrEqual(sExploded[0], "axis"))
 		{
@@ -864,10 +877,10 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 			return;
 		}
 
-		if (gI_EditPrimaryColor[client] > -1)
+		if (gI_LastEditColorIndex[client] > -1)
 		{
 			SetHudTextParams(-1.0, -1.0, 0.12, gI_ColorEditCache[client][0], gI_ColorEditCache[client][1], gI_ColorEditCache[client][2], 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(client, gH_ElementHUDSynchronizer[gI_LastEditElement[client]], "Color Sample");		
+			ShowSyncHudText(client, gH_ElementHUDSynchronizer[gI_LastEditElement[client]], "%T", gS_ElementColorTranslations[gI_LastEditColorIndex[client]], client);		
 		}
 		else if (gI_EditPositionAxis[client] > -1)
 		{
@@ -1328,6 +1341,28 @@ stock int GetClientObserverTarget(int client, int fallback = -1)
 	}
 
 	return target;
+}
+
+stock bool PosEqual(float pos1[2], float pos2[2])
+{
+	for (int i = 0; i < 2; i++)
+	{
+		if (pos1[i] != pos2[i])
+			return false;
+	}
+
+	return true;
+}
+
+stock bool ColorEqual(int color1[3], int color2[3])
+{
+	for (int i = 0; i < 3; i++)
+	{
+		if (color1[i] != color2[i])
+			return false;
+	}
+
+	return true;
 }
 
 void LoadHUDConfig(int client)
