@@ -18,7 +18,6 @@
 
 bool gB_ReplayPlayback = false;
 bool gB_Zones = false;
-bool gB_AllLibraryExists = false;
 bool gB_DynamicChannels = false;
 
 bool gB_Late = false;
@@ -142,7 +141,6 @@ public void OnPluginStart()
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_DynamicChannels = LibraryExists("DynamicChannels");
-	gB_AllLibraryExists = gB_ReplayPlayback && gB_Zones;
 	
 	if (!gB_DynamicChannels)
 	{
@@ -864,7 +862,7 @@ void ProcessClientData(int client, bool replaybot, int buttons, int flags, MoveT
 			gF_LastFinishedTime[client] = -1.0;
 			
 			bool hasFrames = Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(client), iTrack, Shavit_IsOnlyStageMode(client) ? iStage : 0) != 0;
-			if (gB_AllLibraryExists && hasFrames)
+			if (gB_ReplayPlayback && hasFrames)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(client, fClosestReplayLength);
 				gF_TimeDifference[client] = Shavit_GetClientTime(client) - fClosestReplayTime;
@@ -1009,7 +1007,7 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 				
 				FormatSeconds(gF_TimeDifference[target], sTime, 32, false);
 
-				SetHudTextParams(fPos[0], fPos[1], 0.12, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(fPos[0], fPos[1], 0.24, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
 				if (gB_DynamicChannels)
 					ShowHudText(client, GetDynamicChannel(HUD_TimeDifference), "%s%s", gF_TimeDifference[target] >= 0.0 ? "+":"", sTime);
 				else
@@ -1021,7 +1019,7 @@ public void UpdateClientHUD(int client, int target, int cmdnum)
 			{
 				GetSpeedDifferenceColor(client, target, color);
 				fPos = gF_HUDPosition[client][HUD_SpeedDifference];
-				SetHudTextParams(fPos[0], fPos[1], 0.12, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(fPos[0], fPos[1], 0.24, color[0], color[1], color[2], 255, 0, 0.0, 0.0, 0.0);
 				if (gB_DynamicChannels)
 					ShowHudText(client, GetDynamicChannel(HUD_SpeedDifference), "%s%.0f", gF_VelocityDifference[target] > 0.0 ? "+":"", gF_VelocityDifference[target]);
 				else
