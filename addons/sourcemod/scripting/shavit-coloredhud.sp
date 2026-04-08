@@ -584,10 +584,10 @@ public int MenuHandler_ColorSetting(Menu menu, MenuAction action, int param1, in
 		gI_EditPrimaryColor[param1] = -1;
 		gI_LastEditColorIndex[param1] = -1;
 		int element = gI_LastEditElement[param1];
+		gI_LastEditElement[param1] = -1;
 
 		if (param2 == MenuCancel_ExitBack)
 		{
-			gI_LastEditElement[param1] = -1;
 			OpenElementColorMenu(param1, element, gI_LastMenuPos[param1]);			
 		}
 	}
