@@ -22,6 +22,9 @@ bool gB_DynamicChannels = false;
 
 bool gB_Late = false;
 
+float gF_Tickrate = 0.0;
+int gI_UpdateFrequency[3];
+
 Handle gH_ElementHUDSynchronizer[MAX_ELEMENTS];
 
 // Client Preference
@@ -125,6 +128,11 @@ int gI_ElementColorIndexRange[][2] =
 
 public void OnPluginStart()
 {
+	gF_Tickrate = (1.0 / GetTickInterval());
+	gI_UpdateFrequency[0] = RoundToFloor(gF_Tickrate / 33.0);	// Normal update
+	gI_UpdateFrequency[1] = RoundToFloor(gF_Tickrate / 10.0);	// Low update
+	gI_UpdateFrequency[2] = RoundToFloor(gF_Tickrate / 6.0);	// Super low update
+
 	HookEventEx("player_jump", Player_Jump);
 	HookEvent("player_spawn", Player_Spawn);
 
@@ -808,7 +816,7 @@ void ProcessClientData(int client, bool replaybot, int buttons, int flags, MoveT
 		return;
 	}
 
-	bool bShouldUpdate = (GetGameTickCount() % 11) == 0;
+	bool bShouldUpdate = (GetGameTickCount() % gI_UpdateFrequency[2]) == 0;
 
 	gF_LastVelocity[client] = gF_Velocity[client];
 	gF_LastEnergy[client] = gF_Energy[client];
@@ -898,8 +906,8 @@ void ProcessJump(int client, bool replaybot = false)
 // HUD Update & Colors
 public void UpdateClientHUD(int client, int target, int cmdnum)
 {
-	bool bUpdate = (cmdnum % 2) == 0;
-	bool bLowUpdate = (cmdnum % 6) == 0;
+	bool bUpdate = (cmdnum % gI_UpdateFrequency[0]) == 0;
+	bool bLowUpdate = (cmdnum % gI_UpdateFrequency[1]) == 0;
 
 	if (gI_LastEditElement[client] > -1)
 	{
