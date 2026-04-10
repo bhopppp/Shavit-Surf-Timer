@@ -779,7 +779,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 			return;
 		}
 
-		if(Shavit_GetTimerStatus(client) != Timer_Running || Shavit_GetClientTime(client) < 0.1)
+		if(Shavit_GetTimerStatus(client) != Timer_Running || Shavit_IsClientForzen(client) || Shavit_GetClientTime(client) < 0.1)
 		{
 			return;
 		}

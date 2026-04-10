@@ -103,6 +103,8 @@ int gI_CheckpointsSettings[MAXPLAYERS+1];
 // save states
 bool gB_SaveStates[MAXPLAYERS+1]; // whether we have data for when player rejoins from spec
 ArrayList gA_PersistentData = null;
+cp_cache_t gA_LastUsedCheckpoint[MAXPLAYERS + 1];
+bool gB_OnTeleportedFreeze[MAXPLAYERS + 1];
 
 bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
@@ -196,6 +198,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_nextcp", Command_NextCheckpoint, "Selects the next checkpoint.");
 	RegConsoleCmd("sm_telenext", Command_NextCheckpoint, "Selects the next checkpoint.");
 	RegConsoleCmd("sm_deletecp", Command_DeleteCheckpoint, "Deletes the current checkpoint.");
+	RegConsoleCmd("+teleport", Command_TeleportPressHold, "Teleports to a checkpoint and pause movement & timer while press-hold button.");
+	RegConsoleCmd("-teleport", Command_TeleportRelease, "Resume movement & timer on button released.");
+
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
 
@@ -652,6 +657,12 @@ public void Shavit_OnRestart(int client, int track, bool tostartzone)
 	}
 }
 
+public void Shavit_OnUnFreeze(int client)
+{
+	DeleteCheckpointCache(gA_LastUsedCheckpoint[client]);
+	gB_OnTeleportedFreeze[client] = false;
+}
+
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
@@ -717,6 +728,19 @@ bool CanSegment(int client)
 int GetMaxCPs(int client)
 {
 	return CanSegment(client)? gCV_MaxCP_Segmented.IntValue:gCV_MaxCP.IntValue;
+}
+
+void LoadLastUsedCheckpoint(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if (gB_OnTeleportedFreeze[client])
+	{
+		bool bKzcheckpoints = Shavit_GetStyleSettingBool(gA_LastUsedCheckpoint[client].aSnapshot.bsStyle, "kzcheckpoints");
+
+		LoadCheckpointCache(client, gA_LastUsedCheckpoint[client], 0, bKzcheckpoints);
+		Shavit_UnFreezeClient(client);
+	}
 }
 
 int FindPersistentData(int client, persistent_data_t aData)
@@ -937,6 +961,54 @@ public Action Command_Save(int client, int args)
 
 	return Plugin_Handled;
 }
+
+
+public Action Command_TeleportPressHold(int client, int args)
+{
+	if(client == 0)
+	{
+		ReplyToCommand(client, "This command may be only performed in-game.");
+
+		return Plugin_Handled;
+	}
+
+	if(!gCV_Checkpoints.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+		return Plugin_Handled;
+	}
+
+	int index = gI_CurrentCheckpoint[client];
+
+	if (TeleportToCheckpoint(client, index, true, client))
+	{
+		DeleteCheckpointCache(gA_LastUsedCheckpoint[client]);
+
+		cp_cache_t cpcache, cpcache_copy;
+		gA_Checkpoints[client].GetArray(index-1, cpcache, sizeof(cp_cache_t));
+		cpcache_copy = cpcache;
+		if (cpcache.aFrames)      cpcache_copy.aFrames      = view_as<ArrayList>(CloneHandle(cpcache.aFrames));
+		if (cpcache.aFrameOffsets) cpcache_copy.aFrameOffsets = view_as<ArrayList>(CloneHandle(cpcache.aFrameOffsets));
+		if (cpcache.aEvents)      cpcache_copy.aEvents      = view_as<ArrayList>(CloneHandle(cpcache.aEvents));
+		if (cpcache.aOutputWaits) cpcache_copy.aOutputWaits = view_as<ArrayList>(CloneHandle(cpcache.aOutputWaits));
+		if (cpcache.customdata)   cpcache_copy.customdata   = view_as<StringMap>(CloneHandle(cpcache.customdata));
+
+		gA_LastUsedCheckpoint[client] = cpcache_copy;
+		Shavit_FreezeClient(client);
+		gB_OnTeleportedFreeze[client] = true;
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_TeleportRelease(int client, int args)
+{
+	RequestFrame(LoadLastUsedCheckpoint, GetClientSerial(client));
+
+	return Plugin_Handled;
+}
+
 
 public Action Command_Tele(int client, int args)
 {
@@ -1871,11 +1943,11 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	Call_Finish();
 }
 
-void TeleportToCheckpoint(int client, int index, bool suppressMessage, int target=0)
+bool TeleportToCheckpoint(int client, int index, bool suppressMessage, int target=0)
 {
 	if(index < 1 || index > gCV_MaxCP.IntValue || gA_Checkpoints[client].Length == 0 || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
 	{
-		return;
+		return false;
 	}
 
 	if(Shavit_IsPaused(client))
@@ -1884,7 +1956,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 		{
 			Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);	
 
-			return;					
+			return false;
 		}
 	}
 
@@ -1893,7 +1965,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 	if (index > gA_Checkpoints[target].Length)
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, gS_ChatStrings.sVariable, index, gS_ChatStrings.sText);
-		return;
+		return false;
 	}
 
 	cp_cache_t cpcache;
@@ -1903,14 +1975,14 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 	{
 		Shavit_PrintToChat(client, "%T", "CommandTeleCPInvalid", client);
 
-		return;
+		return false;
 	}
 
 	if(!IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
-		return;
+		return false;
 	}
 
 	Action result = Plugin_Continue;
@@ -1922,7 +1994,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 
 	if(result != Plugin_Continue)
 	{
-		return;
+		return false;
 	}
 
 	gI_TimesTeleported[client]++;
@@ -1944,7 +2016,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 
 	if (!LoadCheckpointCache(client, cpcache, index, bKzcheckpoints))
 	{
-		return;
+		return false;
 	}
 
 	Call_StartForward(gH_Forwards_OnTeleport);
@@ -1963,6 +2035,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage, int targe
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, gS_ChatStrings.sVariable, index, gS_ChatStrings.sText);
 	}
+
+	return true;
 }
 
 // index = -1 when persistent data. index = 0 when Shavit_LoadCheckpointCache() usually. index > 0 when "actually a checkpoint"
@@ -1972,6 +2046,14 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 	if (!force && !Shavit_HasStyleAccess(client, cpcache.aSnapshot.bsStyle))
 	{
 		return false;
+	}
+
+	if ((gB_OnTeleportedFreeze[client] || Shavit_IsClientForzen(client)) && index != 0)
+	{
+		DeleteCheckpointCache(gA_LastUsedCheckpoint[client]);
+
+		Shavit_UnFreezeClient(client);
+		gB_OnTeleportedFreeze[client] = false;
 	}
 
 	bool isPersistentData = (index == -1);

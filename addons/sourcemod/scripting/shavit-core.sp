@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Core
- * by: shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, OliviaMourning, Nickelony, sh4hrazad, BoomShotKapow, strafe
+ * by: shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, olivia, Nickelony, sh4hrazad, BoomShotKapow, strafe
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -80,6 +80,8 @@ Handle gH_Forwards_OnEndPre = null;
 Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
+Handle gH_Forwards_OnFreeze = null;
+Handle gH_Forwards_OnUnFreeze = null;
 Handle gH_Forwards_OnStyleCommandPre = null;
 Handle gH_Forwards_OnStyleChanged = null;
 Handle gH_Forwards_OnTrackChanged = null;
@@ -98,6 +100,7 @@ Handle gH_Forwards_OnToggleTriggersPre = null;
 Handle gH_Forwards_OnToggleTriggers = null;
 
 // player timer variables
+bool gB_IsClientForzen[MAXPLAYERS + 1];	// Freeze client's timer & movement while its true
 timer_snapshot_t gA_Timers[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 bool gB_DisableTriggers[MAXPLAYERS+1];
@@ -208,7 +211,7 @@ bool gB_KZMap[TRACKS_SIZE];
 public Plugin myinfo =
 {
 	name = "[shavit-surf] Core",
-	author = "shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, OliviaMourning, Nickelony, sh4hrazad, BoomShotKapow, strafe, *Surf integration version modified by KikI",
+	author = "shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, olivia, Nickelony, sh4hrazad, BoomShotKapow, strafe, *Surf integration version modified by KikI",
 	description = "The core for shavit surf timer. (This plugin is base on shavit's bhop timer)",
 	version = SHAVIT_SURF_VERSION,
 	url = "https://github.com/shavitush/bhoptimer  https://github.com/bhopppp/Shavit-Surf-Timer"
@@ -293,6 +296,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetMessageSetting", Native_GetMessageSetting);
 	CreateNative("Shavit_SetTriggerDisable", Native_SetTriggerDisable);
 	CreateNative("Shavit_IsTriggerDisabled", Native_IsTriggerDisabled);
+	CreateNative("Shavit_FreezeClient", Native_FreezeClient);
+	CreateNative("Shavit_UnFreezeClient", Native_UnFreezeClient);
+	CreateNative("Shavit_IsClientForzen", Native_IsClientForzen);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -337,6 +343,8 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerMenuSelected = CreateGlobalForward("Shavit_OnTimerMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
 	gH_Forwards_OnToggleTriggersPre = CreateGlobalForward("Shavit_OnToggleTriggersPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnToggleTriggers = CreateGlobalForward("Shavit_OnToggleTriggers", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnFreeze = CreateGlobalForward("Shavit_OnFreeze", ET_Event, Param_Cell);
+	gH_Forwards_OnUnFreeze = CreateGlobalForward("Shavit_OnUnFreeze", ET_Event, Param_Cell);
 
 	Bhopstats_CreateForwards();
 	Shavit_Style_Settings_Forwards();
@@ -1861,6 +1869,11 @@ public any Native_UpdateLaggedMovement(Handle handler, int numParams)
 
 void UpdateLaggedMovement(int client, bool user_timescale)
 {
+	if (gB_IsClientForzen[client])
+	{
+		return;
+	}
+
 	float style_laggedmovement =
 		  GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale")
 		* GetStyleSettingFloat(gA_Timers[client].bsStyle, "speed");
@@ -2133,6 +2146,7 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
+	UnFreezeClient(client);
 	ResumeTimer(client);
 	StopTimer(client);
 }
@@ -2224,6 +2238,8 @@ public int Native_StopTimer(Handle handler, int numParams)
 			return false;
 		}
 	}
+
+	UnFreezeClient(client);
 
 	StopTimer(client);
 	StopStageTimer(client);
@@ -2577,6 +2593,27 @@ public int Native_FinishStage(Handle handler, int numParams)
 	}
 
 	return 1;
+}
+
+public int Native_FreezeClient(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	FreezeClient(client);
+	return 1;
+}
+
+public int Native_UnFreezeClient(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	UnFreezeClient(client);
+	return 1;
+}
+
+public int Native_IsClientForzen(Handle handler, int numParams)
+{
+	return gB_IsClientForzen[GetNativeCell(1)];
 }
 
 public int Native_PauseTimer(Handle handler, int numParams)
@@ -3595,6 +3632,7 @@ void PauseTimer(int client)
 	Call_PushCell(gA_Timers[client].iTimerTrack);
 	Call_Finish();
 
+	UnFreezeClient(client);
 	gA_Timers[client].bClientPaused = true;
 }
 
@@ -3614,6 +3652,45 @@ void ResumeTimer(int client)
 	// setting is handled in usercmd
 	SetEntityMoveType(client, MOVETYPE_WALK);
 	gI_LastNoclipTick[client] = 0;
+}
+
+void FreezeClient(int client)
+{
+	if(!IsValidClient(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	Call_StartForward(gH_Forwards_OnFreeze);
+	Call_PushCell(client);
+	Call_Finish();
+
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 0.0);
+	SetEntProp(client, Prop_Send, "m_nSolidType", SOLID_NONE);
+
+	gB_IsClientForzen[client] = true;
+}
+
+void UnFreezeClient(int client)
+{
+	if(!IsValidClient(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	if (!gB_IsClientForzen[client])
+	{
+		return;
+	}
+
+	Call_StartForward(gH_Forwards_OnUnFreeze);
+	Call_PushCell(client);
+	Call_Finish();
+
+	SetEntProp(client, Prop_Data, "m_nSolidType", SOLID_BBOX);
+	gB_IsClientForzen[client] = false;
+
+	UpdateLaggedMovement(client, true);
 }
 
 public void OnClientDisconnect(int client)
@@ -4235,7 +4312,6 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 	int client = DHookGetParam(hParams, 1);
 
 	// Causes client to do zone touching in movement instead of server frames.
-	// From https://github.com/rumourA/End-Touch-Fix
 	MaybeDoPhysicsUntouch(client);
 
 	Call_StartForward(gH_Forwards_OnProcessMovement);
@@ -4280,7 +4356,7 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 
 	if (gB_Eventqueuefix)
 	{
-		SetClientEventsPaused(client, (!Shavit_ShouldProcessFrame(client) || gA_Timers[client].bClientPaused));
+		SetClientEventsPaused(client, (!Shavit_ShouldProcessFrame(client) || gA_Timers[client].bClientPaused || gB_IsClientForzen[client]));
 	}
 
 	return MRES_Ignored;
@@ -4305,42 +4381,40 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 		UpdateLaggedMovement(client, true);
 	}
 
-	if (gA_Timers[client].bClientPaused || !gA_Timers[client].bTimerEnabled)
+	if (gA_Timers[client].bTimerEnabled && !gA_Timers[client].bClientPaused && !gB_IsClientForzen[client])
 	{
-		return MRES_Ignored;
+		float interval = GetTickInterval();
+		float ts = GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale") * gA_Timers[client].fTimescale; // true tick interval is here
+		float time = interval * ts;
+
+		gA_Timers[client].iZoneIncrement++;
+
+		if (gA_Timers[client].bStageTimerEnabled)
+		{
+			gA_Timers[client].aStageStartInfo.iZoneIncrement++;		
+		}
+
+		timer_snapshot_t snapshot;
+		BuildSnapshot(client, snapshot);
+
+		Call_StartForward(gH_Forwards_OnTimeIncrement);
+		Call_PushCell(client);
+		Call_PushArray(snapshot, sizeof(timer_snapshot_t));
+		Call_PushCellRef(time);
+		Call_Finish();
+
+		gA_Timers[client].iFractionalTicks += RoundFloat(ts * 10000.0);
+		int whole_tick = gA_Timers[client].iFractionalTicks / 10000;
+		gA_Timers[client].iFractionalTicks -= whole_tick * 10000;
+		gA_Timers[client].iFullTicks       += whole_tick;
+
+		CalculateRunTime(gA_Timers[client], false, false);
+
+		Call_StartForward(gH_Forwards_OnTimeIncrementPost);
+		Call_PushCell(client);
+		Call_PushCell(time);
+		Call_Finish();
 	}
-
-	float interval = GetTickInterval();
-	float ts = GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale") * gA_Timers[client].fTimescale; // true tick interval is here
-	float time = interval * ts;
-
-	gA_Timers[client].iZoneIncrement++;
-
-	if (gA_Timers[client].bStageTimerEnabled)
-	{
-		gA_Timers[client].aStageStartInfo.iZoneIncrement++;		
-	}
-
-	timer_snapshot_t snapshot;
-	BuildSnapshot(client, snapshot);
-
-	Call_StartForward(gH_Forwards_OnTimeIncrement);
-	Call_PushCell(client);
-	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
-	Call_PushCellRef(time);
-	Call_Finish();
-
-	gA_Timers[client].iFractionalTicks += RoundFloat(ts * 10000.0);
-	int whole_tick = gA_Timers[client].iFractionalTicks / 10000;
-	gA_Timers[client].iFractionalTicks -= whole_tick * 10000;
-	gA_Timers[client].iFullTicks       += whole_tick;
-
-	CalculateRunTime(gA_Timers[client], false, false);
-
-	Call_StartForward(gH_Forwards_OnTimeIncrementPost);
-	Call_PushCell(client);
-	Call_PushCell(time);
-	Call_Finish();
 
 	MaybeDoPhysicsUntouch(client);
 
@@ -4440,6 +4514,7 @@ public Action HookTrigger(int entity, int other)
 void BuildSnapshot(int client, timer_snapshot_t snapshot)
 {
 	snapshot = gA_Timers[client];
+
 	snapshot.fServerTime = GetEngineTime();
 	snapshot.fTimescale = (gA_Timers[client].fTimescale > 0.0) ? gA_Timers[client].fTimescale : 1.0;
 	//snapshot.iLandingTick = ?????; // TODO: Think about handling segmented scroll? /shrug
@@ -4466,14 +4541,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	int flags = GetEntityFlags(client);
 
-	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
+	SetEntityFlags(client, (flags & ~FL_FROZEN));
 
-	if (gA_Timers[client].bClientPaused && IsPlayerAlive(client) && !gCV_PauseMovement.BoolValue)
+	if (((gA_Timers[client].bClientPaused && !gCV_PauseMovement.BoolValue) || gB_IsClientForzen[client]) && IsPlayerAlive(client) )
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
 
-		SetEntityFlags(client, (flags | FL_ATCONTROLS));
+		SetEntityFlags(client, (flags | FL_FROZEN));
 
 		return Plugin_Changed;
 	}

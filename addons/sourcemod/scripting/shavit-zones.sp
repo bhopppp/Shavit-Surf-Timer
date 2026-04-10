@@ -2711,9 +2711,9 @@ public Action Command_Stages(int client, int args)
 	if(StrContains(sCommand, "sm_b", false) == 0 || StrContains(sCommand, "sm_r", false) == 0)
 	{
 		TimerStatus status = Shavit_GetTimerStatus(client);
-		if(status != Timer_Running)
+		if(status != Timer_Running || Shavit_IsClientForzen(client))
 		{
-			Shavit_PrintToChat(client, "%T", status == Timer_Paused ? "StageCommandTimerPaused":"StageCommandTimerNotRunning", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			Shavit_PrintToChat(client, "%T", (status == Timer_Paused || Shavit_IsClientForzen(client)) ? "StageCommandTimerPaused":"StageCommandTimerNotRunning", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 			return Plugin_Handled;
 		}
 
@@ -6485,6 +6485,11 @@ public void Shavit_OnRestart(int client, int track, bool tostartzone)
 // This function just use to teleport a client to start zone. not for custom spawn or client who has set start.
 public void TeleportToStartZone(int client, int track, int stage) 
 {
+	if (Shavit_IsClientForzen(client))
+	{
+		return;
+	}
+
 	int iIndex;
 
 	if(stage < 2)

@@ -1269,6 +1269,22 @@ void TF2_KillDroppedWeapons()
 	}
 }
 
+public void Shavit_OnFreeze(int client)
+{
+	if (gB_Eventqueuefix)
+	{
+		SetClientEventsPaused(client, true);
+	}
+}
+
+public void Shavit_OnUnFreeze(int client)
+{
+	if (gB_Eventqueuefix)
+	{
+		SetClientEventsPaused(client, false);
+	}
+}
+
 public void Shavit_OnPause(int client, int track)
 {
 	if (gB_Eventqueuefix)
@@ -1827,10 +1843,10 @@ bool Teleport(int client, int targetserial)
 	 		OpenStopWarningMenu(client, DoTeleport);
 	 		return true;
 	 	}
-		Shavit_SetPracticeMode(client, true, true);
-		Shavit_StopTimer(client);		
 	}
 
+	Shavit_SetPracticeMode(client, true, true);
+	Shavit_StopTimer(client);	
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 
 	return true;

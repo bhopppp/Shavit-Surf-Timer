@@ -29,6 +29,10 @@
 #define STYLE_LIMIT 128 // 256 is too much for style.
 #define MAX_STAGES 64
 
+// SolidType_t
+#define SOLID_NONE 0	
+#define SOLID_BBOX 2
+
 // god i fucking hate sourcemod. NULL_VECTOR isn't const so it's not guaranteed to be 0,0,0
 #define ZERO_VECTOR view_as<float>({0,0,0})
 
@@ -840,6 +844,22 @@ forward void Shavit_OnPause(int client, int track);
 forward void Shavit_OnResume(int client, int track);
 
 /**
+ * Called before a player freeze.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnFreeze(int client);
+
+/**
+ * Called before a player unfreeze.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnUnFreeze(int client);
+
+/**
  * Called when a player tries to change their bhopstyle.
  *
  * @param client                    Client index.
@@ -1508,6 +1528,30 @@ native int Shavit_GetChatStrings(int stringtype, char[] ChatStrings, int size);
  * @return                          SP_ERROR_NONE on success, anything else on failure.
  */
 native int Shavit_GetChatStringsStruct(any[] strings, int size = sizeof(chatstrings_t));
+
+/**
+ * Freeze a client.
+ *
+ * @param client					Client index.
+ * @return							Wheather a player is frozen.
+ */
+native void Shavit_FreezeClient(int client);
+
+/**
+ * Unfreeze a client.
+ *
+ * @param client					Client index.
+ * @return							Wheather a player is frozen.
+ */
+native void Shavit_UnFreezeClient(int client);
+
+/**
+ * Gets a client's frozen status.
+ *
+ * @param client					Client index.
+ * @return							Wheather a player is frozen.
+ */
+native bool Shavit_IsClientForzen(int client);
 
 /**
  * Sets practice mode on a client.

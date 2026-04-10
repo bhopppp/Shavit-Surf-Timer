@@ -1070,7 +1070,11 @@ void GetTimerColor(int client, int target, int color[3])
 			TimerStatus status = Shavit_GetTimerStatus(target);
 			bool bPractice = Shavit_IsPracticeMode(target);
 
-			if (status == Timer_Running)
+			if (Shavit_IsClientForzen(client))
+			{
+				color = gI_HUDColors[client][Color_Timer_Paused];
+			}
+			else if (status == Timer_Running)
 			{
 				if (gB_InStartZone[target])
 				{
