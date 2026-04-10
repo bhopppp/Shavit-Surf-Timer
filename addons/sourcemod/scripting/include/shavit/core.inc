@@ -1970,6 +1970,9 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetOnlyStageMode");
 	MarkNativeAsOptional("Shavit_IsOnlyStageMode");
 	MarkNativeAsOptional("Shavit_GetMessageSetting");
+	MarkNativeAsOptional("Shavit_FreezeClient");
+	MarkNativeAsOptional("Shavit_UnFreezeClient");
+	MarkNativeAsOptional("Shavit_IsClientForzen");
 
 	__pl_shavit_bhopstats_SetNTVOptional();
 }
