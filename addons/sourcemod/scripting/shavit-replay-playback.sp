@@ -298,6 +298,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayStarter", Native_GetReplayStarter);
 	CreateNative("Shavit_GetReplayButtons", Native_GetReplayButtons);
+	CreateNative("Shavit_GetReplayBotCache", Native_GetReplayBotCache);
 	CreateNative("Shavit_GetReplayEntityFlags", Native_GetReplayEntityFlags);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameOffsets", Native_GetReplayFrameOffsets);
@@ -1469,6 +1470,20 @@ public int Native_GetReplayButtons(Handle handler, int numParams)
 
 	SetNativeCellRef(2, GetAngleDiff(gA_CachedFrames[bot][0].ang[1], gA_CachedFrames[bot][1].ang[1]));
 	return gA_CachedFrames[bot][0].buttons;
+}
+
+public int Native_GetReplayBotCache(Handle handler, int numParams)
+{
+	if (GetNativeCell(3) != sizeof(frame_cache_t))
+	{
+		ThrowNativeError(200, "frame_cache_t does not match latest (got %i expected %i). Please update your includes and recompile your plugins.",
+			GetNativeCell(3), sizeof(frame_cache_t));
+		return 0;
+	}
+
+	int bot = GetBotInfoIndex(GetNativeCell(1));
+	SetNativeArray(2, gA_BotInfo[bot].aCache, sizeof(frame_cache_t));
+	return 0;
 }
 
 public int Native_GetReplayEntityFlags(Handle plugin, int numParams)
@@ -2832,7 +2847,6 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 
 			if (info.iTick >= info.aCache.aFrames.Length)
 			{
-				
 				LogError("Timer (Replay Playback) Playing tick of replaybot out of frame array index.");
 				UnloadReplay(info.iStyle, info.iTrack, info.iStage, true, true);
 			}
@@ -3644,7 +3658,7 @@ public int MenuHandler_BackupManagement(Menu menu, MenuAction action, int param1
 		}
 		else
 		{
-			Menu subMenu = new Menu(MenuHandler_BackupManagement_Comfirm);
+			Menu subMenu = new Menu(MenuHandler_BackupManagement_Confirm);
 
 			if(StrContains(sInfo, "d") != -1)
 			{
@@ -3696,7 +3710,7 @@ public int MenuHandler_BackupManagement(Menu menu, MenuAction action, int param1
 	return 0;
 }
 
-public int MenuHandler_BackupManagement_Comfirm(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_BackupManagement_Confirm(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
