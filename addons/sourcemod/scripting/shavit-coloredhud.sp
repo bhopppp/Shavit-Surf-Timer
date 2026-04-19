@@ -138,6 +138,17 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_chud", Command_ColoredHUD, "Open colored HUD menu.");
 
+	// Command for element menu
+	RegConsoleCmd("sm_spd", Command_ElementMenu, "Open colored HUD Speedometer Element menu.");
+	RegConsoleCmd("sm_speedometer", Command_ElementMenu, "Open colored HUD Speedometer Element menu.");
+	RegConsoleCmd("sm_spddiff", Command_ElementMenu, "Open colored HUD Speed Difference Element menu.");
+	RegConsoleCmd("sm_speeddifference", Command_ElementMenu, "Open colored HUD Speed Difference Element menu.");
+	RegConsoleCmd("sm_energy", Command_ElementMenu, "Open colored HUD Energymeter Element menu.");
+	RegConsoleCmd("sm_energymeter", Command_ElementMenu, "Open colored HUD Energymeter Element menu.");
+	RegConsoleCmd("sm_ctimer", Command_ElementMenu, "Open colored HUD Timer Element menu.");
+	RegConsoleCmd("sm_timediff", Command_ElementMenu, "Open colored HUD Time Difference Element menu.");
+	RegConsoleCmd("sm_timedifference", Command_ElementMenu, "Open colored HUD Time Difference Element menu.");
+
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, sizeof(sPath), "data/coloredhud-config");
 
@@ -258,20 +269,70 @@ public void OnClientAuthorized(int client, const char[] auth)
 
 public Action Command_ColoredHUD(int client, int args)
 {
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if (!IsClientAuthorized(client))
+	{
+		Shavit_PrintToChat(client, "%T", "Unauthorized", client);
+		return Plugin_Handled;
+	}
+
 	OpenHUDElementMenu(client);
 	return Plugin_Handled;
 }
 
+public Action Command_ElementMenu(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if (!IsClientAuthorized(client))
+	{
+		Shavit_PrintToChat(client, "%T", "Unauthorized", client);
+		return Plugin_Handled;
+	}
+
+	char sCommand[32];
+	GetCmdArg(0, sCommand, 32);
+
+	if (StrContains(sCommand, "sp") != -1)	
+	{
+		if(StrContains(sCommand, "diff") != -1) // sm_spddiff sm_speeddifference
+		{
+			OpenHUDElementSettingMenu(client, HUD_SpeedDifference);
+		}
+		else // sm_spd / sm_speedometer
+		{
+			OpenHUDElementSettingMenu(client, HUD_Speedometer);
+		}
+	}
+	else if(StrContains(sCommand, "energy") != -1)	// sm_energy / sm_energymeter
+	{
+		OpenHUDElementSettingMenu(client, HUD_Energymeter);
+	}
+	else if(StrContains(sCommand, "time") != -1)
+	{
+		if(StrContains(sCommand, "diff") != -1) // sm_timediff sm_timedifference
+		{
+			OpenHUDElementSettingMenu(client, HUD_TimeDifference);
+		}
+		else // sm_ctimer
+		{
+			OpenHUDElementSettingMenu(client, HUD_Timer);
+		}
+	}
+
+	return Plugin_Handled;
+}
 
 // Menus
 public void OpenHUDElementMenu(int client)
 {
-	if (!IsClientAuthorized(client))
-	{
-		Shavit_PrintToChat(client, "%T", "Unauthorized", client);
-		return;
-	}	
-
 	Menu menu = new Menu(MenuHandler_HUDElement);
 	menu.SetTitle("%T\n ", "HUDElementMenuTitle", client);
 
