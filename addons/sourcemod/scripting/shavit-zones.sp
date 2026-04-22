@@ -7200,9 +7200,7 @@ public void TouchPost(int entity, int other)
 		}
 		case Zone_Slay:
 		{
-			TimerStatus status = Shavit_GetTimerStatus(other);
-
-			if (status != Timer_Stopped)
+			if (Shavit_GetTimerStatus(other) == Timer_Running)
 			{
 				Shavit_StopTimer(other);
 				ACTUALLY_ForcePlayerSuicide(other);
@@ -7211,7 +7209,7 @@ public void TouchPost(int entity, int other)
 		}
 		case Zone_Stop:
 		{
-			if(Shavit_GetTimerStatus(other) != Timer_Stopped)
+			if(Shavit_GetTimerStatus(other) == Timer_Running)
 			{
 				Shavit_StopTimer(other);
 				Shavit_PrintToChat(other, "%T", "ZoneStopEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);
