@@ -662,19 +662,23 @@ void ToggleHUD(int client, int hud, bool chat)
 	}
 }
 
-// void Frame_UpdateTopLeftHUD(int serial)
-// {
-// 	int client = GetClientFromSerial(serial);
+void Frame_UpdateKeyHint(int serial)
+{
+	int client = GetClientFromSerial(serial);
 
-// 	if (client)
-// 	{
-// 		UpdateTopLeftHUD(client, false);
-// 	}
-// }
+	if (client)
+	{
+		UpdateKeyHint(client, true);
+	}
+}
 
 public Action Command_SpecNextPrev(int client, const char[] command, int args)
 {
-	//RequestFrame(Frame_UpdateTopLeftHUD, GetClientSerial(client));
+	if (IsClientInGame(client))
+	{
+		RequestFrame(Frame_UpdateKeyHint, GetClientSerial(client));
+	}
+	
 	return Plugin_Continue;
 }
 
