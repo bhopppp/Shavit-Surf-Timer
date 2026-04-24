@@ -150,6 +150,7 @@ int gI_EditBeamSpriteIgnoreZ;
 int gI_BeamSpriteIgnoreZ;
 
 int gI_OffsetMFEffects = -1;
+int gI_Offset_m_afButtonDisabled = 0;
 
 int gI_TickServed[MAXPLAYERS + 1];
 
@@ -506,7 +507,7 @@ public void OnPluginEnd()
 
 void LoadDHooks()
 {
-	Handle hGameData = LoadGameConfigFile("shavit.games");
+	GameData hGameData = LoadGameConfigFile("shavit.games");
 
 	if (hGameData == null)
 	{
@@ -555,6 +556,12 @@ void LoadDHooks()
 	{
 		SetFailState("Failed to create sdkcall to \"CBaseTrigger::PassesTriggerFilters\"!");
 	}
+
+	Address buttonsSig = hGameData.GetMemSig("CBasePlayer->m_afButtonDisabled");
+ 	int instr = LoadFromAddress(buttonsSig, NumberType_Int32);
+ 	// The lowest two bytes are the beginning of a `mov`.
+ 	// The offset is 100% definitely totally always 16-bit.
+ 	gI_Offset_m_afButtonDisabled = instr >> 16;
 
 	delete hGameData;
 
@@ -7124,6 +7131,7 @@ public void TouchPost(int entity, int other)
 					{
 						PhysicsRemoveTouchedList(other);
 						ClearClientEvents(other);
+						ResetDisabledButtons(other);
 						
 						gI_TickServed[other] = curr_tick;
 					}
@@ -7166,6 +7174,7 @@ public void TouchPost(int entity, int other)
 						
 						PhysicsRemoveTouchedList(other);
 						ClearClientEvents(other);
+						ResetDisabledButtons(other);
 						
 						gI_TickServed[other] = curr_tick;
 					}
@@ -7303,6 +7312,11 @@ public void CustomZoneOutput(int client, int zone, bool end)
 			DispatchKeyValue(client, "targetname", sPattern);
 		}				
 	}
+}
+
+public void ResetDisabledButtons(int client)
+{
+ 	SetEntData(client, gI_Offset_m_afButtonDisabled, GetEntData(client, gI_Offset_m_afButtonDisabled) & ~2);
 }
 
 public void UsePost_HookedButton(int entity, int activator, int caller, UseType type, float value)

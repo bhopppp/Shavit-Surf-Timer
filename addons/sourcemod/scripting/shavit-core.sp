@@ -201,6 +201,9 @@ float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 int gI_LastPrintedSteamID[MAXPLAYERS+1];
 int gI_GroundEntity[MAXPLAYERS+1];
 
+// offsets
+int gI_Offset_m_afButtonDisabled = 0;
+
 // kz support
 bool gB_KZMap[TRACKS_SIZE];
 
@@ -563,7 +566,7 @@ public void OnAdminMenuReady(Handle topmenu)
 
 void LoadDHooks()
 {
-	Handle gamedataConf = LoadGameConfigFile("shavit.games");
+	GameData gamedataConf = LoadGameConfigFile("shavit.games");
 
 	if(gamedataConf == null)
 	{
@@ -617,6 +620,15 @@ void LoadDHooks()
 	DHookRaw(processMovementPost, true, IGameMovement);
 
 	LoadPhysicsUntouch(gamedataConf);
+
+	Address buttonsSig = gamedataConf.GetMemSig("CBasePlayer->m_afButtonDisabled");
+ 	if (buttonsSig == Address_Null)
+ 	{
+ 		SetFailState("Couldn't find signature of CBasePlayer->m_afButtonDisabled");
+ 	}
+ 
+ 	int instr = LoadFromAddress(buttonsSig, NumberType_Int32);
+ 	gI_Offset_m_afButtonDisabled = instr >> 16;
 
 	delete CreateInterface;
 	delete gamedataConf;
@@ -4540,6 +4552,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	Remove_sv_cheat_Impluses(client, impulse);
 
 	int flags = GetEntityFlags(client);
+	int iButtonDisableFlags = GetEntData(client, gI_Offset_m_afButtonDisabled);
 
 	SetEntityFlags(client, (flags & ~FL_FROZEN));
 
@@ -4899,7 +4912,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	gI_LastTickcount[client] = tickcount;
 
-	if(gB_Zones && Shavit_InsideZone(client, Zone_NoJump, gA_Timers[client].iTimerTrack))
+	if((gB_Zones && Shavit_InsideZone(client, Zone_NoJump, gA_Timers[client].iTimerTrack)) || (iButtonDisableFlags & 2) > 0)
 	{
 		bBlockJump = true;
 	}
