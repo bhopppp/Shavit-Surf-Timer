@@ -2929,29 +2929,7 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 		menu.GetItem(param2, sInfo, 8);
 		gA_EditCache[param1].iTrack = StringToInt(sInfo);
 
-		char sTrack[16];
-		GetTrackName(param1, gA_EditCache[param1].iTrack, sTrack, 16);
-
-		Menu submenu = new Menu(MenuHandler_SelectZoneType);
-		submenu.SetTitle("%T\n ", "ZoneMenuTitle", param1, sTrack);
-
-		char sZoneName[32];
-
-		for(int i = 0; i < ZONETYPES_SIZE; i++)
-		{
-			if(i == Zone_CustomSpawn || ((i == Zone_Stage || i == Zone_Checkpoint) && gA_EditCache[param1].iTrack != Track_Main))
-			{
-				continue;
-			}
-
-			GetZoneName(param1, i, sZoneName, sizeof(sZoneName));
-
-			IntToString(i, sInfo, 8);
-			submenu.AddItem(sInfo, sZoneName);
-		}
-
-		submenu.ExitButton = true;
-		submenu.Display(param1, MENU_TIME_FOREVER);
+		OpenZoneTypeMenu(param1);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -2963,6 +2941,34 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 	}
 
 	return 0;
+}
+
+void OpenZoneTypeMenu(int client)
+{
+	char sTrack[16]; 
+	GetTrackName(client, gA_EditCache[client].iTrack, sTrack, 16);
+
+	Menu menu = new Menu(MenuHandler_SelectZoneType);
+	menu.SetTitle("%T\n ", "ZoneMenuTitle", client, sTrack);
+
+	char sZoneName[32];
+	char sInfo[8];
+
+	for(int i = 0; i < ZONETYPES_SIZE; i++)
+	{
+		if(i == Zone_CustomSpawn || ((i == Zone_Stage || i == Zone_Checkpoint) && gA_EditCache[client].iTrack != Track_Main))
+		{
+			continue;
+		}
+
+		GetZoneName(client, i, sZoneName, sizeof(sZoneName));
+
+		IntToString(i, sInfo, 8);
+		menu.AddItem(sInfo, sZoneName);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 Action OpenTpToZoneMenu(int client, int pagepos=0)
@@ -4329,6 +4335,14 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 					}
 
 					gI_MapStep[param1]--;
+				}
+				else
+				{
+					int track = gA_EditCache[param1].iTrack;
+					Reset(param1);
+					gA_EditCache[param1].iTrack = track;
+					OpenZoneTypeMenu(param1);
+					return 0;
 				}
 			}
 
