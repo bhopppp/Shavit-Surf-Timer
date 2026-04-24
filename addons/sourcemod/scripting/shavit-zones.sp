@@ -2761,7 +2761,7 @@ public Action Command_Stages(int client, int args)
 
 			Shavit_StopTimer(client);
 			Shavit_SetClientLastStage(client, iStage);
-			Shavit_SetOnlyStageMode(client, true);
+			if (iStage > 1) Shavit_SetOnlyStageMode(client, true);
 			Shavit_RestartTimer(client, Track_Main, (iStage == 1), false);	
 		}
 		else	// client use sm_back here
@@ -2776,7 +2776,7 @@ public Action Command_Stages(int client, int args)
 				Shavit_StopTimer(client);
 				Shavit_SetClientLastStage(client, iStage);
 				Shavit_SetOnlyStageMode(client, true);
-				Shavit_RestartTimer(client, Track_Main, (iStage == 1), false);
+				Shavit_RestartTimer(client, Track_Main, false, false);
 
 				return Plugin_Handled;
 			}
@@ -6559,14 +6559,6 @@ public void TeleportToStartZone(int client, int track, int stage)
 	{
 		ResetClientTargetNameAndClassName(client, track);
 	}
-
-	// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
-	if(Shavit_IsOnlyStageMode(client) && gI_ZoneStage[client][0] < 1)
-	{
-		return;
-	}
-
-	Shavit_StartTimer(client, track);
 }
 
 public void Shavit_OnEnd(int client, int track)

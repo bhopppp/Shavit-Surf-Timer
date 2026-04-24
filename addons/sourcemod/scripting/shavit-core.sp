@@ -3977,7 +3977,9 @@ public void Shavit_OnReachNextStage(int client, int track, int startStage, int e
 void Frame_StartStageTimer(int serial)
 {
 	int client = GetClientFromSerial(serial);
-	StartStageTimer(client, Track_Main, gA_Timers[client].iLastStage, true, true);
+	
+	if (!gB_PlayerRepeat[client])
+		StartStageTimer(client, Track_Main, gA_Timers[client].iLastStage, true, true);
 }
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
