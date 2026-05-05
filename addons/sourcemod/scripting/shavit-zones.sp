@@ -6890,12 +6890,20 @@ public void StartTouchPost(int entity, int other)
 							Call_Finish();
 						}
 
-						Call_StartForward(gH_Forwards_ReachNextStage);
-						Call_PushCell(other);
-						Call_PushCell(track);
-						Call_PushCell(iLastStage);
-						Call_PushCell(stage);
-						Call_Finish();						
+						if (!(Shavit_IsClientRepeat(other)))
+						{
+							Call_StartForward(gH_Forwards_ReachNextStage);
+							Call_PushCell(other);
+							Call_PushCell(track);
+							Call_PushCell(iLastStage);
+							Call_PushCell(stage);
+							Call_Finish();							
+							
+							if(!Shavit_IsOnlyStageMode(other))
+							{
+								Shavit_StartStageTimer(other, track, stage, true);								
+							}
+						}
 					}
 					else if(stage == iLastStage)
 					{

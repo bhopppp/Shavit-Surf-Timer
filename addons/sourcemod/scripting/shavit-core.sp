@@ -2228,7 +2228,8 @@ public int Native_StartTimer(Handle handler, int numParams)
 
 public int Native_StartStageTimer(Handle handler, int numParams)
 {
-	StartStageTimer(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3), false, false);
+	bool first = numParams > 3 ? GetNativeCell(4):false;
+	StartStageTimer(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3), first, first);
 	return 0;
 }
 
@@ -3602,7 +3603,7 @@ void StopStageTimer(int client)
 	gA_Timers[client].aStageStartInfo.iStrafes = 0;
 	gA_Timers[client].aStageStartInfo.iGoodGains = 0;
 	gA_Timers[client].aStageStartInfo.iTotalMeasures = 0;
-	// gA_Timers[client].aStageStartInfo.iZoneIncrement = 0;
+	gA_Timers[client].aStageStartInfo.iZoneIncrement = 0;
 	gA_Timers[client].aStageStartInfo.fMaxVelocity = 0.0;	
 	gA_Timers[client].aStageStartInfo.fAvgVelocity = 0.0;
 }
@@ -3967,19 +3968,6 @@ void SQL_DBConnect()
 	gI_Driver = GetDatabaseDriver(gH_SQL);
 
 	SQL_CreateTables(gH_SQL, gS_MySQLPrefix, gI_Driver);
-}
-
-public void Shavit_OnReachNextStage(int client, int track, int startStage, int endStage)
-{
-	RequestFrame(Frame_StartStageTimer, GetClientSerial(client));
-}
-
-void Frame_StartStageTimer(int serial)
-{
-	int client = GetClientFromSerial(serial);
-	
-	if (!gB_PlayerRepeat[client])
-		StartStageTimer(client, Track_Main, gA_Timers[client].iLastStage, true, true);
 }
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)

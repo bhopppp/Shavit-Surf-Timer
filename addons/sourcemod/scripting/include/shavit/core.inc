@@ -1065,10 +1065,11 @@ native void Shavit_StartTimer(int client, int track);
  *
  * @param client					Client index.
  * @param track						Timer track.
- * @param stage						stage number of stage zone.
+ * @param stage						Stage number of stage zone.
+ * @param first						True to execute resets when the stage timer is first activated. (You only need to specified it on reach next stage)
  * @noreturn
  */
-native void Shavit_StartStageTimer(int client, int track, int stage);
+native void Shavit_StartStageTimer(int client, int track, int stage, bool first=false);
 
 /**
  * Restarts the timer for a player.
