@@ -872,12 +872,12 @@ bool SaveReplay(int style, int track, int stage, float time, int steamid, int pr
 
 	if (fWR)
 	{
-		WriteReplayHeader(fWR, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map, frameoffsets);
+		WriteReplayHeader(fWR, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map, frameoffsets, timestamp);
 	}
 
 	if (fCopy)
 	{
-		WriteReplayHeader(fCopy, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map, frameoffsets);
+		WriteReplayHeader(fCopy, style, track, stage, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map, frameoffsets, timestamp);
 	}
 
 	WriteReplayFrames(playerrecording, iSize, fWR, fCopy);
@@ -986,6 +986,11 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	}
 
 	if (!gB_GrabbingPostFrames[client][0] && !(Shavit_ReplayEnabledStyle(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running))
+	{
+		return;
+	}
+
+	if (Shavit_IsClientForzen(client))
 	{
 		return;
 	}

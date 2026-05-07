@@ -1260,7 +1260,7 @@ stock bool WriteReplayData(int client, char[] sPath, cp_cache_t cache, int iSize
 		return false;
 	}
 
-	WriteReplayHeader(fFile, cache.aSnapshot.bsStyle, cache.aSnapshot.iTimerTrack, 0, cache.aSnapshot.fCurrentTime, GetSteamAccountID(client), cache.iPreFrames, 0, cache.aSnapshot.fZoneOffset, iSize, gF_Tickrate, gS_Map, cache.aFrameOffsets);
+	WriteReplayHeader(fFile, cache.aSnapshot.bsStyle, cache.aSnapshot.iTimerTrack, 0, cache.aSnapshot.fCurrentTime, GetSteamAccountID(client), cache.iPreFrames, 0, cache.aSnapshot.fZoneOffset, iSize, gF_Tickrate, gS_Map, cache.aFrameOffsets, GetTime());
 	WriteReplayFrames(cache.aFrames, iSize, fFile, null);
 
 	delete cache.aFrames;

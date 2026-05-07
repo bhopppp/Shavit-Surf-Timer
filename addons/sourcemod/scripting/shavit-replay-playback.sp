@@ -1878,6 +1878,7 @@ public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, i
 	gA_FrameCache[style][track][stage].iReplayVersion = REPLAY_FORMAT_SUBVERSION;
 	gA_FrameCache[style][track][stage].bNewFormat = true;
 	gA_FrameCache[style][track][stage].fTickrate = gF_Tickrate;
+	gA_FrameCache[style][track][stage].iTimestamp = timestamp;
 
 	StopOrRestartBots(style, track, stage, false);
 
@@ -3472,7 +3473,7 @@ public void OpenReplayBackupListMenu(int client, int style, int track, int stage
 				FormatEx(sTrack, 32, "%T %d", "StageText", client, stage);
 			}
 
-			FormatTime(sDate, sizeof(sDate), "%Y/%m/%d %H:%M", backup.date);
+			FormatTime(sDate, sizeof(sDate), "%Y/%m/%d %H:%M", backup.header.iTimestamp);
 			FormatSeconds(backup.header.fTime, sTime, 32, false, false, true);
 
 			FormatEx(sDisplay, sizeof(sDisplay), "%s %T - %s\n%T: 0x%02X\n%T: %s\n ", sTrack, "ReplayBackup", client, sDate, 
@@ -3590,12 +3591,14 @@ public void BuildReplayBackupManagementMenu(int client, int index, char[] sRepla
 		FormatEx(sTrack, 32, "%T %d", "StageText", client, stage);
 	}
 
+	char sDate[32];
 	char sTime[32];
 	char sCurrentReplayInfo[256];
 	if(gA_FrameCache[style][track][stage].iFrameCount > 0)
 	{
 		FormatSeconds(gA_FrameCache[style][track][stage].fTime, sTime, 32, false, false, true);
-		FormatEx(sCurrentReplayInfo, sizeof(sCurrentReplayInfo), "%T\n———————————————————\n%T: 0x%02X\n%T: %s | %T\n%T: %s", "ReplayCurrent", client,
+		FormatTime(sDate, sizeof(sDate), "%Y/%m/%d %H:%M", gA_FrameCache[style][track][stage].iTimestamp);
+		FormatEx(sCurrentReplayInfo, sizeof(sCurrentReplayInfo), "%T - %s\n———————————————————\n%T: 0x%02X\n%T: %s | %T\n%T: %s", "ReplayCurrent", client, sDate,
 		"ReplayVersion", client, gA_FrameCache[style][track][stage].iReplayVersion, "ReplayTime", client, sTime, "ReplayLength", client, gA_FrameCache[style][track][stage].aFrames.Length,
 		"ReplayRunner", client, gA_FrameCache[style][track][stage].sReplayName);
 	}
@@ -3604,10 +3607,10 @@ public void BuildReplayBackupManagementMenu(int client, int index, char[] sRepla
 		FormatEx(sCurrentReplayInfo, sizeof(sCurrentReplayInfo), "%T\n———————————————————\n%T", "ReplayCurrent", client, "ReplaysUnavailable", client);
 	}
 
-	char sDate[32];
+
 	char sBackupReplayInfo[256];
 	FormatSeconds(backup.header.fTime, sTime, 32, false, false, true);
-	FormatTime(sDate, sizeof(sDate), "%Y/%m/%d %H:%M", backup.date);
+	FormatTime(sDate, sizeof(sDate), "%Y/%m/%d %H:%M", backup.header.iTimestamp);
 	FormatEx(sBackupReplayInfo, sizeof(sBackupReplayInfo), "%T - %s\n———————————————————\n%T: 0x%02X\n%T: %s | %T\n%T: %s\n ", 
 	"ReplayBackup", client, sDate, "ReplayVersion", client, backup.header.iReplayVersion, "ReplayTime", client, sTime, 
 	"ReplayLength", client, backup.header.iPreFrames + backup.header.iFrameCount + backup.header.iPostFrames, "ReplayRunner", client, sReplayName);

@@ -35,9 +35,14 @@
 // 0x08: added zone-offsets to header
 // 0x09: bumped with no actual file changes because time calculation in regards to offsets have been changed/fixed since it seems to have been using the end-zone-offset incorrectly (and should now be fine hopefully since 2021-12-21 / a146b51fb16febf1847657fba7ef9e0c056d7476)
 
+// Changes since surftimer fork
+// 0x0A: stage added 
+// 0x0B: no fail replay implemented, added frame offsets for caculate actual replay time
+// 0x0C: add timestamp to replay header
+
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x0B
+#define REPLAY_FORMAT_SUBVERSION 0x0C
 
 #define REPLAY_FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
@@ -57,6 +62,7 @@ enum struct replay_header_t
 	float fZoneOffset[2];
 	int iStage;
 	int iOffsetsLength;		// length of offsets for reading
+	int iTimestamp;
 }
 
 enum struct frame_t // size = 11
@@ -97,6 +103,8 @@ enum struct frame_cache_t
 	int iSteamID;
 	// iReplayVersion >= 0x0B
 	ArrayList aFrameOffsets;
+	// iTimestamp >= 0x0C
+	int iTimestamp;
 }
 
 enum struct replaybackup_info_t
@@ -255,6 +263,7 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 	cache.iPostFrames = header.iPostFrames;
 	cache.fTickrate = header.fTickrate;
 	cache.iSteamID = header.iSteamID;
+	cache.iTimestamp = header.iTimestamp;
 
 	if (cache.iSteamID != 0)
 	{
@@ -357,6 +366,15 @@ stock File ReadReplayHeader(const char[] path, replay_header_t header, int style
 			file.ReadUint8(view_as<int>(header.iStage));
 		}
 
+		if (version >= 0x0c)
+		{
+			file.ReadInt32(view_as<int>(header.iTimestamp));
+		}
+		else
+		{
+			header.iTimestamp = GetFileTime(path, FileTime_LastChange);
+		}
+
 		if (version >= 0x0b)
 		{
 			file.ReadUint8(view_as<int>(header.iOffsetsLength));
@@ -401,7 +419,7 @@ stock File ReadReplayHeader(const char[] path, replay_header_t header, int style
 	return file;
 }
 
-stock void WriteReplayHeader(File fFile, int style, int track, int stage, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int iSize, float tickrate, const char[] sMap, ArrayList aFrameOffsets)
+stock void WriteReplayHeader(File fFile, int style, int track, int stage, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int iSize, float tickrate, const char[] sMap, ArrayList aFrameOffsets, int timestamp)
 {
 	fFile.WriteLine("%d:" ... REPLAY_FORMAT_FINAL, REPLAY_FORMAT_SUBVERSION);
 
@@ -421,6 +439,8 @@ stock void WriteReplayHeader(File fFile, int style, int track, int stage, float 
 	fFile.WriteInt32(view_as<int>(fZoneOffset[1]));
 
 	fFile.WriteInt8(view_as<int>(stage))
+
+	fFile.WriteInt32(timestamp);
 
 	// min length is 2, and linear map dont need offsets
 	int iOffsetsLength = aFrameOffsets ? (aFrameOffsets.Length > 2 ? aFrameOffsets.Length : 0) : 0;
@@ -529,11 +549,14 @@ stock ArrayList GetReplayBackupList(int style, int track, int stage, const char[
 			replaybackup_info_t info;
 			FormatEx(sEntryPath, PLATFORM_MAX_PATH, "%s/%s", sBackupPath, sFileName);
 
-			ReplaceString(sFileName, sizeof(sFileName), sTarget, "", false);
-			info.date = StringToInt(sFileName);
-
 			File fFile = ReadReplayHeader(sEntryPath, info.header, style, track, stage);
 			delete fFile;
+
+			if (info.header.iReplayVersion < 0x0c)
+			{
+				ReplaceString(sFileName, sizeof(sFileName), sTarget, "", false);
+				info.header.iTimestamp = StringToInt(sFileName);
+			}
 
 			strcopy(info.sPath, sizeof(replaybackup_info_t::sPath), sEntryPath);
 
