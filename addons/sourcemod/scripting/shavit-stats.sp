@@ -20,7 +20,6 @@
  */
 
 #include <sourcemod>
-#include <geoip>
 #include <convar_class>
 #include <dhooks>
 
@@ -36,6 +35,7 @@
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
+#include <geoip>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -53,6 +53,7 @@ enum struct attempt_info_t
 }
 
 // modules
+bool gB_Geoip = false;
 bool gB_Mapchooser = false;
 bool gB_Rankings = false;
 
@@ -160,6 +161,7 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
+	gB_Geoip = LibraryExists("GeoIP");
 	gB_Mapchooser = LibraryExists("shavit-mapchooser");
 	gB_Rankings = LibraryExists("shavit-rankings");
 
@@ -879,6 +881,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Mapchooser = true;
 	}
+	else if (StrEqual(name, "GeoIP"))
+	{
+		gB_Geoip = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -890,6 +896,10 @@ public void OnLibraryRemoved(const char[] name)
 	else if (StrEqual(name, "shavit-mapchooser"))
 	{
 		gB_Mapchooser = false;
+	}
+	else if (StrEqual(name, "GeoIP"))
+	{
+		gB_Geoip = false;
 	}
 }
 
@@ -1657,7 +1667,15 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			char sIPAddress[32];
 			IPAddressToString(iIPAddress, sIPAddress, 32);
 
-			if (!GeoipCountry(sIPAddress, sCountry, 64))
+			if ((iIPAddress & 0xFFFF0000) == 0xA9FE0000) // 169.254.x.x
+			{
+				sCountry = "Steam Datagram Relay";
+			}
+			else if (!gB_Geoip)
+			{
+				sCountry = "Earth (geoip extension unavailable)";
+			}
+			else if (!GeoipCountry(sIPAddress, sCountry, 64))
 			{
 				sCountry = "Local Area Network";
 			}
