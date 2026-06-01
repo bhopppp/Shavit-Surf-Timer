@@ -4592,32 +4592,41 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if (bInStart && gCV_PrestrafeZone.IntValue > 0)
 	{
-		if(GetEntityFlags(client) & FL_BASEVELOCITY) // they are on booster, dont limit their speed
-		{
-			gA_Timers[client].bStageTimerEnabled = true;
-			bBlockBhop   = ((iTrackStartLimitFlags & ZSLF_BlockBhop) > 0);
-			bBlockJump   = ((iTrackStartLimitFlags & ZSLF_BlockJump) > 0);
-			bNoVerticalSpeed = ((iTrackStartLimitFlags & ZSLF_NoVerticalSpeed) > 0);
-		}
-		else if(bInsideTrackStartZone)
+		if(bInsideTrackStartZone)
 		{
 			fCurrentTime = gA_Timers[client].fCurrentTime;
-			bLimitSpeed  = ((iTrackStartLimitFlags & ZSLF_LimitSpeed) > 0);
 			bBlockBhop   = ( (iTrackStartLimitFlags & ZSLF_BlockBhop) > 0);
 			bBlockJump   = ( (iTrackStartLimitFlags & ZSLF_BlockJump) > 0);
-			bReduceSpeed = (  (iTrackStartLimitFlags & ZSLF_ReduceSpeed) > 0);
 			bNoVerticalSpeed = (  (iTrackStartLimitFlags & ZSLF_NoVerticalSpeed) > 0);
+
+			if(GetEntityFlags(client) & FL_BASEVELOCITY) // they are on booster, dont limit their speed
+			{
+				gA_Timers[client].bStageTimerEnabled = true;
+			}
+			else
+			{
+				bLimitSpeed  = ((iTrackStartLimitFlags & ZSLF_LimitSpeed) > 0);
+				bReduceSpeed = (  (iTrackStartLimitFlags & ZSLF_ReduceSpeed) > 0);
+			}
 		}
 		else if(gCV_PrestrafeZone.IntValue > 1 && bInsideStageStartZone)
 		{
 			if(gA_Timers[client].bOnlyStageMode || gCV_PrestrafeZone.IntValue > 2)
 			{
-				fCurrentTime = gA_Timers[client].bOnlyStageMode ? gA_Timers[client].fCurrentTime:gA_Timers[client].fCurrentTime-gA_Timers[client].aStageStartInfo.fStageStartTime;
-				bLimitSpeed  = ((iStageZoneSpeedLimitFlags & ZSLF_LimitSpeed) > 0);
+				fCurrentTime = gA_Timers[client].bOnlyStageMode ? gA_Timers[client].fCurrentTime:gA_Timers[client].fCurrentTime-gA_Timers[client].aStageStartInfo.fStageStartTime;				
 				bBlockBhop   = ( (iStageZoneSpeedLimitFlags & ZSLF_BlockBhop) > 0);
-				bBlockJump   = ( (iStageZoneSpeedLimitFlags & ZSLF_BlockJump) > 0);
-				bReduceSpeed = (  (iStageZoneSpeedLimitFlags & ZSLF_ReduceSpeed) > 0);
-				bNoVerticalSpeed = ((iStageZoneSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0);
+				bBlockJump   = ( (iStageZoneSpeedLimitFlags & ZSLF_BlockJump) > 0);	
+				bNoVerticalSpeed = ((iStageZoneSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0);							
+
+				if(GetEntityFlags(client) & FL_BASEVELOCITY) // they are on booster, dont limit their speed
+				{
+					gA_Timers[client].bStageTimerEnabled = true;
+				}
+				else
+				{
+					bLimitSpeed  = ((iStageZoneSpeedLimitFlags & ZSLF_LimitSpeed) > 0);
+					bReduceSpeed = (  (iStageZoneSpeedLimitFlags & ZSLF_ReduceSpeed) > 0);
+				}
 			}
 		}
 
