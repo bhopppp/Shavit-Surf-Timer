@@ -930,8 +930,8 @@ void ProcessClientData(int client, bool replaybot, int buttons, int flags, MoveT
 			gI_LastFinishState[client] = 0;
 			gF_LastFinishedTime[client] = -1.0;
 			
-			bool hasFrames = Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(client), iTrack, Shavit_IsOnlyStageMode(client) ? iStage : 0) != 0;
-			if (gB_ReplayPlayback && hasFrames)
+			bool hasFrames = gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(client), iTrack, Shavit_IsOnlyStageMode(client) ? iStage : 0) != 0;
+			if (hasFrames)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(client, fClosestReplayLength);
 				gF_TimeDifference[client] = Shavit_GetClientTime(client) - fClosestReplayTime;
