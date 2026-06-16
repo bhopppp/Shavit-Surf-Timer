@@ -3095,7 +3095,7 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 		char info[32];
 		menu.GetItem(param2, info, sizeof(info));
 
-		if (StrEqual(info, "tpto"))
+		if (StrEqual(info, "tporigin"))
 		{
 			Shavit_StopTimer(param1);
 			Shavit_SetPracticeMode(param1, true, false);
@@ -3104,6 +3104,12 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 			center[1] = (gA_EditCache[param1].fCorner1[1] + gA_EditCache[param1].fCorner2[1]) * 0.5;
 			center[2] = gA_EditCache[param1].fCorner1[2] + 1.0;
 			TeleportEntity(param1, center, NULL_VECTOR, ZERO_VECTOR);
+		}
+		else if (StrEqual(info, "tpdest"))
+		{
+			Shavit_StopTimer(param1);
+			Shavit_SetPracticeMode(param1, true, false);
+			TeleportEntity(param1, gA_EditCache[param1].fDestination, NULL_VECTOR, ZERO_VECTOR);
 		}
 		else if (StrEqual(info, "track"))
 		{
@@ -3219,8 +3225,14 @@ void OpenHookMenu_Editor(int client)
 
 	char display[128], buf[32];
 
-	FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Tpto", client);
-	menu.AddItem("tpto", display);//, form == ZoneForm_trigger_teleport ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+	FormatEx(display, sizeof(display), "%T%s", "ZoneHook_TptoOrigin", client, form == ZoneForm_trigger_teleport ? "":"\n ");
+	menu.AddItem("tporigin", display);
+
+	if (form == ZoneForm_trigger_teleport)
+	{
+		FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_TptoDestination", client);
+		menu.AddItem("tpdest", display);
+	}
 
 	GetTrackName(client, track, buf, sizeof(buf), true);
 	FormatEx(display, sizeof(display), "%T", "ZoneEditTrack", client, buf);
@@ -3258,6 +3270,23 @@ void HookZone_SetupEditor(int client, int ent)
 	origin[2] += 1.0; // so you don't get stuck in the ground
 	AddVectors(origin, gA_EditCache[client].fCorner1, gA_EditCache[client].fCorner1);
 	AddVectors(origin, gA_EditCache[client].fCorner2, gA_EditCache[client].fCorner2);
+
+
+	if (gA_EditCache[client].iForm == ZoneForm_trigger_teleport)
+	{
+		int destent = -1; char target[64]; char desttargetname[64];
+		GetEntPropString(ent, Prop_Data, "m_target", target, sizeof(target));
+		
+		while ((destent = FindEntityByClassname(destent, "info_teleport_destination")) != -1)
+		{
+			GetEntPropString(destent, Prop_Data, "m_iName", desttargetname, sizeof(desttargetname));
+			if (StrEqual(target, desttargetname, true))
+			{
+				GetEntPropVector(destent, Prop_Send, "m_vecOrigin", gA_EditCache[client].fDestination);
+				break;
+			}
+		}
+	}
 
 	gI_MapStep[client] = 4;
 	gA_EditCache[client].iEntity = ent;
@@ -6097,7 +6126,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		GetZoneColors(colors, type, track, 125);
 		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fEditWidth, false, origin, gI_EditBeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0, editaxis);
 
-		if (gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
+		if ((gA_EditCache[client].iType == Zone_Teleport || gA_EditCache[client].iType == Zone_Stage || gA_EditCache[client].iForm == ZoneForm_trigger_teleport) && !EmptyVector(gA_EditCache[client].fDestination))
 		{
 			TE_SetupEnergySplash(gA_EditCache[client].fDestination, ZERO_VECTOR, false);
 			TE_SendToAll(0.0);

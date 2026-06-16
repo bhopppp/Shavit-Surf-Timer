@@ -48,9 +48,13 @@
 	{
 		"en"        "Entity under crosshair"
 	}
-	"ZoneHook_Tpto"
+	"ZoneHook_TptoOrigin"
 	{
-		"en"        "Teleport to (stops timer)"
+		"en"        "Teleport to Origin (stops timer)"
+	}
+	"ZoneHook_TptoDestination"
+	{
+		"en"        "Teleport to Destination (stops timer)"
 	}
 	"ZoneHook_Draw"
 	{
