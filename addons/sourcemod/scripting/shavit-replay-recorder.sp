@@ -985,7 +985,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		return;
 	}
 
-	if (!gB_GrabbingPostFrames[client][0] && !(Shavit_ReplayEnabledStyle(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running))
+	if ((!gB_GrabbingPostFrames[client][0] || !gB_GrabbingPostFrames[client][1])&& !(Shavit_ReplayEnabledStyle(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running))
 	{
 		return;
 	}

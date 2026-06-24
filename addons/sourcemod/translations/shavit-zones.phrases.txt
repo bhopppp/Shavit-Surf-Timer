@@ -382,6 +382,10 @@
 	{
 		"en"		"Start timer if vertical speed exists"
 	}
+	"ZoneSafeHeightCheck"
+	{
+		"en"		"Safe height check"
+	}
 	"ZoneResetSpeedAfterTeleport"
 	{
 		"en"		"Reset speed after teleport"

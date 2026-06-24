@@ -77,6 +77,7 @@ enum // Zone speed limit flag. Used by specify prestrafe limit to each stage zon
 	ZSLF_ReduceSpeed  = (1 << 3), // reduce speed when exceeding speed limit
 	ZSLF_NoVerticalSpeed = (1 << 4), // work as the same behaviour of convar "shavit_core_nozaxisspeed": dont start timer if vertical speed exists
 	ZSLF_ResetSpeedAfterTeleported = (1 << 5), // reset speed after teleported by a teleport zone
+	ZSLF_SafeHeightCheck = (1 << 5), // check if client's height of current position in a safe range before timer activate
 };
 
 #define DEFAULT_SPEEDLIMITFLAG (ZSLF_LimitSpeed|ZSLF_BlockBhop)

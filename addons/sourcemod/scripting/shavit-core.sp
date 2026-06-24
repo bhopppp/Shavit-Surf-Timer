@@ -106,6 +106,7 @@ bool gB_DisableTriggers[MAXPLAYERS+1];
 int gI_LastTickcount[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastButtons[MAXPLAYERS+1];
+int gI_LastStageZoneSpeedLimitFlag[MAXPLAYERS + 1];
 
 // these are here until the compiler bug is fixed
 float gF_PauseOrigin[MAXPLAYERS+1][3];
@@ -3391,20 +3392,23 @@ void StartTimer(int client, int track)
 	float fLimit = (Shavit_GetStyleSettingFloat(gA_Timers[client].bsStyle, "runspeed") + gCV_PrestrafeLimit.FloatValue);
 
 	int iZoneStage;
-	bool bNoVerticalSpeed;
+	bool bDoPreStrafeCheck;
+	int iSpeedLimitFlags;
 	if(gA_Timers[client].bOnlyStageMode && track == Track_Main)
 	{
-		int iSpeedLimitFlags;
 		Shavit_InsideZoneStage(client, iZoneStage, iSpeedLimitFlags);
-		bNoVerticalSpeed = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0;
+		bDoPreStrafeCheck = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0;
 	}
 	else
 	{
-		bNoVerticalSpeed = (Shavit_GetTrackSpeedLimitFlags(track) & ZSLF_NoVerticalSpeed) > 0;
+		iSpeedLimitFlags = Shavit_GetTrackSpeedLimitFlags(track);
+		bDoPreStrafeCheck = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0;
 	}
+
+	bDoPreStrafeCheck |= (!gA_Timers[client].bTimerEnabled && (iSpeedLimitFlags & (ZSLF_LimitSpeed|ZSLF_ReduceSpeed) > 0));
 	
-	if (!bNoVerticalSpeed || (fSpeed[2] == 0.0 && curVel <= fLimit) || ((curVel <= ClientMaxPrestrafe(client) && gA_Timers[client].bOnGround &&
-			  (gI_LastTickcount[client]-gI_FirstTouchedGround[client] > RoundFloat(0.5/GetTickInterval()))))) // beautiful
+	if (!bDoPreStrafeCheck || (fSpeed[2] == 0.0 && curVel <= fLimit && gA_Timers[client].bOnGround &&
+			  (curVel <= ClientMaxPrestrafe(client) || gA_Timers[client].iGroundTicks > RoundFloat(0.5/GetTickInterval())))) // beautiful
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_StartPre);
@@ -3544,12 +3548,12 @@ void StartStageTimer(int client, int track, int stage, bool force, bool first)
 			int iSpeedLimitFlags;
 			int iZoneStage;
 			Shavit_InsideZoneStage(client, iZoneStage, iSpeedLimitFlags);
-			bool bNoVerticalSpeed = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0;
+			bool bDoPreStrafeCheck = (iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0 || !(gA_Timers[client].bStageTimerEnabled || iSpeedLimitFlags & (ZSLF_LimitSpeed|ZSLF_ReduceSpeed) == 0);
 
-			if (force || !bNoVerticalSpeed || (fSpeed[2] == 0.0 && curVel <= fLimit) || ((curVel <= ClientMaxPrestrafe(client) && gA_Timers[client].bOnGround &&
-			  	(gI_LastTickcount[client]-gI_FirstTouchedGround[client] > RoundFloat(0.5/GetTickInterval()))))) // beautiful
+			if (force || !bDoPreStrafeCheck || ((fSpeed[2] == 0.0 && curVel <= fLimit) && gA_Timers[client].bOnGround &&
+			  	(curVel <= ClientMaxPrestrafe(client) || gA_Timers[client].iGroundTicks > RoundFloat(0.5/GetTickInterval())))) // beautiful
 			{
-				bool restart = first || gA_Timers[client].aStageStartInfo.iZoneIncrement > 1;
+				bool restart = first || gA_Timers[client].aStageStartInfo.iZoneIncrement > 1 || !gA_Timers[client].bStageTimerEnabled;
 
 				Call_StartForward(gH_Forwards_StageStart);
 				Call_PushCell(client);
@@ -3798,6 +3802,7 @@ public void OnClientPutInServer(int client)
 	gI_LastTickcount[client] = 0;
 	gI_HijackFrames[client] = 0;
 	gI_LastPrintedSteamID[client] = 0;
+	gI_LastStageZoneSpeedLimitFlag[client] = 0;
 
 	gF_NoclipSpeed[client] = sv_noclipspeed.FloatValue;
 	gB_PlayerRepeat[client] = false;
@@ -4076,7 +4081,7 @@ public void PostThinkPost(int client)
 		GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
 
 		bool bNormalStart = gA_Timers[client].iZoneIncrement == 1;
-		bool bMainTimerStageStart = !bNormalStart && !gA_Timers[client].bOnlyStageMode && gA_Timers[client].aStageStartInfo.iZoneIncrement == 1;
+		bool bMainTimerStageStart = gA_Timers[client].iTimerTrack == Track_Main && !bNormalStart && !gA_Timers[client].bOnlyStageMode && gA_Timers[client].aStageStartInfo.iZoneIncrement == 1;
 
 		if((bNormalStart || bMainTimerStageStart))
 		{
@@ -4134,22 +4139,27 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 
 		int iZoneStage;
 		Shavit_InsideZoneStage(client, iZoneStage, iSpeedLimitFlags);
+		iSpeedLimitFlags |= gI_LastStageZoneSpeedLimitFlag[client];
 
 		bool bZoneLimited;
 		if(gCV_PrestrafeZone.IntValue == 2)
 		{
-			bZoneLimited = gA_Timers[client].bOnlyStageMode || !((iSpeedLimitFlags & ZSLF_LimitSpeed) > 0 || (iSpeedLimitFlags & ZSLF_ReduceSpeed) > 0);
+			bZoneLimited = gA_Timers[client].bOnlyStageMode || (iSpeedLimitFlags & (ZSLF_LimitSpeed|ZSLF_ReduceSpeed) == 0);
 		}
 		else if(gCV_PrestrafeZone.IntValue == 3)
 		{
-			bZoneLimited = ((iSpeedLimitFlags & ZSLF_NoVerticalSpeed) == 0 || ((iSpeedLimitFlags & ZSLF_LimitSpeed) == 0 && (iSpeedLimitFlags & ZSLF_ReduceSpeed) == 0));
+			bZoneLimited = !((iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0 && (iSpeedLimitFlags & (ZSLF_LimitSpeed|ZSLF_ReduceSpeed) > 0));
 		}
 		else
 		{
 			bZoneLimited = true;
 		}
-		
-		gA_Timers[client].bStageTimerEnabled = bZoneLimited ? true:curVel < fMaxPrespeed;
+
+		gA_Timers[client].bStageTimerEnabled = true;
+		if (!bZoneLimited && curVel > fMaxPrespeed)
+		{
+			StopStageTimer(client);
+		}
 
 		if(curVel > 20)
 		{
@@ -4518,7 +4528,6 @@ void BuildSnapshot(int client, timer_snapshot_t snapshot)
 
 	snapshot.fServerTime = GetEngineTime();
 	snapshot.fTimescale = (gA_Timers[client].fTimescale > 0.0) ? gA_Timers[client].fTimescale : 1.0;
-	//snapshot.iLandingTick = ?????; // TODO: Think about handling segmented scroll? /shrug
 }
 
 // This is used instead of `TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed)`.
@@ -4630,7 +4639,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 		}
 
-		bShouldApplyLimit = !bNoVerticalSpeed || (fCurrentTime < 1.0 && fSpeedXY <= fLimit);
+		bShouldApplyLimit = !(fCurrentTime > 0.8 || (bNoVerticalSpeed && fSpeedXY > ClientMaxPrestrafe(client)));
+		
+		
+		// fCurrentTime <= 0.8 || (fSpeedXY <= ClientMaxPrestrafe(client) && bNoVerticalSpeed) || !bNoVerticalSpeed;//!bNoVerticalSpeed || (fCurrentTime <= 0.8 && fSpeedXY <= ClientMaxPrestrafe(client));
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
@@ -5026,6 +5038,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	gA_Timers[client].bJumped = false;
 	gA_Timers[client].bOnGround = bOnGround;
+	gI_LastStageZoneSpeedLimitFlag[client] = iStageZoneSpeedLimitFlags;
 
 	return Plugin_Continue;
 }

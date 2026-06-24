@@ -2129,6 +2129,11 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		cpcache.aSnapshot.bPracticeMode = true;
 	}
 
+	if (bCheckpointInsideStart)
+	{
+		StopSnapshotTimer(cpcache.aSnapshot);
+	}
+
 	Shavit_LoadSnapshot(client, cpcache.aSnapshot, sizeof(timer_snapshot_t), force);
 
 	Shavit_UpdateLaggedMovement(client, true);
@@ -2220,6 +2225,19 @@ bool DeleteCheckpoint(int client, int index, bool force=false)
 	DeleteCheckpointCache(cpcache);
 
 	return true;
+}
+
+void StopSnapshotTimer(timer_snapshot_t snapshot)
+{
+	snapshot.bTimerEnabled = false;
+	snapshot.iJumps = 0;
+	snapshot.fCurrentTime = 0.0;
+	snapshot.iFullTicks = 0;
+	snapshot.iFractionalTicks = 0;
+	snapshot.bClientPaused = false;
+	snapshot.iStrafes = 0;
+	snapshot.iTotalMeasures = 0;
+	snapshot.iGoodGains = 0;
 }
 
 bool UpdateKZStyle(int client, TimerAction timerAction)

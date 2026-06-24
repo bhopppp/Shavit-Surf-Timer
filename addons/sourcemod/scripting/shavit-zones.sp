@@ -184,6 +184,7 @@ Convar gCV_ResetTargetnameBonus = null;
 Convar gCV_ResetClassnameMain = null;
 Convar gCV_ResetClassnameBonus = null;
 Convar gCV_DefaultZonePrespeedLimit = null;
+Convar gCV_TimerActivateSafeHeight = null;
 
 // handles
 Handle gH_DrawVisible = null;
@@ -416,6 +417,7 @@ public void OnPluginStart()
 	gCV_ResetClassnameMain = new Convar("shavit_zones_resetclassname_main", "", "What classname to use when resetting the player.\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
 	gCV_ResetClassnameBonus = new Convar("shavit_zones_resetclassname_bonus", "", "What classname to use when resetting the player (on bonus tracks).\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
 	gCV_AllowSetStartPosition = new Convar("shavit_zones_allowsetstartpostion", "1", "Allow players to use !setstart to set custom spawn positions for tracks/stages.\n0 -Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_TimerActivateSafeHeight = new Convar("shavit_zones_timeractivate_safeheight", "16.0", "How many units above bottom of zone is safe to activate timer.", 0, true, 0.0, false, 0.0);
 
 	char defaultFlags[16];
 	IntToString(DEFAULT_SPEEDLIMITFLAG, defaultFlags, sizeof(defaultFlags));
@@ -5459,6 +5461,9 @@ void CreateSpeedLimitOptionMenu(int client, int item=0)
 	FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0) ? "ItemEnabled":"ItemDisabled", client, "ZoneNoVerticalSpeed", client);
 	menu.AddItem("noverticalspeed", sMenuItem);
 
+	FormatEx(sMenuItem, 64, "[%T] %T", ((gA_EditCache[client].iSpeedLimitFlags & ZSLF_SafeHeightCheck) > 0) ? "ItemEnabled":"ItemDisabled", client, "ZoneSafeHeightCheck", client);
+	menu.AddItem("safeheightcheck", sMenuItem);
+
 	menu.ExitBackButton = true;
 	menu.ExitButton = false;
 
@@ -5491,6 +5496,10 @@ public int MenuHandler_SpeedLimitOption(Menu menu, MenuAction action, int param1
 		else if(StrEqual(sInfo, "noverticalspeed"))
 		{
 			gA_EditCache[param1].iSpeedLimitFlags ^= ZSLF_NoVerticalSpeed;
+		}
+		else if(StrEqual(sInfo, "safeheightcheck"))
+		{
+			gA_EditCache[param1].iSpeedLimitFlags ^= ZSLF_SafeHeightCheck;
 		}
 
 		CreateSpeedLimitOptionMenu(param1, GetMenuSelectionPosition());
@@ -6583,7 +6592,6 @@ public void TeleportToStartZone(int client, int track, int stage)
 		}
 	}
 
-
 	if(gCV_ForceTargetnameReset.IntValue > 0)
 	{
 		ResetClientTargetNameAndClassName(client, track);
@@ -7173,15 +7181,32 @@ public void TouchPost(int entity, int other)
 				}
 			}
 
-			if (GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1 && !Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(other), "startinair"))
+			if ((gA_ZoneCache[zone].iSpeedLimitFlags & ZSLF_SafeHeightCheck) > 0)
 			{
-				return;
+				bool bOnlyStageMode = Shavit_IsOnlyStageMode(other);
+				float fTime = bOnlyStageMode ? Shavit_GetClientTime(other):Shavit_GetClientStageTime(other);
+				if ((Shavit_GetTimerStatus(other) == Timer_Stopped || (!bOnlyStageMode && !Shavit_IsStageTimerEnabled(other))) || fTime > 0.8)
+				{
+					float fZoneBottom = gA_ZoneCache[zone].fCorner1[2] > gA_ZoneCache[zone].fCorner2[2] ? gA_ZoneCache[zone].fCorner2[2]:gA_ZoneCache[zone].fCorner1[2];
+					float origin[3];
+					GetClientAbsOrigin(other, origin);
+					if (origin[2] >= fZoneBottom + gCV_TimerActivateSafeHeight.FloatValue) 
+					{
+						return;
+					}
+
+				}
 			}
 
 			Shavit_StartStageTimer(other, track, gA_ZoneCache[zone].iData);
 		}
 		case Zone_Start:
 		{
+			if(Shavit_IsPaused(other))
+			{
+				return;
+			}
+
 			if (gB_Eventqueuefix)
 			{
 				int curr_tick = GetGameTickCount();
@@ -7216,14 +7241,15 @@ public void TouchPost(int entity, int other)
 				}
 			}
 
-			if (GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1 && !Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(other), "startinair"))
+			if ((gI_TrackStartZoneSpeedLimitFlags[track] & ZSLF_SafeHeightCheck) > 0)
 			{
-				return;
-			}
-
-			if(Shavit_IsPaused(other))
-			{
-				return;
+				if (Shavit_GetTimerStatus(other) == Timer_Stopped || Shavit_GetClientTime(other) > 0.8)
+				{
+					float fZoneBottom = gA_ZoneCache[zone].fCorner1[2] > gA_ZoneCache[zone].fCorner2[2] ? gA_ZoneCache[zone].fCorner2[2]:gA_ZoneCache[zone].fCorner1[2];
+					float origin[3];
+					GetClientAbsOrigin(other, origin);
+					if (origin[2] >= fZoneBottom + gCV_TimerActivateSafeHeight.FloatValue) return;
+				}				
 			}
 
 			// start timer instantly for main track, but require bonuses to have the current timer stopped
