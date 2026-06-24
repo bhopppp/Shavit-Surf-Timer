@@ -2123,7 +2123,7 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 	}
 
 	// walk inside start zone with normal speed
-	bool bCheckpointInsideStart = cpcache.aSnapshot.iZoneIncrement == 0 && cpcache.aSnapshot.bTimerEnabled && cpcache.fVelocity[2] == 0 && GetVectorLength(cpcache.fVelocity) <= Shavit_GetStyleSettingFloat(cpcache.aSnapshot.bsStyle, "runspeed");
+	bool bCheckpointInsideStart = (gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 && cpcache.aSnapshot.iZoneIncrement == 0 && cpcache.aSnapshot.bTimerEnabled && cpcache.fVelocity[2] == 0 && GetVectorLength(cpcache.fVelocity) <= Shavit_GetStyleSettingFloat(cpcache.aSnapshot.bsStyle, "runspeed");
 	if (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || bCheckpointInsideStart || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
 	{
 		cpcache.aSnapshot.bPracticeMode = true;
