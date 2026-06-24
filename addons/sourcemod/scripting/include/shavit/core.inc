@@ -25,7 +25,11 @@
 #define _shavit_core_included
 
 #define SHAVIT_VERSION "3.4.2"
-#define SHAVIT_SURF_VERSION "1.0.6"
+#define SHAVIT_SURF_VERSION "1.0.7"
+#define SHAVIT_SURF_VERSION_MAJOR 1
+#define SHAVIT_SURF_VERSION_MINOR 0
+#define SHAVIT_SURF_VERSION_PATCH 7
+
 #define STYLE_LIMIT 128 // 256 is too much for style.
 #define MAX_STAGES 64
 
@@ -187,7 +191,10 @@ enum struct timer_snapshot_t
 
 	int iLastButtons;
 	float fLastAngle;
+
 	int iLandingTick;
+	// How many ticks the player has been on the ground since landing. 0 = in air.
+	int iGroundTicks;
 	MoveType iLastMoveType;
 	float fStrafeWarning;
 	float fLastInputVel[2];

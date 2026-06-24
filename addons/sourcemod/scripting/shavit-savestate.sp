@@ -442,8 +442,8 @@ void OpenSavestateMenu(int client)
 	FormatEx(sDisplay, sizeof(sDisplay), "%T", "SaveCurrentTimer", client, gI_SaveCount[client], gCV_MaxPlayerSaves.IntValue);
 	menu.AddItem("save", sDisplay, (Shavit_GetTimerStatus(client) == Timer_Stopped || Shavit_IsOnlyStageMode(client)) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 	
-	FormatEx(sDisplay, sizeof(sDisplay), "%s", "SaveCurrentCP", client, gI_SaveCount[client], gCV_MaxPlayerSaves.IntValue);
-	menu.AddItem("save", sDisplay, (Shavit_GetTimerStatus(client) == Timer_Stopped || Shavit_IsOnlyStageMode(client)) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+	// FormatEx(sDisplay, sizeof(sDisplay), "%s", "SaveCurrentCP", client, gI_SaveCount[client], gCV_MaxPlayerSaves.IntValue);
+	// menu.AddItem("save", sDisplay, (Shavit_GetTimerStatus(client) == Timer_Stopped || Shavit_IsOnlyStageMode(client)) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
 	FormatEx(sDisplay, sizeof(sDisplay), "%T\n ", "LoadTimerSave", client, gI_SaveCount[client]);
 	menu.AddItem("load", sDisplay);
@@ -1274,6 +1274,11 @@ stock bool WriteTimerData(char[] sPath, cp_cache_t cache)
 	// write KeyValues
 	KeyValues kv = new KeyValues("savestate");
 	kv.JumpToKey("meta", true);
+
+	kv.SetNum("version_major", SHAVIT_SURF_VERSION_MAJOR);
+	kv.SetNum("version_minor", SHAVIT_SURF_VERSION_MINOR);
+	kv.SetNum("version_patch", SHAVIT_SURF_VERSION_PATCH);
+
 	kv.SetNum("date", GetTime());
 	kv.SetNum("auth", cache.iSteamID);
 	kv.SetString("map", gS_Map);
@@ -1308,13 +1313,14 @@ stock bool WriteTimerData(char[] sPath, cp_cache_t cache)
 	kv.SetNum("TiFractionalTicks", cache.aSnapshot.iFractionalTicks);
 	kv.SetNum("TbPracticeMode", view_as<int>(cache.aSnapshot.bPracticeMode));
 	kv.SetNum("TbOnlyStageMode", view_as<int>(cache.aSnapshot.bOnlyStageMode));
-	kv.SetNum("TbStageTimeValid", view_as<int>(cache.aSnapshot.bStageTimerEnabled));
+	kv.SetNum("TbStageTimerEnabled", view_as<int>(cache.aSnapshot.bStageTimerEnabled));
 	kv.SetNum("TbJumped", view_as<int>(cache.aSnapshot.bJumped));
 	kv.SetNum("TbCanUseAllKeys", view_as<int>(cache.aSnapshot.bCanUseAllKeys));
 	kv.SetNum("TbOnGround", view_as<int>(cache.aSnapshot.bOnGround));
 	kv.SetNum("TiLastButtons", cache.aSnapshot.iLastButtons);
 	kv.SetFloat("TfLastAngle", cache.aSnapshot.fLastAngle);
 	kv.SetNum("TiLandingTick", cache.aSnapshot.iLandingTick);
+	kv.SetNum("TiGroundTicks", cache.aSnapshot.iGroundTicks);
 	kv.SetNum("TiLastMoveType", view_as<int>(cache.aSnapshot.iLastMoveType));
 	kv.SetFloat("TfStrafeWarning", cache.aSnapshot.fStrafeWarning);
 	kv.SetFloat("TfLastInputVel1", cache.aSnapshot.fLastInputVel[0]);
@@ -1501,6 +1507,15 @@ stock bool LoadTimerData(char[] sPath, cp_cache_t cache, int& iRealFrameCount)
 		return false;
 	}
 
+	int iVersion[3];
+	if(kv.JumpToKey("meta", false))
+	{
+		iVersion[0] = kv.GetNum("version_major", 1);
+		iVersion[1] = kv.GetNum("version_minor", 0);
+		iVersion[2] = kv.GetNum("version_patch", 6);
+		kv.GoBack();
+	}
+
 	if(kv.JumpToKey("snapshot", false))
 	{
 		cache.aSnapshot.bTimerEnabled = view_as<bool>(kv.GetNum("TbTimerEnabled", 0));
@@ -1529,13 +1544,23 @@ stock bool LoadTimerData(char[] sPath, cp_cache_t cache, int& iRealFrameCount)
 		cache.aSnapshot.iFractionalTicks = kv.GetNum("TiFractionalTicks", 0);
 		cache.aSnapshot.bPracticeMode = view_as<bool>(kv.GetNum("TbPracticeMode", 0));
 		cache.aSnapshot.bOnlyStageMode = view_as<bool>(kv.GetNum("TbOnlyStageMode", 0));
-		cache.aSnapshot.bStageTimerEnabled = view_as<bool>(kv.GetNum("TbStageTimeValid", 1));
+		
+		if (iVersion[0] == 1 && iVersion[1] == 0 && iVersion[2] < 7)
+		{
+			cache.aSnapshot.bStageTimerEnabled = view_as<bool>(kv.GetNum("TbStageTimeValid", 0));
+		}
+		else
+		{
+			cache.aSnapshot.bStageTimerEnabled = view_as<bool>(kv.GetNum("TbStageTimerEnabled", 0));
+		}
+
 		cache.aSnapshot.bJumped = view_as<bool>(kv.GetNum("TbJumped", 0));
 		cache.aSnapshot.bCanUseAllKeys = view_as<bool>(kv.GetNum("TbCanUseAllKeys", 1));
 		cache.aSnapshot.bOnGround = view_as<bool>(kv.GetNum("TbOnGround", 1));
 		cache.aSnapshot.iLastButtons = kv.GetNum("TiLastButtons", 0);
 		cache.aSnapshot.fLastAngle = kv.GetFloat("TfLastAngle", 0.0);
 		cache.aSnapshot.iLandingTick = kv.GetNum("TiLandingTick", 0);
+		cache.aSnapshot.iGroundTicks = kv.GetNum("TiGroundTicks", 0);
 		cache.aSnapshot.iLastMoveType = view_as<MoveType>(kv.GetNum("TiLastMoveType", 0));
 		cache.aSnapshot.fStrafeWarning = kv.GetFloat("TfStrafeWarning", 0.0);
 		cache.aSnapshot.fLastInputVel[0] = kv.GetFloat("TfLastInputVel1", 0.0);

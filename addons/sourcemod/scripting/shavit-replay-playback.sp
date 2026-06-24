@@ -1250,10 +1250,10 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(2);
 	int stage = GetNativeCell(3);
-	bool restart = view_as<bool>(GetNativeCell(3));
+	bool restart = view_as<bool>(GetNativeCell(4));
 
 	char path[PLATFORM_MAX_PATH];
-	GetNativeString(4, path, PLATFORM_MAX_PATH);
+	GetNativeString(5, path, PLATFORM_MAX_PATH);
 
 	return UnloadReplay(style, track, stage, true, restart, path);
 }

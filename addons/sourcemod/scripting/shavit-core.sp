@@ -103,7 +103,6 @@ bool gB_IsClientForzen[MAXPLAYERS + 1];	// Freeze client's timer & movement whil
 timer_snapshot_t gA_Timers[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 bool gB_DisableTriggers[MAXPLAYERS+1];
-int gI_FirstTouchedGround[MAXPLAYERS+1];
 int gI_LastTickcount[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastButtons[MAXPLAYERS+1];
@@ -3792,8 +3791,9 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].fCPTimes = empty_times;
 	gA_Timers[client].fStageFinishTimes = empty_times;
 	gA_Timers[client].iStageAttempts = empty_attempts;
+	gA_Timers[client].iLandingTick = 0;
+	gA_Timers[client].iGroundTicks = 0;
 	gS_DeleteMap[client][0] = 0;
-	gI_FirstTouchedGround[client] = 0;
 	gI_LastNoclipTick[client] = 0;
 	gI_LastTickcount[client] = 0;
 	gI_HijackFrames[client] = 0;
@@ -4953,7 +4953,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
 		gA_Timers[client].iLandingTick = tickcount;
-		gI_FirstTouchedGround[client] = tickcount;
 
 		if (gEV_Type != Engine_TF2 && GetStyleSettingBool(gA_Timers[client].bsStyle, "easybhop"))
 		{
@@ -4962,19 +4961,31 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 	else if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped && !gA_Timers[client].bClientPaused)
 	{
-		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
+		int iGroundTicks = gA_Timers[client].iGroundTicks;
+		int onehundredMillisecondsAsTicks = RoundToCeil(0.1 / GetTickInterval());
 
-		if (iDifference < 10)
+		if (iGroundTicks < onehundredMillisecondsAsTicks)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if (iDifference == 1)
+			if (iGroundTicks == 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
 		}
 	}
 
+	if (bOnGround)
+	{
+		if (!gA_Timers[client].bOnGround)
+			gA_Timers[client].iGroundTicks = 1; // landing frame
+		else
+			gA_Timers[client].iGroundTicks++;
+	}
+	else
+	{
+		gA_Timers[client].iGroundTicks = 0;
+	}
 	// This can be bypassed by spamming +duck on CSS which causes `iGroundEntity` to be `-1` here...
 	//   (e.g. an autobhop + velocity_limit style...)
 	// m_hGroundEntity changes from 0 -> -1 same tick which causes problems and I'm not sure what the best way / place to handle that is...
@@ -5092,7 +5103,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 			fTempAngle += 360.0;
 		}
 
-		TestAngles(client, (fTempAngle - fAngles[1]), fAngle, vel);
+		TestAngles(client, (fTempAngle - fAngles[1]), fAngle, gA_Timers[client].fLastInputVel);
 	}
 
 	if (gA_Timers[client].fCurrentTime != 0.0)
@@ -5118,7 +5129,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	gA_Timers[client].fLastInputVel[1] = vel[1];
 }
 
-void TestAngles(int client, float dirangle, float yawdelta, const float vel[3])
+void TestAngles(int client, float dirangle, float yawdelta, const float vel[2])
 {
 	if(dirangle < 0.0)
 	{
