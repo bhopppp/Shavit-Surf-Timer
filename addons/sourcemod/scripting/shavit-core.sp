@@ -108,6 +108,9 @@ int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastButtons[MAXPLAYERS+1];
 int gI_LastStageZoneSpeedLimitFlag[MAXPLAYERS + 1];
 
+char gS_LastReplicatedAA[MAXPLAYERS+1][8];
+bool gB_LastAutobunnyhopEnabled[MAXPLAYERS + 1];
+
 // these are here until the compiler bug is fixed
 float gF_PauseOrigin[MAXPLAYERS+1][3];
 float gF_PauseAngles[MAXPLAYERS+1][3];
@@ -3774,6 +3777,8 @@ public void OnClientPutInServer(int client)
 	gH_TeleportDhook.HookEntity(Hook_Post, client, DHooks_OnTeleport);
 
 	gB_Auto[client] = true;
+	gS_LastReplicatedAA[client][0] = '\0';
+	gB_LastAutobunnyhopEnabled[client] = false;
 	gB_DisableTriggers[client] = false;
 	gA_Timers[client].fStrafeWarning = 0.0;
 	gA_Timers[client].bPracticeMode = false;
@@ -4927,34 +4932,48 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		bBlockJump = true;
 	}
 
-	if (bBlockJump && (vel[2] > 0 || (buttons & IN_JUMP) > 0) && !bInWater)
+	if (mtMoveType == MOVETYPE_WALK)
 	{
-		if((iLastButtons & IN_JUMP) == 0 && (buttons & IN_JUMP) > 0 && bOnGround)
-		{
-			Shavit_PrintToChat(client, "%T", "NotAllowJump", client);
-		}
+		bool bEnableBhop;
 
-		sv_autobunnyhopping.ReplicateToClient(client, "0");
-		
-		vel[2] = 0.0;
-		buttons &= ~IN_JUMP;
-	}
-	else if ((buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
-	{
-		if ((gB_Auto[client] && GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop")) 
-		|| (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack)))
+		if (bBlockJump)
+		{
+			if ((vel[2] > 0 || (buttons & IN_JUMP) > 0) && !bInWater)
+			{
+				if((iLastButtons & IN_JUMP) == 0 && (buttons & IN_JUMP) > 0 && bOnGround)
+				{
+					Shavit_PrintToChat(client, "%T", "NotAllowJump", client);
+				}
+
+				bEnableBhop = false;
+				
+				vel[2] = 0.0;
+				buttons &= ~IN_JUMP;			
+			}
+		}
+		else if ((gB_Auto[client] && GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop")) 
+			|| (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack)))
 		{	// just force autobhop enabled in autobhop zone whatever situation
-			sv_autobunnyhopping.ReplicateToClient(client, "1");
-			SetEntProp(client, Prop_Data, "m_nOldButtons", (iOldButtons &= ~IN_JUMP));	
+			if ((buttons & IN_JUMP) > 0 && !bInWater)
+			{
+				bEnableBhop = true;
+				SetEntProp(client, Prop_Data, "m_nOldButtons", (iOldButtons &= ~IN_JUMP));	
+			}
+			else
+			{
+				bEnableBhop = gB_LastAutobunnyhopEnabled[client];
+			}
 		}
 		else
 		{
-			sv_autobunnyhopping.ReplicateToClient(client, "0");
+			bEnableBhop = false;
 		}
-	}
-	else
-	{
-		sv_autobunnyhopping.ReplicateToClient(client, "0");
+
+		if (bEnableBhop != gB_LastAutobunnyhopEnabled[client])
+		{
+			gB_LastAutobunnyhopEnabled[client] = bEnableBhop;
+			sv_autobunnyhopping.ReplicateToClient(client, bEnableBhop ? "1":"0");
+		}
 	}
 
 	if(mtMoveType == MOVETYPE_NOCLIP)
@@ -5204,7 +5223,12 @@ void UpdateAiraccelerate(int client, float airaccelerate)
 {
 	char sAiraccelerate[8];
 	FloatToString(airaccelerate, sAiraccelerate, 8);
-	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+
+	if (!StrEqual(sAiraccelerate, gS_LastReplicatedAA[client]))
+	{
+		sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+		gS_LastReplicatedAA[client] = sAiraccelerate;
+	}
 }
 
 void UpdateStyleSettings(int client)
