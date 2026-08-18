@@ -1596,6 +1596,8 @@ void DeleteRestOfUser(int iSteamID, DataPack hPack)
 	AddQueryLog(trans, sQuery);
 	FormatEx(sQuery, 256, "DELETE FROM %scpwrs WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 	AddQueryLog(trans, sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %smapplaytime WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	AddQueryLog(trans, sQuery);
 	FormatEx(sQuery, 256, "DELETE FROM %sstyleplaytime WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 	AddQueryLog(trans, sQuery);
 	FormatEx(sQuery, 256, "DELETE FROM %sstartpositions WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
