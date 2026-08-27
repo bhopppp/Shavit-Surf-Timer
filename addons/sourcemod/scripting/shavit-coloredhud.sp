@@ -1137,7 +1137,7 @@ void GetTimerColor(int client, int target, int color[3])
 			}
 			else if (status == Timer_Running)
 			{
-				if (gB_InStartZone[target])
+				if (gB_InStartZone[target] && Shavit_GetClientTime(target) < 0.3)
 				{
 					color = gI_HUDColors[client][Color_Timer_Start];
 				}
@@ -1294,31 +1294,45 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			gI_LastFinishState[client] = 1;
 	}
 
-	float fComparsion = (gI_HUDDisplayLogic[client][HUD_TimeDifference] == DisplayLogic_Second) ? fWR:oldtime;
-	if (fComparsion == 0.0)
+	if (fWR == 0.0)
+	{
 		return;
+	}
 
-	float fTimeDifference = time - fComparsion;
-	char sTime[32];
-	FormatSeconds(fTimeDifference, sTime, 32, true);
+	float fComparison[2];
+	float fTimeDifference[2]; 	
+	
+	fComparison[DisplayLogic_First-1] = oldtime; fComparison[DisplayLogic_Second-1] = fWR;
+	fTimeDifference[DisplayLogic_First-1] = time - oldtime; fTimeDifference[DisplayLogic_Second-1] = time - fWR;
+
+	char sTime[2][32];
+	FormatSeconds(fTimeDifference[DisplayLogic_First-1], sTime[DisplayLogic_First-1], 32, true);
+	FormatSeconds(fTimeDifference[DisplayLogic_Second-1], sTime[DisplayLogic_Second-1], 32, true);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsValidClient(i))
 		{
-			return;
+			continue;
 		}
 
 		if (GetSpectatorTarget(i, i) == client && gB_HUDEnabled[i][HUD_TimeDifference] && gI_HUDDisplayLogic[i][HUD_TimeDifference] > DisplayLogic_Default)
 		{
+			int iLogicIndex = gI_HUDDisplayLogic[i][HUD_TimeDifference]-1;
+
+			if ((fComparison[iLogicIndex] == 0.0))
+			{
+				continue;
+			}
+
 			int iColorIndex;
-			iColorIndex = fTimeDifference > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
+			iColorIndex = fTimeDifference[iLogicIndex] > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
 
 			SetHudTextParams(gF_HUDPosition[i][HUD_TimeDifference][0], gF_HUDPosition[i][HUD_TimeDifference][1], 8.0, gI_HUDColors[i][iColorIndex][0], gI_HUDColors[i][iColorIndex][1], gI_HUDColors[i][iColorIndex][2], 255, 0, 0.0, 0.0, 0.0);
 			if (gB_DynamicChannels)
-				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference[iLogicIndex] >= 0.0 ? "+":"", sTime[iLogicIndex]);
 			else
-				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);			
+				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference[iLogicIndex] >= 0.0 ? "+":"", sTime[iLogicIndex]);
 		}
 	}
 }
@@ -1342,31 +1356,45 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 			gI_LastFinishState[client] = 1;
 	}
 
-	float fComparsion = (gI_HUDDisplayLogic[client][HUD_TimeDifference] == DisplayLogic_Second) ? fWR:oldtime;
-	if (fComparsion == 0.0)
+	if (fWR == 0.0)
+	{
 		return;
+	}
 
-	float fTimeDifference = time - fComparsion;
-	char sTime[32];
-	FormatSeconds(fTimeDifference, sTime, 32, true);
+	float fComparison[2];
+	float fTimeDifference[2]; 	
+	
+	fComparison[DisplayLogic_First-1] = oldtime; fComparison[DisplayLogic_Second-1] = fWR;
+	fTimeDifference[DisplayLogic_First-1] = time - oldtime; fTimeDifference[DisplayLogic_Second-1] = time - fWR;
+
+	char sTime[2][32];
+	FormatSeconds(fTimeDifference[DisplayLogic_First-1], sTime[DisplayLogic_First-1], 32, true);
+	FormatSeconds(fTimeDifference[DisplayLogic_Second-1], sTime[DisplayLogic_Second-1], 32, true);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsValidClient(i))
 		{
-			return;
+			continue;
 		}
 
 		if (GetSpectatorTarget(i, i) == client && gB_HUDEnabled[i][HUD_TimeDifference] && gI_HUDDisplayLogic[i][HUD_TimeDifference] > DisplayLogic_Default)
 		{
+			int iLogicIndex = gI_HUDDisplayLogic[i][HUD_TimeDifference]-1;
+
+			if ((fComparison[iLogicIndex] == 0.0))
+			{
+				continue;
+			}
+
 			int iColorIndex;
-			iColorIndex = fTimeDifference > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
+			iColorIndex = fTimeDifference[iLogicIndex] > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
 
 			SetHudTextParams(gF_HUDPosition[i][HUD_TimeDifference][0], gF_HUDPosition[i][HUD_TimeDifference][1], 8.0, gI_HUDColors[i][iColorIndex][0], gI_HUDColors[i][iColorIndex][1], gI_HUDColors[i][iColorIndex][2], 255, 0, 0.0, 0.0, 0.0);
 			if (gB_DynamicChannels)
-				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference[iLogicIndex] >= 0.0 ? "+":"", sTime[iLogicIndex]);
 			else
-				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference[iLogicIndex] >= 0.0 ? "+":"", sTime[iLogicIndex]);
 		}
 	}
 }
@@ -1374,39 +1402,47 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float time)
 {
 	int style = Shavit_GetBhopStyle(client);
-	float fComparsion, fComparsionLast; 
-	if (gI_HUDDisplayLogic[client][HUD_TimeDifference] == DisplayLogic_Second)
+
+	float fComparison[2];
+	float fTimeDifference[2];
+	float fTimeDifferenceLast[2];
+	float fLastCPTime;
+
+	fComparison[DisplayLogic_First-1] = Shavit_GetStageCPPB(client, track, style, checkpoint); fComparison[DisplayLogic_Second-1] = Shavit_GetStageCPWR(track, style, checkpoint);
+	fTimeDifference[DisplayLogic_First-1] = time - fComparison[DisplayLogic_First-1]; fTimeDifference[DisplayLogic_Second-1] = time - fComparison[DisplayLogic_Second-1];
+
+	if (checkpoint == 1)
 	{
-		fComparsion = Shavit_GetStageCPWR(track, style, checkpoint);
-		fComparsionLast = checkpoint == 1 ? 0.0:Shavit_GetStageCPPB(client, track, style, checkpoint - 1);
+		fTimeDifferenceLast[DisplayLogic_First-1] = 0.0;
+		fTimeDifferenceLast[DisplayLogic_Second-1] = 0.0;
 	}
 	else
 	{
-		fComparsion = Shavit_GetStageCPPB(client, track, style, checkpoint);
-		fComparsionLast = checkpoint == 1 ? 0.0:Shavit_GetStageCPPB(client, track, style, checkpoint - 1);		
+		fLastCPTime = Shavit_GetClientCPTime(client, checkpoint - 1);
+		fTimeDifferenceLast[DisplayLogic_First-1] = fLastCPTime - Shavit_GetStageCPPB(client, track, style, checkpoint - 1);
+		fTimeDifferenceLast[DisplayLogic_Second-1] = fLastCPTime - Shavit_GetStageCPWR(track, style, checkpoint - 1);
 	}
 
-	if (fComparsion == 0.0)
-	{
-		return;
-	}
-	
-	float fLastCPTime = checkpoint == 1 ? 0.0:Shavit_GetClientCPTime(client, checkpoint - 1);
-	float fTimeDifferenceLast = fLastCPTime - fComparsionLast;
-	float fTimeDifference = time - fComparsion;
-	bool bGained = (fTimeDifference - fTimeDifferenceLast) < 0.0;
-	char sTime[32];
-	FormatSeconds(fTimeDifference, sTime, 32, true);
+	char sTime[2][32];
+	FormatSeconds(fTimeDifference[DisplayLogic_First-1], sTime[DisplayLogic_First-1], 32, true);
+	FormatSeconds(fTimeDifference[DisplayLogic_Second-1], sTime[DisplayLogic_Second-1], 32, true);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsValidClient(i))
 		{
-			return;
+			continue;
 		}
 
 		if (GetSpectatorTarget(i, i) == client && gB_HUDEnabled[i][HUD_TimeDifference] && gI_HUDDisplayLogic[i][HUD_TimeDifference] > DisplayLogic_Default)
 		{
+			int iLogicIndex = gI_HUDDisplayLogic[i][HUD_TimeDifference]-1;
+
+			if ((fComparison[iLogicIndex] == 0.0))
+			{
+				continue;
+			}
+
 			int iColorIndex;
 			if (gI_HUDColorLogic[i][HUD_TimeDifference] == ColorLogic_None)
 			{
@@ -1414,18 +1450,18 @@ public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float ti
 			}
 			else if (gI_HUDColorLogic[i][HUD_TimeDifference] == ColorLogic_First)
 			{
-				iColorIndex = bGained ? Color_TimeDifference_Gain:Color_TimeDifference_Lose;
+				iColorIndex = fTimeDifferenceLast[iLogicIndex] > fTimeDifference[iLogicIndex] ? Color_TimeDifference_Gain:Color_TimeDifference_Lose;
 			}
 			else if (gI_HUDColorLogic[i][HUD_TimeDifference] == ColorLogic_Second)
 			{
-				iColorIndex = fTimeDifference > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
+				iColorIndex = fTimeDifference[iLogicIndex] > 0.0 ? Color_TimeDifference_Slower:Color_TimeDifference_Faster;
 			}
 
 			SetHudTextParams(gF_HUDPosition[i][HUD_TimeDifference][0], gF_HUDPosition[i][HUD_TimeDifference][1], 4.0, gI_HUDColors[i][iColorIndex][0], gI_HUDColors[i][iColorIndex][1], gI_HUDColors[i][iColorIndex][2], 255, 0, 0.0, 0.0, 0.0);
 			if (gB_DynamicChannels)
-				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);
+				ShowHudText(i, GetDynamicChannel(HUD_TimeDifference), "%s%s", fTimeDifference[iLogicIndex] >= 0.0 ? "+":"", sTime[iLogicIndex]);
 			else
-				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference >= 0.0 ? "+":"", sTime);				
+				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference[iLogicIndex] >= 0.0 ? "+":"", sTime[iLogicIndex]);				
 		}
 	}
 }
