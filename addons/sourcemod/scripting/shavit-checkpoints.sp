@@ -200,6 +200,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_deletecp", Command_DeleteCheckpoint, "Deletes the current checkpoint.");
 	RegConsoleCmd("+teleport", Command_TeleportPressHold, "Teleports to a checkpoint and pause movement & timer while press-hold button.");
 	RegConsoleCmd("-teleport", Command_TeleportRelease, "Resume movement & timer on button released.");
+	RegConsoleCmd("+sm_teleport", Command_TeleportPressHold, "Teleports to a checkpoint and pause movement & timer while press-hold button.");
+	RegConsoleCmd("-sm_teleport", Command_TeleportRelease, "Resume movement & timer on button released.");
 
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
