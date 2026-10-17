@@ -267,7 +267,7 @@
 	}
 	"HudRecordsDisplay"
 	{
-		"en"		"Records Display: 1=PB 2=WR 3=Both"
+		"en"		"Records Display: 1=PB 2=WR 0=Both"
 	}
 	"HudDefaultPistol"
 	{
