@@ -3385,7 +3385,7 @@ float ClientMaxPrestrafe(int client)
 	return MaxPrestrafe(runspeed, sv_accelerate.FloatValue, sv_friction.FloatValue, GetTickInterval());
 }
 
-void StartTimer(int client, int track)
+void StartTimer(int client, int track, bool force)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client) || !gB_CookiesRetrieved[client])
 	{

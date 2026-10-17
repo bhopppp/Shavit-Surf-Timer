@@ -1,0 +1,38 @@
+"Phrases"
+{
+	"SoundMenuTitle"
+	{
+		"en"		"Sound Options:"
+	}
+	"SndFirstCompletion"
+	{
+		"en"		"First Completion Sound"
+	}
+	"SndTrackRecord"
+	{
+		"en"		"New World Record Sound"
+	}
+	"SndStageRecord"
+	{
+		"en"		"Stage World Record Sound"
+	}
+	"SndPersonalBest"
+	{
+		"en"		"Personal Best Sound"
+	}
+	"SndNoImprovement"
+	{
+		"en"		"No Improvement Sound"
+	}
+	"SndCheckpoint"
+	{
+		"en"		"Checkpoint Sound: Compare To (1 = WR, 2 = PB)"
+	}
+	"SndOtherCompletions"
+	{
+		"en"		"Other Completion Sound"
+	}
+	"SoundOptions"
+	{
+		"en"		"Sound Options"
+	}
