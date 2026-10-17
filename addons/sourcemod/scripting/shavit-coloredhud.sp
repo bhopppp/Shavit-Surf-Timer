@@ -8,6 +8,7 @@
 #include <shavit/replay-playback>
 #include <shavit/wr>
 #include <shavit/zones>
+#include <shavit/checkpoints>
 #include <DynamicChannels>
 
 #define BHOP_INTERVAL 3
@@ -910,10 +911,28 @@ void ProcessClientData(int client, bool replaybot, int buttons, int flags, MoveT
 	gF_VelocityDifference[client] = -1.0;
 	gF_TimeDifference[client] = -1.0;
 
+	// Update velocity;
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", gF_Velocity[client]);
+
 	if (replaybot)
 	{
 		if (!(flags & FL_ONGROUND) && (gI_LastEntityFlags[client] & FL_ONGROUND) && (buttons & IN_JUMP) > 0)
 			ProcessJump(client, true);
+
+		int iStyle = Shavit_GetReplayBotStyle(client);
+		float fScale = 1.0;
+		if (iStyle != -1)
+		{
+			fScale /= Shavit_GetStyleSettingFloat(iStyle, "speed") * Shavit_GetStyleSettingFloat(iStyle, "timescale");
+
+			if (Shavit_GetReplayPlaybackSpeed(client) == 0.5)
+				fScale *= 2.0;
+		}
+
+		for (int i = 0; i < 3; i++)
+		{
+			gF_Velocity[client][i] *= fScale;
+		}
 	}
 	else
 	{
@@ -1464,6 +1483,16 @@ public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float ti
 				ShowSyncHudText(i, gH_ElementHUDSynchronizer[HUD_TimeDifference], "%s%s", fTimeDifference[iLogicIndex] >= 0.0 ? "+":"", sTime[iLogicIndex]);				
 		}
 	}
+}
+
+public void Shavit_OnCheckpointCacheSaved(int client, cp_cache_t cache, int index, int target)
+{
+	cache.customdata.SetValue("ie", gF_Energy[target][2]);
+}
+
+public void Shavit_OnCheckpointCacheLoaded(int client, cp_cache_t cache, int index)
+{
+	cache.customdata.GetValue("ie", gF_Energy[client][2]);
 }
 
 public void Shavit_OnTimerMenuMade(int client, Menu menu)
