@@ -6047,7 +6047,7 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 		{
 			for(int i = 1; i <= MaxClients; i++)
 			{
-				if(IsValidClient(i))	//Print to spectator if target finished and worse
+				if (IsClientInGame(i) && (!IsFakeClient(i) || IsClientSourceTV(i)))	//Print to spectator if target finished and worse
 				{
 					if(i == client)
 					{
@@ -6072,7 +6072,7 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 
 			for(int i = 1; i <= MaxClients; i++)
 			{
-				if(client != i && IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_OTHER) == 0)
+				if(client != i && IsClientInGame(i) && (IsClientSourceTV(i) || GetSpectatorTarget(i) == client) && (Shavit_GetMessageSetting(i) & MSG_OTHER) == 0)
 				{	//Print to spectator if target finished and worse
 					if(bIncrementCompletions && !Shavit_GetStyleSettingInt(style, "unranked"))
 					{
@@ -6503,16 +6503,19 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		{
 			for(int i = 1; i <= MaxClients; i++)
 			{
-				if(i == client)
+				if (IsClientInGame(i) && (!IsFakeClient(i) || IsClientSourceTV(i)))	//Print to spectator if target finished and worse
 				{
-					if((Shavit_GetMessageSetting(i) & MSG_FINISHMAP) == 0)
+					if(i == client)
+					{
+						if((Shavit_GetMessageSetting(i) & MSG_FINISHMAP) == 0)
+						{
+							Shavit_PrintToChat(i, "%s", sMessage);
+						}
+					}
+					else if((Shavit_GetMessageSetting(i) & MSG_OTHER) == 0)
 					{
 						Shavit_PrintToChat(i, "%s", sMessage);
 					}
-				}
-				else if((Shavit_GetMessageSetting(i) & MSG_OTHER) == 0)
-				{
-					Shavit_PrintToChat(i, "%s", sMessage);
 				}
 			}
 		}
@@ -6525,7 +6528,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 			for(int i = 1; i <= MaxClients; i++)
 			{
-				if(client != i && IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_OTHER) == 0)	//Print to spectator if target finished and worse
+				if(client != i && IsClientInGame(i) && (IsClientSourceTV(i) || GetSpectatorTarget(i) == client) && (Shavit_GetMessageSetting(i) & MSG_OTHER) == 0)	//Print to spectator if target finished and worse
 				{
 					if(bIncrementCompletions && !Shavit_GetStyleSettingInt(style, "unranked"))
 					{
