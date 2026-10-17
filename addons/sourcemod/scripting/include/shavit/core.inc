@@ -1064,7 +1064,7 @@ native Database Shavit_GetDatabase(int& outdriver=0);
  * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_StartTimer(int client, int track);
+native void Shavit_StartTimer(int client, int track, bool force = false);
 
 /**
  * Starts the stage timer for a player.

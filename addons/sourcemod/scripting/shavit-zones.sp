@@ -6936,9 +6936,9 @@ public void StartTouchPost(int entity, int other)
 							Call_PushCell(stage);
 							Call_Finish();							
 							
-							if(!Shavit_IsOnlyStageMode(other))
+							if((gA_ZoneCache[zone].iSpeedLimitFlags & ZSLF_NoVerticalSpeed) > 0)
 							{
-								Shavit_StartStageTimer(other, track, stage, true);								
+								Shavit_StartStageTimer(other, track, stage, true);
 							}
 						}
 					}

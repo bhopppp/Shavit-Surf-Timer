@@ -2226,7 +2226,8 @@ public int Native_IsKZMap(Handle handler, int numParams)
 
 public int Native_StartTimer(Handle handler, int numParams)
 {
-	StartTimer(GetNativeCell(1), GetNativeCell(2));
+	bool force = numParams > 2 ? GetNativeCell(3):false;
+	StartTimer(GetNativeCell(1), GetNativeCell(2), force);
 	return 0;
 }
 
@@ -3412,7 +3413,7 @@ void StartTimer(int client, int track)
 
 	bDoPreStrafeCheck |= (!gA_Timers[client].bTimerEnabled && (iSpeedLimitFlags & (ZSLF_LimitSpeed|ZSLF_ReduceSpeed) > 0));
 	
-	if (!bDoPreStrafeCheck || (fSpeed[2] == 0.0 && curVel <= fLimit && gA_Timers[client].bOnGround &&
+	if (force || !bDoPreStrafeCheck || (fSpeed[2] == 0.0 && curVel <= fLimit && gA_Timers[client].bOnGround &&
 			  (curVel <= ClientMaxPrestrafe(client) || gA_Timers[client].iGroundTicks > RoundFloat(0.5/GetTickInterval())))) // beautiful
 	{
 		Action result = Plugin_Continue;
@@ -3527,7 +3528,7 @@ void StartStageTimer(int client, int track, int stage, bool force, bool first)
 	if(GetTimerStatus(client) == Timer_Stopped && gA_Timers[client].bOnlyStageMode)
 	{
 		ChangeClientLastStage(client, stage);	// i dont know why but i need this here to make sure the stage number is right
-		StartTimer(client, track);
+		StartTimer(client, track, force);
 	}
 	else if(GetTimerStatus(client) == Timer_Running)
 	{
@@ -3535,7 +3536,7 @@ void StartStageTimer(int client, int track, int stage, bool force, bool first)
 		{
 			if(stage <= gA_Timers[client].iLastStage)
 			{
-				StartTimer(client, track);
+				StartTimer(client, track, force);
 			}
 		}
 		else if(gA_Timers[client].iLastStage == stage)
@@ -4088,7 +4089,7 @@ public void PostThinkPost(int client)
 		GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
 
 		bool bNormalStart = gA_Timers[client].iZoneIncrement == 1;
-		bool bMainTimerStageStart = gA_Timers[client].iTimerTrack == Track_Main && !bNormalStart && !gA_Timers[client].bOnlyStageMode && gA_Timers[client].aStageStartInfo.iZoneIncrement == 1;
+		bool bMainTimerStageStart = (gA_Timers[client].iTimerTrack == Track_Main && Shavit_GetStageCount(gA_Timers[client].iTimerTrack) > 1) && !bNormalStart && !gA_Timers[client].bOnlyStageMode && gA_Timers[client].aStageStartInfo.iZoneIncrement == 1;
 
 		if((bNormalStart || bMainTimerStageStart))
 		{
