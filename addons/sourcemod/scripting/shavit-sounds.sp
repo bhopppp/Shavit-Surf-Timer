@@ -269,7 +269,10 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		char sSound[PLATFORM_MAX_PATH];
 		gA_NoImprovementSounds.GetString(GetRandomInt(0, gA_NoImprovementSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 
-		PlayEventSound(client, false, sSound, SND_NOIMPROVEMENT);
+		if(StrContains(sSound, ".") != -1) // file has an extension?
+		{
+			PlayEventSound(client, false, sSound, SND_NOIMPROVEMENT);
+		}
 	}
 }
 
@@ -334,7 +337,10 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 		char sSound[PLATFORM_MAX_PATH];
 		gA_NoImprovementSounds.GetString(GetRandomInt(0, gA_NoImprovementSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 
-		PlayEventSound(client, false, sSound, SND_NOIMPROVEMENT);
+		if(StrContains(sSound, ".") != -1) // file has an extension?
+		{
+			PlayEventSound(client, false, sSound, SND_NOIMPROVEMENT);
+		}
 	}
 }
 
@@ -390,7 +396,10 @@ public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float ti
 
 	if (fCPWR == 0.0) 
 	{
-		gA_CPTimeAhead.GetString(GetRandomInt(0, gA_CPTimeAhead.Length - 1), sSound, PLATFORM_MAX_PATH);
+		if (gA_CPTimeAhead.Length != 0)
+		{
+			gA_CPTimeAhead.GetString(GetRandomInt(0, gA_CPTimeAhead.Length - 1), sSound, PLATFORM_MAX_PATH);
+		}
 	}
 	else
 	{
@@ -404,11 +413,17 @@ public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float ti
 
 		if (fDifference > 0.0 && (fComparison > 0.0))
 		{
-			gA_CPTimeBehind.GetString(GetRandomInt(0, gA_CPTimeBehind.Length - 1), sSound, PLATFORM_MAX_PATH);
+			if (gA_CPTimeBehind.Length != 0)
+			{
+				gA_CPTimeBehind.GetString(GetRandomInt(0, gA_CPTimeBehind.Length - 1), sSound, PLATFORM_MAX_PATH);
+			}
 		}
 		else
 		{
-			gA_CPTimeAhead.GetString(GetRandomInt(0, gA_CPTimeAhead.Length - 1), sSound, PLATFORM_MAX_PATH);
+			if (gA_CPTimeAhead.Length != 0)
+			{
+				gA_CPTimeAhead.GetString(GetRandomInt(0, gA_CPTimeAhead.Length - 1), sSound, PLATFORM_MAX_PATH);
+			}
 		}
 	}
 
@@ -439,7 +454,7 @@ public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, i
 
 public void Shavit_OnStarted(int client, int track, int stage, int style, bool bMainStageTimer)
 {
-	if(!bMainStageTimer)
+	if(!bMainStageTimer && gA_TimerStart.Length != 0)
 	{
 		char sSound[PLATFORM_MAX_PATH];
 		gA_TimerStart.GetString(GetRandomInt(0, gA_TimerStart.Length - 1), sSound, PLATFORM_MAX_PATH);
