@@ -5806,7 +5806,47 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 
 	bool bEveryone = (iOverwrite > 0);
 	bool bServerFirstCompletion = (gF_StageWRTime[style][stage] == 0.0);
-	float fDifferenceWR = (time - gF_StageWRTime[style][stage]);
+
+	char sComparison[128];
+
+	if(gF_StageWRTime[style][stage] > 0.0)
+	{
+		char sDifference[32];
+
+		float fDifference;
+		fDifference = (time - gF_StageWRTime[style][stage]);
+
+		FormatSeconds(fDifference, sDifference, 32, true);
+		if(fDifference < 0.0)
+		{
+			Format(sComparison, sizeof(sComparison), " (SR: %s%s",
+			gS_ChatStrings.sImproving, sDifference);
+		}
+		else
+		{
+			Format(sComparison, sizeof(sComparison), " (SR: %s+%s",
+			gS_ChatStrings.sWarning, sDifference);
+		}
+
+		if (gF_PlayerStageRecord[client][style][stage] > 0.0)
+		{
+			fDifference = (time - gF_PlayerStageRecord[client][style][stage]);
+			FormatSeconds(fDifference, sDifference, 32, true);
+
+			if(fDifference < 0.0)
+			{
+				Format(sComparison, sizeof(sComparison), "%s%s | PB: %s%s", sComparison, gS_ChatStrings.sText, gS_ChatStrings.sImproving, sDifference);
+			}
+			else
+			{
+				Format(sComparison, sizeof(sComparison), "%s%s | PB: %s+%s", sComparison, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
+			}
+		}
+
+		Format(sComparison, sizeof(sComparison), "%s%s)", sComparison, gS_ChatStrings.sText);
+	}
+
+	
 	char sMessage[255];
 	char sMessage2[255];
 
@@ -5852,31 +5892,6 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 	char sStage[16];
 	Format(sStage, 16, "%T %d", "StageText", bEveryone ? LANG_SERVER:client, stage);
 
-	char sDifferenceWR[32];
-	FormatSeconds(fDifferenceWR, sDifferenceWR, 32, true);
-
-	if(fDifferenceWR < 0.0)
-	{
-		Format(sDifferenceWR, sizeof(sDifferenceWR), "%s%s%s", gS_ChatStrings.sImproving, sDifferenceWR, gS_ChatStrings.sText);
-	}
-	else
-	{
-		Format(sDifferenceWR, sizeof(sDifferenceWR), "%s+%s%s", gS_ChatStrings.sWarning, sDifferenceWR, gS_ChatStrings.sText);
-	}
-
-	float fDifferencePB = (time - gF_PlayerStageRecord[client][style][stage]);
-	char sDifferencePB[32];
-	FormatSeconds(fDifferencePB, sDifferencePB, 32, true);
-
-	if(fDifferencePB < 0.0)
-	{
-		Format(sDifferencePB, sizeof(sDifferencePB), "%s%s%s", gS_ChatStrings.sImproving, sDifferencePB, gS_ChatStrings.sText);
-	}
-	else
-	{
-		Format(sDifferencePB, sizeof(sDifferencePB), "%s+%s%s", gS_ChatStrings.sWarning, sDifferencePB, gS_ChatStrings.sText);
-	}
-
 	int iRank = GetStageRankForTime(style, time, stage);
 	int iRankCount = GetStageRecordAmount(style, stage);
 
@@ -5887,30 +5902,6 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 		if(iOverwrite == 1) //Player first finished in server
 		{
 			iRankCount++;
-
-			if(bServerFirstCompletion)	//First Compeletion in server
-			{
-				FormatEx(sMessage, 255, "%T",
-					"ServerFirstCompletion", LANG_SERVER,
-					gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable, sStage, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable, iRankCount, gS_ChatStrings.sText,
-					gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-			}
-			else
-			{
-				FormatEx(sMessage, 255, "%T",
-					"PlayerFirstCompletion", LANG_SERVER,
-					gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable, sStage, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText,
-					sDifferenceWR,
-					gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable, iRankCount, gS_ChatStrings.sText,
-					gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-			}
 
 			float fPoints = gB_Rankings ? Shavit_GuessPointsForTime(track, stage, style, iRank, -1, iRankCount) : 0.0;
 			float fGainedPoints = gB_Rankings ? fPoints : 0.0;
@@ -5929,16 +5920,6 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 		}
 		else // Better than PB, Maybe Beat the wr
 		{
-			FormatEx(sMessage, 255, "%T",
-				"PlayerNotFirstCompletion", LANG_SERVER,
-				gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable, sStage, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText,
-				sDifferenceWR, sDifferencePB,
-				gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable, iRankCount, gS_ChatStrings.sText,
-				gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-
 			int oldRank = GetStageRankForTime(style, oldtime, stage);
 			float fPoints = gB_Rankings ? Shavit_GuessPointsForTime(track, stage, style, iRank, -1, iRankCount) : 0.0;
 			float fGainedPoints = gB_Rankings ? fPoints - Shavit_GuessPointsForTime(track, stage, style, oldRank, -1, iRankCount) : 0.0;
@@ -5956,6 +5937,16 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 				"UPDATE %sstagetimes SET time = %.9f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = %f, perfs = %.2f, completions = completions + 1, startvel = %f, endvel = %f WHERE map = '%s' AND auth = %d AND style = %d AND track = %d AND stage = %d;",
 				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, fPoints, perfs, startvel, endvel, gS_Map, iSteamID, style, track, stage);
 		}
+
+		FormatEx(sMessage, 255, "%T",
+			"PlayerComepletion", LANG_SERVER,
+			gS_ChatStrings.sVariable2, sName,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStage,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+			gS_ChatStrings.sText, sComparison,
+			gS_ChatStrings.sVariable, iRank,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRankCount,
+			gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 
 		QueryLog(gH_SQL, SQL_OnFinishStage_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -5994,41 +5985,21 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 		if(iOverwrite == 0 && !Shavit_GetStyleSettingInt(style, "unranked"))
 		{
 			FormatEx(sMessage, 255, "%T",
-				"WorseTime", client,
-				gS_ChatStrings.sVariable, sStage, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText,
-				sDifferenceWR, sDifferencePB,
+				"CompletionWorse", client,
+				gS_ChatStrings.sVariable, sStage,
+				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+				gS_ChatStrings.sText, sComparison,
 				gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 		}
 	}
 	else if (Shavit_IsPracticeMode(client) && !Shavit_GetStyleSettingInt(style, "unranked"))
 	{
-		if (gF_PlayerStageRecord[client][style][stage] != 0.0)
-		{
-			FormatEx(sMessage, 255, "%T",
-				"NotFirstCompletionPractice", client,
-				gS_ChatStrings.sVariable, sStage,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, sDifferenceWR, sDifferencePB,
-				gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-		}
-		else if (!bServerFirstCompletion)
-		{
-			FormatEx(sMessage, 255, "%T",
-				"FirstCompletionPractice", client,
-				gS_ChatStrings.sVariable, sStage,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, sDifferenceWR,
-				gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-		}
-		else
-		{
-			FormatEx(sMessage, 255, "%T",
-				"ServerFirstCompletionPractice", client,
-				gS_ChatStrings.sVariable, sStage,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-		}
+		FormatEx(sMessage, 255, "%T",
+			"CompletionPractice", client,
+			gS_ChatStrings.sVariable, sStage,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+			gS_ChatStrings.sText, sComparison,
+			gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 	}
 	else
 	{
@@ -6076,44 +6047,22 @@ public void Shavit_OnFinishStage(int client, int track, int style, int stage, fl
 				{	//Print to spectator if target finished and worse
 					if(bIncrementCompletions && !Shavit_GetStyleSettingInt(style, "unranked"))
 					{
-						FormatEx(sMessage, 255, "%T", "NotFirstCompletionWorse", i,
-							gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText,
-							gS_ChatStrings.sVariable, sStage, gS_ChatStrings.sText,
-							gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText,
-							sDifferenceWR, sDifferencePB,
+						FormatEx(sMessage, sizeof(sMessage), "%T", "PlayerCompletionWorse", i,
+							gS_ChatStrings.sVariable2, sName,
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStage,
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+							gS_ChatStrings.sText, sComparison,
 							gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 					}
 					else if (Shavit_IsPracticeMode(client))
 					{
-						if (gF_PlayerStageRecord[client][style][stage] != 0.0)
-						{
-							FormatEx(sMessage, 255, "%T",
-								"PlayerNotFirstCompletionPractice", i,
-								gS_ChatStrings.sVariable2, sName,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStage,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-								gS_ChatStrings.sText, sDifferenceWR, sDifferencePB,
-								gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);							
-						}
-						else if (!bServerFirstCompletion)
-						{
-							FormatEx(sMessage, 255, "%T",
-								"PlayerFirstCompletionPractice", i,
-								gS_ChatStrings.sVariable2, sName,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStage,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-								gS_ChatStrings.sText, sDifferenceWR,
-								gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-						}
-						else
-						{
-							FormatEx(sMessage, 255, "%T",
-								"PlayerServerFirstCompletionPractice", i,
-								gS_ChatStrings.sVariable2, sName,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStage,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-								gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-						}
+						FormatEx(sMessage, 255, "%T",
+							"PlayerCompletionPractice", i,
+							gS_ChatStrings.sVariable2, sName,
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStage,
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+							gS_ChatStrings.sText, sComparison,
+							gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 					}
 					else
 					{
@@ -6214,7 +6163,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	bool bEveryone = (iOverwrite > 0);
 	bool bServerFirstCompletion = (gF_WRTime[style][track] == 0.0);
-	float fDifferenceWR = (time - gF_WRTime[style][track]);
 	char sMessage[255];
 	char sMessage2[255];
 
@@ -6222,9 +6170,47 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	float fStageFinishTimes[MAX_STAGES];
 	int iStageAttempts[MAX_STAGES];
 
-
 	char sTrack[32];
 	GetTrackName(bEveryone ? LANG_SERVER:client, track, sTrack, 32);
+
+	char sComparison[128];
+
+	if(gF_WRTime[style][track] > 0.0)
+	{
+		char sDifference[32];
+
+		float fDifference;
+		fDifference = (time - gF_WRTime[style][track]);
+
+		FormatSeconds(fDifference, sDifference, 32, true);
+		if(fDifference < 0.0)
+		{
+			Format(sComparison, sizeof(sComparison), " (SR: %s%s",
+			gS_ChatStrings.sImproving, sDifference);
+		}
+		else
+		{
+			Format(sComparison, sizeof(sComparison), " (SR: %s+%s",
+			gS_ChatStrings.sWarning, sDifference);
+		}
+
+		if (gF_PlayerRecord[client][style][track] > 0.0)
+		{
+			fDifference = (time - gF_PlayerRecord[client][style][track]);
+			FormatSeconds(fDifference, sDifference, 32, true);
+
+			if(fDifference < 0.0)
+			{
+				Format(sComparison, sizeof(sComparison), "%s%s | PB: %s%s", sComparison, gS_ChatStrings.sText, gS_ChatStrings.sImproving, sDifference);
+			}
+			else
+			{
+				Format(sComparison, sizeof(sComparison), "%s%s | PB: %s+%s", sComparison, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
+			}
+		}
+
+		Format(sComparison, sizeof(sComparison), "%s%s)", sComparison, gS_ChatStrings.sText);
+	}
 
 	if (iOverwrite > 0)
 	{
@@ -6296,31 +6282,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_Finish();
 	}
 
-	char sDifferenceWR[32];
-	FormatSeconds(fDifferenceWR, sDifferenceWR, 32, true);
-
-	if(fDifferenceWR < 0.0)
-	{
-		Format(sDifferenceWR, sizeof(sDifferenceWR), "%s%s%s", gS_ChatStrings.sImproving, sDifferenceWR, gS_ChatStrings.sText);
-	}
-	else
-	{
-		Format(sDifferenceWR, sizeof(sDifferenceWR), "%s+%s%s", gS_ChatStrings.sWarning, sDifferenceWR, gS_ChatStrings.sText);
-	}
-
-	float fDifferencePB = (time - gF_PlayerRecord[client][style][track]);
-	char sDifferencePB[32];
-	FormatSeconds(fDifferencePB, sDifferencePB, 32, true);
-
-	if(fDifferencePB < 0.0)
-	{
-		Format(sDifferencePB, sizeof(sDifferencePB), "%s%s%s", gS_ChatStrings.sImproving, sDifferencePB, gS_ChatStrings.sText);
-	}
-	else
-	{
-		Format(sDifferencePB, sizeof(sDifferencePB), "%s+%s%s", gS_ChatStrings.sWarning, sDifferencePB, gS_ChatStrings.sText);
-	}
-
 	if(iOverwrite > 0)  //Valid Run
 	{
 		char sQuery[1024];
@@ -6328,29 +6289,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		if(iOverwrite == 1) //Player first finished in server
 		{
 			iRankCount++;
-			if(bServerFirstCompletion)	//First Compeletion in server
-			{
-				FormatEx(sMessage, 255, "%T",
-					"ServerFirstCompletion", LANG_SERVER,
-					gS_ChatStrings.sVariable2, sName,
-					gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
-					gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-					gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank,
-					gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRankCount,
-					gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-			}
-			else
-			{
-				FormatEx(sMessage, 255, "%T",
-					"PlayerFirstCompletion", LANG_SERVER,
-					gS_ChatStrings.sVariable2, sName,
-					gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
-					gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-					gS_ChatStrings.sText, sDifferenceWR,
-					gS_ChatStrings.sVariable, iRank,
-					gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRankCount,
-					gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-			}
 
 			float fPoints = gB_Rankings ? Shavit_GuessPointsForTime(track, 0, style, iRank, -1, iRankCount) : 0.0;
 			float fGainedPoints = gB_Rankings ? fPoints : 0.0;
@@ -6369,16 +6307,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		}
 		else // Better than PB, Maybe Beat the wr
 		{
-			FormatEx(sMessage, 255, "%T",
-				"PlayerNotFirstCompletion", LANG_SERVER,
-				gS_ChatStrings.sVariable2, sName,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, sDifferenceWR, sDifferencePB,
-				gS_ChatStrings.sVariable, iRank,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRankCount,
-				gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-
 			int oldRank = GetRankForTime(style, oldtime, track);
 			float fPoints = gB_Rankings ? Shavit_GuessPointsForTime(track, 0, style, iRank, -1, iRankCount) : 0.0;
 			float fGainedPoints = gB_Rankings ? fPoints - Shavit_GuessPointsForTime(track, 0, style, oldRank, -1, iRankCount) : 0.0;
@@ -6396,6 +6324,16 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				"UPDATE %splayertimes SET time = %.9f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = %f, perfs = %.2f, completions = completions + 1, startvel = %f, endvel = %f WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
 				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, fPoints, perfs, startvel, endvel, gS_Map, iSteamID, style, track);
 		}
+
+		FormatEx(sMessage, 255, "%T",
+			"PlayerComepletion", LANG_SERVER,
+			gS_ChatStrings.sVariable2, sName,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+			gS_ChatStrings.sText, sComparison,
+			gS_ChatStrings.sVariable, iRank,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRankCount,
+			gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 
 		ReplaceCPRecords(gH_SQL, client, style, track, fCPtimes, fStageFinishTimes, iStageAttempts, false);
 
@@ -6436,41 +6374,21 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		if(iOverwrite == 0 && !Shavit_GetStyleSettingInt(style, "unranked"))
 		{
 			FormatEx(sMessage, 255, "%T",
-				"WorseTime", client,
+				"CompletionWorse", client,
 				gS_ChatStrings.sVariable, sTrack,
 				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, sDifferenceWR, sDifferencePB,
+				gS_ChatStrings.sText, sComparison,
 				gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 		}
 	}
 	else if (Shavit_IsPracticeMode(client) && !Shavit_GetStyleSettingInt(style, "unranked"))
 	{
-		if (gF_PlayerRecord[client][style][track] != 0.0)
-		{
-			FormatEx(sMessage, 255, "%T",
-				"NotFirstCompletionPractice", client,
-				gS_ChatStrings.sVariable, sTrack,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, sDifferenceWR, sDifferencePB,
-				gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-		}
-		else if (!bServerFirstCompletion)
-		{
-			FormatEx(sMessage, 255, "%T",
-				"FirstCompletionPractice", client,
-				gS_ChatStrings.sVariable, sTrack,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, sDifferenceWR,
-				gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-		}
-		else
-		{
-			FormatEx(sMessage, 255, "%T",
-				"ServerFirstCompletionPractice", client,
-				gS_ChatStrings.sVariable, sTrack,
-				gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-				gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);			
-		}
+		FormatEx(sMessage, 255, "%T",
+			"CompletionPractice", client,
+			gS_ChatStrings.sVariable, sTrack,
+			gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+			gS_ChatStrings.sText, sComparison,
+			gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 	}
 	else
 	{
@@ -6532,44 +6450,22 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				{
 					if(bIncrementCompletions && !Shavit_GetStyleSettingInt(style, "unranked"))
 					{
-						FormatEx(sMessage, sizeof(sMessage), "%T", "NotFirstCompletionWorse", i,
+						FormatEx(sMessage, sizeof(sMessage), "%T", "PlayerCompletionWorse", i,
 							gS_ChatStrings.sVariable2, sName,
 							gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
 							gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-							gS_ChatStrings.sText, sDifferenceWR, sDifferencePB,
+							gS_ChatStrings.sText, sComparison,
 							gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 					}
 					else if (Shavit_IsPracticeMode(client))
 					{
-						if (gF_PlayerRecord[client][style][track] != 0.0)
-						{
-							FormatEx(sMessage, 255, "%T",
-								"PlayerNotFirstCompletionPractice", i,
-								gS_ChatStrings.sVariable2, sName,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-								gS_ChatStrings.sText, sDifferenceWR, sDifferencePB,
-								gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-						}
-						else if (!bServerFirstCompletion)
-						{
-							FormatEx(sMessage, 255, "%T",
-								"PlayerFirstCompletionPractice", i,
-								gS_ChatStrings.sVariable2, sName,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-								gS_ChatStrings.sText, sDifferenceWR,
-								gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-						}
-						else
-						{
-							FormatEx(sMessage, 255, "%T",
-								"PlayerServerFirstCompletionPractice", i,
-								gS_ChatStrings.sVariable2, sName,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
-								gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
-								gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
-						}
+						FormatEx(sMessage, 255, "%T",
+							"PlayerCompletionPractice", i,
+							gS_ChatStrings.sVariable2, sName,
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack,
+							gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime,
+							gS_ChatStrings.sText, sComparison,
+							gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 					}
 					else
 					{
@@ -6845,104 +6741,160 @@ public void Shavit_OnReachNextCP(int client, int track, int checkpoint, float ti
 	int style = Shavit_GetBhopStyle(client);
 	int iCheckpointCounts = Shavit_GetCheckpointCount(track);
 	float fCPWR = gA_StageCP_WR[style][track][checkpoint];
+
 	float fCPPB = Shavit_GetStageCPPB(client, track, style, checkpoint);
 
 	char sTime[16];
 	FormatSeconds(time, sTime, 16);
 
-	if (fCPWR == 0.0) // no wr, early return
+	char sComparison[128];
+	if (fCPWR > 0.0)
 	{
-		if((Shavit_GetMessageSetting(client) & MSG_CHECKPOINT) == 0)
+		float fDifferenceWR = (time - fCPWR);
+
+		char sDifference[16];
+		FormatSeconds(fDifferenceWR, sDifference, 16);
+
+		if(fDifferenceWR < 0.0)
 		{
-			Shavit_PrintToChat(client, "%T", "CheckpointTime", client,
-				gS_ChatStrings.sVariable2, checkpoint, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable2, iCheckpointCounts, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText);
+			Format(sComparison, sizeof(sComparison), " (SR: %s%s",
+			gS_ChatStrings.sImproving, sDifference);
+		}
+		else
+		{
+			Format(sComparison, sizeof(sComparison), " (SR: %s+%s",
+			gS_ChatStrings.sWarning, sDifference);
 		}
 
-		for(int i = 1; i <= MaxClients; i++)
+		if (fCPPB > 0.0)
 		{
-			if(IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_CHECKPOINT) == 0)
+			float fDifferencePB = (time - fCPPB);
+			FormatSeconds(fDifferencePB, sDifference, 16);
+
+			if(fDifferencePB < 0.0)
 			{
-				Shavit_PrintToChat(i, "%s*%N*%s %T", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText,  "CheckpointTime", i,
-					gS_ChatStrings.sVariable2, checkpoint, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable2, iCheckpointCounts, gS_ChatStrings.sText,
-					gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText);
+				Format(sComparison, sizeof(sComparison), "%s %s| PB: %s%s", sComparison, gS_ChatStrings.sText, gS_ChatStrings.sImproving, sDifference);
+			}
+			else
+			{
+				Format(sComparison, sizeof(sComparison), "%s %s| PB: %s+%s", sComparison, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 			}
 		}
 
-		return;
-	}
-
-	float fDifferenceWR = (time - fCPWR);
-
-	char sDifferenceWR[32];	//32 because of color
-	FormatSeconds(fDifferenceWR, sDifferenceWR, 32);
-
-	if(fDifferenceWR <= 0.0)
-	{
-		Format(sDifferenceWR, sizeof(sDifferenceWR), "%s%s%s", gS_ChatStrings.sImproving, sDifferenceWR, gS_ChatStrings.sText);
-	}
-	else
-	{
-		Format(sDifferenceWR, sizeof(sDifferenceWR), "%s+%s%s", gS_ChatStrings.sWarning, sDifferenceWR, gS_ChatStrings.sText);
-	}
-
-	if(fCPPB == 0.0)	// no pb
-	{
-		if((Shavit_GetMessageSetting(client) & MSG_CHECKPOINT) == 0)
-		{
-			Shavit_PrintToChat(client, "%T", "WRCheckpointTime", client,
-			gS_ChatStrings.sVariable2, checkpoint, gS_ChatStrings.sText,
-			gS_ChatStrings.sVariable2, iCheckpointCounts, gS_ChatStrings.sText,
-			gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText, sDifferenceWR);
-		}
-
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if(IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_CHECKPOINT) == 0)
-			{
-				Shavit_PrintToChat(i, "%s*%N*%s %T", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "WRCheckpointTime", i,
-				gS_ChatStrings.sVariable2, checkpoint, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable2, iCheckpointCounts, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText, sDifferenceWR);
-			}
-		}
-
-		return;
-	}
-
-	float fDifferencePB = (time - fCPPB);
-
-	char sDifferencePB[32]; //32 because of color
-	FormatSeconds(fDifferencePB, sDifferencePB, 32);
-
-	if(fDifferencePB <= 0.0)
-	{
-		Format(sDifferencePB, sizeof(sDifferencePB), "%s%s%s", gS_ChatStrings.sImproving, sDifferencePB, gS_ChatStrings.sText);
-	}
-	else
-	{
-		Format(sDifferencePB, sizeof(sDifferencePB), "%s+%s%s", gS_ChatStrings.sWarning, sDifferencePB, gS_ChatStrings.sText);
+		Format(sComparison, sizeof(sComparison), "%s%s)", sComparison, gS_ChatStrings.sText);
 	}
 
 	if((Shavit_GetMessageSetting(client) & MSG_CHECKPOINT) == 0)
 	{
-		Shavit_PrintToChat(client, "%T", "WRPBCheckpointTime", client,
+		Shavit_PrintToChat(client, "%T", "CheckpointTime", client,
 			gS_ChatStrings.sVariable2, checkpoint, gS_ChatStrings.sText,
 			gS_ChatStrings.sVariable2, iCheckpointCounts, gS_ChatStrings.sText,
-			gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText, sDifferenceWR, sDifferencePB);
+			gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText, sComparison);
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_CHECKPOINT) == 0)
 		{
-			Shavit_PrintToChat(i, "%s*%N*%s %T", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "WRPBCheckpointTime", i,
+			Shavit_PrintToChat(i, "%s*%N*%s %T", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "CheckpointTime", i,
 				gS_ChatStrings.sVariable2, checkpoint, gS_ChatStrings.sText,
 				gS_ChatStrings.sVariable2, iCheckpointCounts, gS_ChatStrings.sText,
-				gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText, sDifferenceWR, sDifferencePB);
+				gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText, sComparison);
 		}
+	}
+}
+
+public void Shavit_OnStarted(int client, int track, int stage, int style, bool bMainStageTimer)
+{
+	bool bStageTimer = bMainStageTimer || (Shavit_IsOnlyStageMode(client) && track == Track_Main);
+	float speed;
+
+	if(bStageTimer && stage > 0)
+	{
+		speed = Shavit_GetStageStartVelocity(client);
+		float fStartVelWR = gF_StageWRStartVelocity[style][stage];
+		char sVelDiff[64];
+
+		if(fStartVelWR > 0.0)
+		{
+			float fStartVelDiffWR = speed - fStartVelWR;
+
+			FormatEx(sVelDiff, sizeof(sVelDiff), "(SR: %s%s%.f",
+				fStartVelDiffWR > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffWR > 0 ? "+":"", fStartVelDiffWR);
+
+			float fStartVelPB = gF_PlayerStageStartVelocity[client][style][stage];
+
+			if(fStartVelPB > 0.0)
+			{
+				float fStartVelDiffPB = speed - fStartVelPB;
+
+				FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s | PB: %s%s%.f", sVelDiff, gS_ChatStrings.sText,
+					fStartVelDiffPB > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffPB > 0 ? "+":"", fStartVelDiffPB);
+			}
+
+			FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s)", sVelDiff, gS_ChatStrings.sText);
+		}
+
+		if((Shavit_GetMessageSetting(client) & MSG_SPEEDTRAP) == 0)
+		{
+			Shavit_StopChatSound();
+			Shavit_PrintToChat(client, "%T %s", "StageStartZonePrespeed", client,
+				gS_ChatStrings.sVariable2, stage, gS_ChatStrings.sText,
+				gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
+		}
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_SPEEDTRAP) == 0)
+			{
+				Shavit_StopChatSound();
+				Shavit_PrintToChat(i, "%s*%N*%s %T %s", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "StageStartZonePrespeed", i,
+					gS_ChatStrings.sVariable2, stage, gS_ChatStrings.sText,
+					gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
+			}
+		}
+	}
+	else
+	{
+		speed = Shavit_GetStartVelocity(client);
+
+		float fStartVelWR = Shavit_GetWRStartVelocity(style, track);
+		char sVelDiff[64];
+
+		if(fStartVelWR > 0.0)
+		{
+			float fStartVelDiffWR = speed - fStartVelWR;
+
+			FormatEx(sVelDiff, sizeof(sVelDiff), "(SR: %s%s%.f",
+				fStartVelDiffWR > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffWR > 0 ? "+":"", fStartVelDiffWR);
+
+			float fStartVelPB = gF_PlayerStartVelocity[client][style][track];
+
+			if(fStartVelPB > 0.0)
+			{
+				float fStartVelDiffPB = speed - fStartVelPB;
+
+				FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s | PB: %s%s%.f", sVelDiff, gS_ChatStrings.sText,
+					fStartVelDiffPB > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffPB > 0 ? "+":"", fStartVelDiffPB);
+			}
+
+			FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s)", sVelDiff, gS_ChatStrings.sText);
+		}
+
+		if((Shavit_GetMessageSetting(client) & MSG_SPEEDTRAP) == 0)
+		{
+			Shavit_StopChatSound();
+			Shavit_PrintToChat(client, "%T %s", "TrackStartZonePrespeed", client, gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
+		}
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_SPEEDTRAP) == 0)
+			{
+				Shavit_StopChatSound();
+				Shavit_PrintToChat(i, "%s*%N*%s %T %s", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "TrackStartZonePrespeed", i, gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
+			}
+		}	
 	}
 }
 

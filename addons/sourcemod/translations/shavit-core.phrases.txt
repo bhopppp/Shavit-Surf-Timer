@@ -288,16 +288,6 @@
 	{
 		"en"		"Jumping is not allowed in this zone."
 	}
-	"TrackStartZonePrespeed"
-	{
-		"#format"	"{1:s},{2:.f},{3:s}"
-		"en"		"Start: {1}{2}{3} u/s "
-	}
-	"StageStartZonePrespeed"
-	{
-		"#format"	"{1:s},{2:d},{3:s},{4:s},{5:.f},{6:s}"
-		"en"		"Stage {1}{2}{3} Start: {4}{5}{6} u/s "
-	}
 	"PrespeedLimitExcceded"
 	{
 		"#format"	"{1:s},{2:s}"

@@ -1062,6 +1062,7 @@ native Database Shavit_GetDatabase(int& outdriver=0);
  *
  * @param client					Client index.
  * @param track						Timer track.
+ * @param force						Bypassing prestrafe check and force timer start 
  * @noreturn
  */
 native void Shavit_StartTimer(int client, int track, bool force = false);

@@ -3560,6 +3560,7 @@ void StartStageTimer(int client, int track, int stage, bool force, bool first)
 			  	(curVel <= ClientMaxPrestrafe(client) || gA_Timers[client].iGroundTicks > RoundFloat(0.5/GetTickInterval())))) // beautiful
 			{
 				bool restart = first || gA_Timers[client].aStageStartInfo.iZoneIncrement > 1 || !gA_Timers[client].bStageTimerEnabled;
+				first |= gA_Timers[client].iStageAttempts[stage] == 0;
 
 				Call_StartForward(gH_Forwards_StageStart);
 				Call_PushCell(client);
@@ -4120,6 +4121,14 @@ public void CallOnTimerStarted(int client, bool bMainStageTimer)
 	int stage = gA_Timers[client].iLastStage; 
 	int style = gA_Timers[client].bsStyle;
 
+	bool bStageTimer = bMainStageTimer || (gA_Timers[client].bOnlyStageMode && gA_Timers[client].iTimerTrack == Track_Main);
+	CheckClientStartVelocity(client, track, stage, style, bStageTimer);
+
+	if (bMainStageTimer && !gA_Timers[client].bStageTimerEnabled)
+	{
+		return;
+	}
+
 	Call_StartForward(gH_Forawrds_Started);
 	Call_PushCell(client);
 	Call_PushCell(track);
@@ -4127,9 +4136,6 @@ public void CallOnTimerStarted(int client, bool bMainStageTimer)
 	Call_PushCell(style);
 	Call_PushCell(bMainStageTimer);
 	Call_Finish();
-
-	bool bStageTimer = bMainStageTimer || (gA_Timers[client].bOnlyStageMode && gA_Timers[client].iTimerTrack == Track_Main);
-	CheckClientStartVelocity(client, track, stage, style, bStageTimer);
 }
 
 public void CheckClientStartVelocity(int client, int track, int stage, int style, bool bStageTimer)
@@ -4169,54 +4175,9 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 			StopStageTimer(client);
 		}
 
-		if(curVel > 20)
+		if(!gA_Timers[client].bStageTimerEnabled)
 		{
-			float fStartVelWR = Shavit_GetStageWRStartVelocity(style, stage);
-			char sVelDiff[64];
-
-			if(fStartVelWR > 0.0)
-			{
-				float fStartVelDiffWR = speed - fStartVelWR;
-
-				FormatEx(sVelDiff, sizeof(sVelDiff), "(SR: %s%s%.f", 
-					fStartVelDiffWR > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffWR > 0 ? "+":"", fStartVelDiffWR);	
-
-				float fStartVelPB = Shavit_GetClientStageStartVelocity(client, style, stage);
-
-				if(fStartVelPB > 0.0)
-				{
-					float fStartVelDiffPB = speed - fStartVelPB;
-
-					FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s | PB: %s%s%.f", sVelDiff, gS_ChatStrings.sText,
-						fStartVelDiffPB > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffPB > 0 ? "+":"", fStartVelDiffPB);	
-				}
-
-				FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s)", sVelDiff, gS_ChatStrings.sText);
-			}
-
-			if((gI_MessageSettings[client] & MSG_SPEEDTRAP) == 0)
-			{
-				Shavit_StopChatSound();
-				Shavit_PrintToChat(client, "%T %s", "StageStartZonePrespeed", client,
-					gS_ChatStrings.sVariable2, stage, gS_ChatStrings.sText,
-					gA_Timers[client].bStageTimerEnabled ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, speed, gS_ChatStrings.sText, sVelDiff);
-			}
-
-			if(!gA_Timers[client].bStageTimerEnabled)
-			{
-				Shavit_PrintToChat(client, "%T", "PrespeedLimitExcceded", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-			}
-
-			for(int i = 1; i <= MaxClients; i++)
-			{
-				if(IsValidClient(i) && GetSpectatorTarget(i) == client && (gI_MessageSettings[i] & MSG_SPEEDTRAP) == 0)
-				{
-					Shavit_StopChatSound();
-					Shavit_PrintToChat(i, "%s*%N*%s %T %s", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "StageStartZonePrespeed", i,
-						gS_ChatStrings.sVariable2, stage, gS_ChatStrings.sText,
-						gA_Timers[client].bStageTimerEnabled ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, speed, gS_ChatStrings.sText, sVelDiff);
-				}
-			}
+			Shavit_PrintToChat(client, "%T", "PrespeedLimitExcceded", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		}
 	}
 	else
@@ -4224,47 +4185,6 @@ public void CheckClientStartVelocity(int client, int track, int stage, int style
 		gA_Timers[client].fStartVelocity = speed;
 		gA_Timers[client].aStageStartInfo.fStartVelocity = speed;
 		gA_Timers[client].bStageTimerEnabled = true;
-
-		if(curVel > 20)
-		{
-			float fStartVelWR = Shavit_GetWRStartVelocity(style, track);
-			char sVelDiff[64];
-
-			if(fStartVelWR > 0.0)
-			{
-				float fStartVelDiffWR = speed - fStartVelWR;
-
-				FormatEx(sVelDiff, sizeof(sVelDiff), "(SR: %s%s%.f", 
-					fStartVelDiffWR > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffWR > 0 ? "+":"", fStartVelDiffWR);	
-
-				float fStartVelPB = Shavit_GetClientStartVelocity(client, style, track);
-
-				if(fStartVelPB > 0.0)
-				{
-					float fStartVelDiffPB = speed - fStartVelPB;
-
-					FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s | PB: %s%s%.f", sVelDiff, gS_ChatStrings.sText,
-						fStartVelDiffPB > 0 ? gS_ChatStrings.sImproving : gS_ChatStrings.sWarning, fStartVelDiffPB > 0 ? "+":"", fStartVelDiffPB);	
-				}
-
-				FormatEx(sVelDiff, sizeof(sVelDiff), "%s%s u/s)", sVelDiff, gS_ChatStrings.sText);
-			}
-
-			if((gI_MessageSettings[client] & MSG_SPEEDTRAP) == 0)
-			{
-				Shavit_StopChatSound();
-				Shavit_PrintToChat(client, "%T %s", "TrackStartZonePrespeed", client, gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
-			}
-
-			for(int i = 1; i <= MaxClients; i++)
-			{
-				if(IsValidClient(i) && GetSpectatorTarget(i) == client && (Shavit_GetMessageSetting(i) & MSG_SPEEDTRAP) == 0)
-				{
-					Shavit_StopChatSound();
-					Shavit_PrintToChat(i, "%s*%N*%s %T %s", gS_ChatStrings.sImproving, client, gS_ChatStrings.sText, "TrackStartZonePrespeed", i, gS_ChatStrings.sVariable, speed, gS_ChatStrings.sText, sVelDiff);
-				}
-			}	
-		}
 	}
 }
 
